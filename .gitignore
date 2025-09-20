@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# local binaries
+yt-dlp.exe
+
+# runtime output (but allow .gitkeep so folders stay in Git)
+/tmp/*
+!/tmp/.gitkeep
+
+/public/out/*
+!/public/out/.gitkeep
+
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# environment
+.env

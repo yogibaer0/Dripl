@@ -1,0 +1,275 @@
+
+/* =============================================================================
+   Dripl — consolidated styles.css
+   - Dark glass UI
+   - Particles behind UI
+   - Header brand (small logo + name)
+   - Centered hero (big logo + Dripl) above convert card
+   - Clean form styling, buttons, and responsive tweaks
+============================================================================= */
+
+/* ----------------------- CSS Variables ----------------------- */
+:root{
+  --ink: #e7e6ff;
+  --ink-dim: #b9b7da;
+  --bg-1: #0f0e1a;
+  --bg-2: #171329;
+  --card: #1b1733;
+  --card-2: #1f1a3b;
+  --brand-1: #7a44ff;
+  --brand-2: #ff4fd8;
+  --accent: #6c5cff;
+  --ok: #4cdfa0;
+  --danger: #ff6f76;
+
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  --shadow-1: 0 8px 30px rgba(0,0,0,.25);
+  --shadow-2: 0 16px 48px rgba(0,0,0,.38);
+}
+
+/* ----------------------- Base ----------------------- */
+*{ box-sizing:border-box }
+html,body{ height:100% }
+html{ color-scheme: dark; }
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(60% 60% at 70% 10%, #1b1437 0%, transparent 60%),
+    radial-gradient(50% 20% at 80% 80%, #1a1534 0%, transparent 60%),
+    #0e0c18;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+a{ color:#aeb4ff; text-decoration:none }
+a:hover{ text-decoration:underline }
+
+/* ----------------------- Particles (behind) ----------------------- */
+#particles{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+  z-index:0;
+}
+
+/* (Optional droplet particle styling if you spawn <span class="drop">) */
+.drop{
+  position:absolute;
+  left:var(--left, 20px);
+  top:-20px;
+  width:var(--size, 12px);
+  height:var(--size, 12px);
+  border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, var(--brand-2), var(--brand-1), #542d9f);
+  filter: blur(.2px);
+  opacity:.25;
+  animation: fall var(--dur, 6s) linear var(--delay, 0s) forwards,
+             ripple 2s ease var(--delay, 0s) forwards;
+}
+@keyframes fall{
+  to{ transform: translateY(105vh); opacity:.18; }
+}
+@keyframes ripple{
+  0%{ box-shadow: 0 0 0 rgba(145,167,255,.25); }
+  100%{ box-shadow: 0 0 12px rgba(145,167,255,.2); }
+}
+
+/* ----------------------- Layout ----------------------- */
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  padding:0 20px;
+}
+
+/* Header stays above particles */
+.site-header{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  padding:22px 22px 10px;
+}
+
+/* Brand (small logo + Dripl + beta) */
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.logo{ display:block }
+.title{
+  font-weight:800;
+  letter-spacing:.2px;
+  font-size:18px;
+}
+.beta{
+  font-size:12px;
+  padding:2px 6px;
+  border-radius:6px;
+  background:#2b2551;
+  color:#c6c1ff;
+  border:1px solid #3a3464;
+}
+
+/* ----------------------- Main: Hero + Convert Card ----------------------- */
+.main{
+  /* centers the hero + card stack */
+  max-width:980px;
+  margin:80px auto 120px;
+  padding:0 20px;
+  display:flex;
+  flex-direction:column;
+  gap:28px;
+  position:relative;
+  z-index:1; /* above particles */
+}
+
+/* ===== HERO layout (logo + title) ===== */
+.hero{
+  display:flex;
+  flex-direction:row;            /* title and logo side-by-side */
+  align-items:center;
+  justify-content:center;
+  gap:28px;                      /* space between title and logo */
+  margin: 18px 0 10px;
+  z-index:1;                     /* stay above background particles */
+}
+
+.hero .hero-title{
+  order:-1;                      /* put the title BEFORE (to the left of) the image */
+  font-size: clamp(52px, 8vw, 120px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--ink);
+  text-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+
+.hero .mark{
+  width: clamp(140px, 15vw, 200px);  /* bigger droplet */
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 20px 50px rgba(0,0,0,.35));
+}
+
+/* Stack on small screens */
+@media (max-width: 640px){
+  .hero{
+    flex-direction:column;
+    gap:12px;
+  }
+  .hero .hero-title{
+    order:0;                     /* title above logo when stacked */
+    font-size: clamp(36px, 10vw, 56px);
+  }
+}
+
+
+/* Convert card */
+.card{
+  background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  padding:28px;
+}
+.card.xl{ width:100%; max-width:980px; margin:0 auto; }
+.card h1{
+  margin:0 0 6px;
+  font-size:32px;
+  letter-spacing:.3px;
+}
+.card p{
+  margin:0 0 18px;
+  color:var(--ink-dim);
+}
+
+/* ----------------------- Form ----------------------- */
+.row{
+  display:flex;
+  gap:14px;
+}
+.row.biggap{ gap:14px; }
+
+.input, .select{
+  appearance:none;
+  outline:none;
+  border:none;
+  width:100%;
+  padding:16px 16px;
+  font-size:16px;
+  color:var(--ink);
+  background: #1a1732;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.select{
+  width:260px;
+  min-width:220px;
+  background-image:
+     linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+     linear-gradient(135deg, var(--ink) 50%, transparent 50%),
+     linear-gradient(to right, transparent, transparent);
+  background-position:
+     calc(100% - 22px) calc(50% - 3px),
+     calc(100% - 16px) calc(50% - 3px),
+     calc(100% - 2.5em) 0.6em;
+  background-size: 6px 6px, 6px 6px, 1px 1.6em;
+  background-repeat:no-repeat;
+}
+
+.actions{ margin-top:16px }
+.btn{
+  appearance:none;
+  border:none;
+  border-radius: var(--radius-md);
+  padding:12px 18px;
+  font-weight:700;
+  background: linear-gradient(180deg, #5d58ff, #3e37f6);
+  color:white;
+  box-shadow: 0 8px 22px rgba(82,75,255,.28);
+  cursor:pointer;
+}
+.btn:hover{ filter:brightness(1.06) }
+.btn:active{ transform: translateY(1px) }
+
+/* Status/result text area (if you show messages below the form) */
+.result{
+  margin-top:12px;
+  color:var(--ink-dim);
+}
+
+/* ----------------------- Footer ----------------------- */
+footer{
+  position:relative;
+  z-index:1;
+  color:#9a96c8;
+  text-align:center;
+  padding:32px 0 40px;
+  font-size:14px;
+}
+
+/* ----------------------- Utilities ----------------------- */
+.hidden{ display:none !important; }
+
+/* ----------------------- Responsive ----------------------- */
+@media (max-width: 860px){
+  .hero-title{ font-size:48px; }
+  .hero .mark{ width:120px }
+  .row{ flex-direction:column }
+  .select{ width:100%; min-width:0 }
+}
+@media (max-width: 420px){
+  .hero-title{ font-size:40px; }
+  .site-header{ padding:18px 16px 8px }
+  .main{ margin:64px auto 96px; padding:0 16px; gap:22px }
+  .card{ padding:22px }
+}
