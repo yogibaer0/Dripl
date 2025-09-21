@@ -55,17 +55,15 @@ if (!globalThis.__ffmpegWired) {
   globalThis.__ffmpegWired = { FFMPEG_DIR, FFPROBE_DIR };
 }
 
+// --- yt-dlp binary (cross-platform; works on Render + local) ---
+import fs from "fs";
+import path from "path";
 
-
-// yt-dlp binary (cross-platform, works on Render + local)
-import ytdlp from "yt-dlp-exec";
-
-const YTDLP_BIN = ytdlp.path;
-
-const localWin = path.join(__dirname, "yt-dlp.exe");
+const localWin   = path.join(__dirname, "yt-dlp.exe"); // if you keep the exe next to server.js for Windows
 const YTDLP_PATH =
-  process.env.YTDLP_PATH ||
-  (process.platform === "win32" && fs.existsSync(localWin) ? localWin : YTDLP_BIN);
+  process.platform === "win32" && fs.existsSync(localWin)
+    ? localWin
+    : "yt-dlp"; // Render/Docker: installed into PATH (e.g., /usr/local/bin/yt-dlp)
 
 // ---------- config ----------
 const queue = new PQueue({

@@ -21,7 +21,6 @@
     "mime": "^3.0.0",
     "p-queue": "^8.0.1",
     "uuid": "^9.0.1",
-    "yt-dlp-exec": "^1.0.2"
   },
   "devDependencies": {
     "cross-env": "^7.0.3"
