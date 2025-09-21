@@ -57,11 +57,15 @@ if (!globalThis.__ffmpegWired) {
 
 
 
-// yt-dlp binary (Windows exe next to server.js; else expect in PATH)
+// yt-dlp binary (cross-platform, works on Render + local)
+import ytdlp from "yt-dlp-exec";
+
+const YTDLP_BIN = ytdlp.path;
+
+const localWin = path.join(__dirname, "yt-dlp.exe");
 const YTDLP_PATH =
-  process.platform === "win32"
-    ? path.join(__dirname, "yt-dlp.exe")
-    : "yt-dlp";
+  process.env.YTDLP_PATH ||
+  (process.platform === "win32" && fs.existsSync(localWin) ? localWin : YTDLP_BIN);
 
 // ---------- config ----------
 const queue = new PQueue({

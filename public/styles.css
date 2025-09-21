@@ -101,13 +101,13 @@ a:hover{ text-decoration:underline }
 .brand{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:20px;
 }
 .logo{ display:block }
 .title{
-  font-weight:800;
+  font-weight:900;
   letter-spacing:.2px;
-  font-size:18px;
+  font-size:20px;
 }
 .beta{
   font-size:12px;
@@ -117,6 +117,16 @@ a:hover{ text-decoration:underline }
   color:#c6c1ff;
   border:1px solid #3a3464;
 }
+/* Keep the small logo crisp and in the correct ratio */
+.site-header .brand .logo {
+  height: 22px;      /* or 24px if you want it a touch larger */
+  width: auto;       /* preserves aspect ratio */
+  object-fit: contain;
+}
+
+/* optional: tighten spacing in the brand row */
+.site-header .brand { gap: 8px; }  /* was 10px */
+
 
 /* ----------------------- Main: Hero + Convert Card ----------------------- */
 .main{
@@ -132,31 +142,34 @@ a:hover{ text-decoration:underline }
 }
 
 /* ===== HERO layout (logo + title) ===== */
-.hero{
-  display:flex;
-  flex-direction:row;            /* title and logo side-by-side */
-  align-items:center;
-  justify-content:center;
-  gap:28px;                      /* space between title and logo */
-  margin: 18px 0 10px;
-  z-index:1;                     /* stay above background particles */
+.hero {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;              /* smaller gap = closer; try 6–12px */
 }
 
 .hero .hero-title{
-  order:-1;                      /* put the title BEFORE (to the left of) the image */
-  font-size: clamp(52px, 8vw, 120px);
+  order:1;                      /* put the title BEFORE (to the left of) the image */
+  font-size: clamp(52px, 8vw, 150px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: .02em;
   color: var(--ink);
   text-shadow: 0 8px 24px rgba(0,0,0,.35);
 }
+.hero .hero-title::first-letter {
+  font-size: 1.25em;   /* tweak 1.15–1.35em as you like */
+  line-height: 1;
+  position: relative;
+  top: 0.02em;         /* tiny vertical nudge */
+}
 
-.hero .mark{
-  width: clamp(140px, 15vw, 200px);  /* bigger droplet */
-  height: auto;
-  display: block;
-  filter: drop-shadow(0 20px 50px rgba(0,0,0,.35));
+
+.hero .mark {
+  height: 150px;          /* bump this up/down until it feels right (e.g., 140–180) */
+  width: auto;
+  transform: translateY(4px); /* tiny nudge so it aligns nicely with the baseline */
 }
 
 /* Stack on small screens */
@@ -170,6 +183,22 @@ a:hover{ text-decoration:underline }
     font-size: clamp(36px, 10vw, 56px);
   }
 }
+/* tighten spacing between the word and the droplet */
+.hero {
+  gap: 0 !important;
+  column-gap: 0;
+}
+
+/* remove any extra margins */
+.hero .hero-title { margin: 0 0 0 -16px; }  /* nudge the word left */
+.hero .mark       { margin: 0; display: block; width: auto; }
+
+/* nudge past the PNG’s transparent padding */
+/* If the DROPLET is on the LEFT of the word: */
+.hero .mark { margin-right: -8px; }   /* make more negative to tuck closer */
+
+/* If the DROPLET is on the RIGHT of the word, use this instead: */
+/* .hero .mark { margin-left: -8px; } */
 
 
 /* Convert card */
@@ -273,3 +302,7 @@ footer{
   .main{ margin:64px auto 96px; padding:0 16px; gap:22px }
   .card{ padding:22px }
 }
+@media (max-width: 640px) {
+  .hero { gap: 8px; }  /* or whatever you prefer when stacked */
+}
+
