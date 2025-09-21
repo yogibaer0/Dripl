@@ -56,7 +56,6 @@ if (!globalThis.__ffmpegWired) {
 }
 
 // --- yt-dlp binary (cross-platform; works on Render + local) ---
-import fs from "fs";
 import path from "path";
 
 const localWin   = path.join(__dirname, "yt-dlp.exe"); // if you keep the exe next to server.js for Windows
