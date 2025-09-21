@@ -1,24 +1,30 @@
 {
   "name": "dripl",
   "version": "1.0.0",
-  "description": "Dripl - Convert video links to MP3 or MP4",
+  "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "cross-env DEBUG_ERRORS=1 node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "yt-dlp-exec": "^2.0.0",
-    "ffmpeg-static": "^5.1.0",
     "@ffprobe-installer/ffprobe": "^1.4.1",
-    "p-queue": "^7.4.1",
-    "helmet": "^7.0.0",
-    "express-rate-limit": "^7.1.0",
-    "cross-env": "^7.0.3"
+    "axios": "^1.7.2",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "helmet": "^7.1.0",
+    "mime": "^3.0.0",
+    "p-queue": "^8.0.1",
+    "uuid": "^9.0.1",
+    "yt-dlp-exec": "^1.0.2"
   },
-  "engines": {
-    "node": ">=20"
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }
 
