@@ -1,239 +1,223 @@
-// server.js — Dripl (MP3/MP4 converter) — ESM
+// server.js — Dripl API (ESM)
 
 import express from "express";
+import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import PQueue from "p-queue";
-import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
-import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import ffprobeInstaller from "@ffprobe-installer/ffprobe";
-import { path as YTDLP_BIN_PKG } from "yt-dlp-exec";
-import mime from "mime";
 
-// ────────────────────────── paths & globals ──────────────────────────
+
+// ------------------------- basic app setup -------------------------
+const app = express();
+app.use(express.json({ limit: "1mb" }));
+app.use(cors());
+app.use(helmet());
+
+// rate limit: 100 requests / 15 minutes per IP
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
+
+// ESM helpers
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const TMP    = path.join(__dirname, "tmp");
+// folders
 const PUBLIC = path.join(__dirname, "public");
-const OUT    = path.join(PUBLIC, "out");
+const OUT = path.join(PUBLIC, "out");
+const TMP = path.join(__dirname, "tmp");
+for (const d of [PUBLIC, OUT, TMP]) fs.mkdirSync(d, { recursive: true });
 
-for (const d of [TMP, OUT]) fs.mkdirSync(d, { recursive: true });
+// serve static frontend + generated files
+app.use(express.static(PUBLIC, { fallthrough: true }));
 
-// ───────────────────────── ffmpeg / ffprobe wiring ───────────────────
-const FFMPEG_BIN   = ffmpegStatic || "";                     // absolute path or ""
-const FFPROBE_BIN  = ffprobeInstaller?.path || "";           // absolute path or ""
+// ------------------------- yt-dlp resolution -------------------------
+/**
+ * We try in this order:
+ * 1) env YTDLP_PATH
+ * 2) local Windows exe (./yt-dlp.exe)
+ * 3) system PATH ("yt-dlp")
+ */
+function resolveYtDlp() {
+  const fromEnv = process.env.YTDLP_PATH;
+  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
 
-// Tell fluent-ffmpeg where the binaries are (works locally and on Render)
-if (FFMPEG_BIN)  ffmpeg.setFfmpegPath(FFMPEG_BIN);
-if (FFPROBE_BIN) ffmpeg.setFfprobePath(FFPROBE_BIN);
+  const localWin = path.join(__dirname, "yt-dlp.exe");
+  if (process.platform === "win32" && fs.existsSync(localWin)) return localWin;
 
-// Put their folders on PATH for spawned processes like yt-dlp
-process.env.PATH = [
-  FFMPEG_BIN ? path.dirname(FFMPEG_BIN) : "",
-  FFPROBE_BIN ? path.dirname(FFPROBE_BIN) : "",
-  process.env.PATH || ""
-].filter(Boolean).join(path.delimiter);
+  return "yt-dlp"; // expect found on PATH (Linux/macOS or user-installed)
+}
 
-// ────────────────────────── yt-dlp binary resolve ────────────────────
-// Prefer a local exe on Windows if present, else the package path.
-const localWin = path.join(__dirname, "yt-dlp.exe");
-const YTDLP_BIN = (process.platform === "win32" && fs.existsSync(localWin))
-  ? localWin
-  : YTDLP_BIN_PKG;
+const YTDLP_BIN = resolveYtDlp();
+console.log("YTDLP_BIN:", YTDLP_BIN);
+const FFMPEG_BIN = ffmpegStatic || process.env.FFMPEG_PATH || "ffmpeg";
+const FFPROBE_BIN = ffprobeInstaller?.path || process.env.FFPROBE_PATH || "";
+console.log("FFMPEG_BIN:", FFMPEG_BIN);
+if (FFPROBE_BIN) console.log("FFPROBE_BIN:", FFPROBE_BIN);
 
-// ───────────────────────────── queue & config ─────────────────────────
-const queue = new PQueue({
-  concurrency: Number(process.env.WORKERS || 2)
-});
 
-const MAX_DURATION_SECONDS = Number(process.env.MAX_DURATION_SECONDS || 900); // 15m
-const MAX_DOWNLOAD_BYTES   = Number(process.env.MAX_DOWNLOAD_BYTES   || 200*1024*1024); // 200MB
+// ------------------------- utilities -------------------------
+const toUrlPath = (absPath) =>
+  absPath.replace(PUBLIC, "").replace(/\\/g, "/").replace(/^\/?/, "/");
 
-// ───────────────────────────── helpers ────────────────────────────────
-const isHttpUrl = s => /^https?:\/\/\S+/i.test(s);
+const isLikelyFilePath = (line) =>
+  /^[A-Za-z]:\\.*\.(mp4|m4a|mp3|mkv|webm)$/i.test(line.trim()) || // Windows
+  /^\/.*\.(mp4|m4a|mp3|mkv|webm)$/i.test(line.trim()); // *nix
 
-function normalizeUrl(raw) {
+const allowedFormats = new Set(["mp3", "mp4"]);
+const safeProtocols = new Set(["http:", "https:"]);
+
+function validateInput(url, format) {
+  if (!url || !format) throw new Error("Missing url or format");
+  if (!allowedFormats.has(format)) throw new Error("Unsupported format");
+  let parsed;
   try {
-    let s = (raw || "").trim();
-    if (!s) return s;
-
-    // If no scheme, assume https
-    if (!/^https?:\/\//i.test(s)) s = "https://" + s;
-
-    const u = new URL(s);
-
-    // unify some hosts
-    if (u.hostname === "m.youtube.com") u.hostname = "www.youtube.com";
-    if (u.hostname === "youtu.be") {
-      const id = u.pathname.slice(1);
-      u.hostname = "www.youtube.com";
-      u.pathname = "/watch";
-      u.searchParams.set("v", id);
-    }
-
-    // strip noise query params
-    ["si", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(p => u.searchParams.delete(p));
-
-    return u.toString();
+    parsed = new URL(url);
   } catch {
-    return raw || "";
+    throw new Error("Invalid URL");
   }
+  if (!safeProtocols.has(parsed.protocol)) throw new Error("Invalid URL protocol");
 }
 
-async function findProducedFile(dir, idPrefix) {
-  const files = await fs.promises.readdir(dir);
-  const hit = files.find(f => f.startsWith(idPrefix));
-  return hit ? path.join(dir, hit) : "";
+function buildArgs(url, fmt) {
+  const template = path.join(OUT, "%(id)s.%(ext)s");
+
+  const base = [
+    url,
+    "--no-color",
+    "--no-playlist",
+    "--ignore-errors",
+    "--abort-on-error",
+    "--no-overwrites",
+    "--restrict-filenames",
+    "--newline",
+    "-o", template,
+    "--print", "after_move:filepath",
+    "--print", "filename",
+    "--user-agent", "Mozilla/5.0",
+    // 👇 tell yt-dlp exactly where ffmpeg is
+    "--ffmpeg-location", FFMPEG_BIN,
+  ];
+
+  if (fmt === "mp4") {
+    base.push(
+      "-f",
+      "bestvideo*[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+      "--merge-output-format", "mp4"
+    );
+  } else if (fmt === "mp3") {
+    base.push("-f", "bestaudio/best", "-x", "--audio-format", "mp3");
+  }
+
+  return base;
 }
 
-function cleanLater(filePath, ms = 6 * 60 * 60 * 1000) { // 6h
-  setTimeout(() => {
-    fs.promises.unlink(filePath).catch(() => {});
-  }, ms);
-}
 
-function spawnYtDlp(args, childEnv = {}) {
+function runYtDlp(url, format) {
   return new Promise((resolve, reject) => {
-    const child = spawn(YTDLP_BIN, args, {
-      env: { ...process.env, ...childEnv },
-      stdio: ["ignore", "pipe", "pipe"]
+    const args = buildArgs(url, format);
+    const child = spawn(YTDLP_BIN, args, { stdio: ["ignore", "pipe", "pipe"] });
+
+    let finalPath = "";
+    let lastLine = "";
+
+    child.stdout.on("data", (buf) => {
+      const text = buf.toString();
+      text.split(/\r?\n/).forEach((line) => {
+        if (!line) return;
+        lastLine = line.trim();
+        // yt-dlp will print absolute output path (because we used --print ...)
+        if (isLikelyFilePath(lastLine)) finalPath = lastLine;
+        // helpful debugging
+        // console.log("[yt-dlp]", lastLine);
+      });
     });
 
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", d => { stdout += d.toString(); });
-    child.stderr.on("data", d => { stderr += d.toString(); });
+    child.stderr.on("data", (buf) => {
+      // Keep stderr visible for debugging, but don't fail just on warnings
+      console.error("[yt-dlp]", buf.toString().trim());
+    });
 
-    child.on("error", reject);
-    child.on("close", code => {
-      if (code === 0) resolve({ stdout, stderr });
-      else reject(Object.assign(new Error(`yt-dlp exited ${code}`), {code, stdout, stderr}));
+    child.on("close", (code) => {
+      // Some versions don’t always print the file path twice, so fall back
+      if (!finalPath && isLikelyFilePath(lastLine)) finalPath = lastLine;
+
+      if (code !== 0) return reject(new Error(`yt-dlp exited ${code}`));
+      if (!finalPath || !fs.existsSync(finalPath)) {
+        return reject(
+          new Error(
+            "Download finished but no output file was detected (maybe blocked or removed)."
+          )
+        );
+      }
+      resolve(finalPath);
     });
   });
 }
 
-// ───────────────────────────── express app ────────────────────────────
-const app = express();
-app.disable("x-powered-by");
-app.use(helmet({
-  contentSecurityPolicy: false
-}));
-app.use(rateLimit({
-  windowMs: 60 * 1000,
-  max: 60
-}));
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: false }));
-
-// static site
-app.use(express.static(PUBLIC, {
-  setHeaders(res, filePath) {
-    // force download for /out/*
-    if (filePath.startsWith(OUT)) {
-      res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
+// Clean old tmp files on boot (best effort)
+try {
+  if (fs.existsSync(TMP)) {
+    for (const f of fs.readdirSync(TMP)) {
+      const p = path.join(TMP, f);
+      try {
+        const st = fs.statSync(p);
+        if (Date.now() - st.mtimeMs > 6 * 60 * 60 * 1000) fs.unlinkSync(p); // >6h old
+      } catch {}
     }
   }
-}));
+} catch {}
 
-// health
+// ------------------------- routes -------------------------
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, ffmpeg: Boolean(FFMPEG_BIN), ffprobe: Boolean(FFPROBE_BIN), ytdlp: Boolean(YTDLP_BIN) });
-});
-
-// main: auto (MP3/MP4 by 'format')
-app.post("/api/auto", async (req, res) => {
-  const body   = req.body || {};
-  const target = (body.format || "mp3").toLowerCase();
-  const rawUrl = body.url || "";
-  const url    = normalizeUrl(rawUrl);
-
-  if (!isHttpUrl(url)) {
-    return res.status(400).json({ error: "Enter a URL" });
-  }
-
-  // put the job in a small queue
-  try {
-    const result = await queue.add(() => runConvert(url, target));
-    res.json(result);
-  } catch (err) {
-    console.error("RAW ERROR:", err);
-    res.status(500).json({ error: "Unexpected error. Please try again." });
-  }
-});
-
-// ─────────────────────────── conversion core ──────────────────────────
-async function runConvert(url, target) {
-  // 0) normalize -> id -> baseTmp
-  const id      = uuidv4();
-  const baseTmp = path.join(TMP, `${id}.%(ext)s`);
-
-  // 1) build yt-dlp args
-  const args = [url, "-o", baseTmp];
-
-  if (target === "mp3") {
-    // best audio, extract as mp3 (quality 0 = best)
-    args.push(
-      "-x",
-      "--audio-format", "mp3",
-      "--audio-quality", "0"
-    );
-  } else {
-    // mp4: prefer H.264+AAC; if not available, remux
-    // This combination gives nice results while keeping things simple.
-    args.push(
-      "-f", "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b",
-      "--merge-output-format", "mp4"
-    );
-  }
-
-  // 2) sane limits
-  args.push(
-    "--no-playlist",
-    "--no-warnings",
-    "--restrict-filenames",
-    "--max-filesize", `${MAX_DOWNLOAD_BYTES}`,
-    "--download-sections", `*0-${MAX_DURATION_SECONDS}`
-  );
-
-  // 3) run
-  await spawnYtDlp(args);
-
-  // 4) find produced file
-  const produced = await findProducedFile(TMP, id);
-  if (!produced) {
-    throw new Error("No output file produced");
-  }
-
-  // 5) move to public/out with a nice name
-  const ext = path.extname(produced) || (target === "mp3" ? ".mp3" : ".mp4");
-  const outName = `${id}${ext}`;
-  const dest = path.join(OUT, outName);
-  await fs.promises.rename(produced, dest);
-
-  // 6) schedule cleanup
-  cleanLater(dest);
-
-  // 7) return link
-  return {
+  res.json({
     ok: true,
-    file: `/out/${outName}`,
-    mime: mime.getType(ext) || (target === "mp3" ? "audio/mpeg" : "video/mp4")
-  };
-}
+    node: process.version,
+    ytdlp: YTDLP_BIN,
+    outDir: "/out",
+  });
+});
 
-// ─────────────────────────── start server ─────────────────────────────
-const PORT = Number(process.env.PORT || 3000);
+app.post("/api/auto", async (req, res) => {
+  try {
+    const { url, format } = req.body || {};
+    validateInput(url, format);
+    const outPath = await runYtDlp(url, format);
+    const relUrl = toUrlPath(outPath); // e.g. "/out/VIDEOID.mp4"
+    return res.json({ ok: true, url: relUrl });
+  } catch (err) {
+    console.error("[/api/auto] error:", err);
+    return res.status(500).json({ ok: false, error: err.message || "Failed" });
+  }
+});
+
+// Fallback to index.html for any non-API route (optional)
+app.get("*", (req, res, next) => {
+  const maybeFile = path.join(PUBLIC, req.path);
+  if (fs.existsSync(maybeFile) && fs.statSync(maybeFile).isFile()) {
+    return res.sendFile(maybeFile);
+  }
+  const index = path.join(PUBLIC, "index.html");
+  if (fs.existsSync(index)) return res.sendFile(index);
+  next();
+});
+
+// ------------------------- start server -------------------------
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`FFMPEG at: ${FFMPEG_BIN || "(none)"}`);
-  console.log(`FFPROBE at: ${FFPROBE_BIN || "(none)"}`);
-  console.log(`YTDLP   at: ${YTDLP_BIN || "(none)"}`);
   console.log(`Server listening on http://127.0.0.1:${PORT}`);
 });
+
+
 
 
