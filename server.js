@@ -93,6 +93,11 @@ async function resolveCookiesFile() {
   return null;
 }
 
+if (process.env.YTDLP_COOKIES_B64) {
+  console.log("Loaded cookies, length =", process.env.YTDLP_COOKIES_B64.length);
+}
+
+
 // ---------- utility: run a process ----------
 function run(cmd, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -235,12 +240,22 @@ app.post("/api/auto", async (req, res) => {
 // Static files (results available at /out/<file>)
 app.use(express.static(PUBLIC, { extensions: ["html"] }));
 
-// ---------- start server ----------
+// -------- start server --------
 const PORT = Number(process.env.PORT || 3000);
-app.listen(PORT, () => {
+const HOST = "0.0.0.0";          // required for Render
+
+app.set("trust proxy", 1);       // good practice behind Render's proxy
+
+app.listen(PORT, HOST, () => {
   console.log("FFMPEG at:", FFMPEG_BIN || "(not found)");
   console.log("FFPROBE at:", FFPROBE_BIN || "(not found)");
   console.log("YTDLP_BIN:", YTDLP_BIN);
-  console.log(`Server listening on http://127.0.0.1:${PORT}`);
+  if (process.env.YTDLP_COOKIES_B64) {
+    console.log("Loaded cookies, length =", process.env.YTDLP_COOKIES_B64.length);
+  } else {
+    console.log("Loaded cookies: NONE");
+  }
+  console.log(`Server listening on http://${HOST}:${PORT}`);
 });
+
 
