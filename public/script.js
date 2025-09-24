@@ -1,10 +1,7 @@
 // public/script.js
-// Dripl UI script — safe to paste over your existing file
-
 (() => {
   'use strict';
 
-  // ---- element helpers ----
   const $ = (id) => document.getElementById(id);
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -16,13 +13,11 @@
     const yearEl  = $('year');
     const particlesHost = $('particles');
 
-    // Footer year
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    // Health ping (non-blocking)
-    fetch('/api/health').catch(() => { /* ignore */ });
+    // non-blocking ping
+    fetch('/api/health').catch(() => {});
 
-    // Allow Enter to submit from URL field
     if (urlEl && form) {
       urlEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -32,7 +27,6 @@
       });
     }
 
-    // Main submit handler (robust)
     if (form && urlEl && fmtEl && btn && resEl) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -50,7 +44,7 @@
         resEl.textContent = 'Working...';
 
         try {
-          const r = await fetch("/api/convert", {
+          const r = await fetch('/api/convert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, format })
@@ -68,7 +62,6 @@
             throw new Error('No file returned. Try another link.');
           }
 
-          // Success UI
           const fileUrl = data.url;
           const label = fileUrl.split('/').pop() || 'Download';
           resEl.innerHTML = `
@@ -86,7 +79,7 @@
       console.warn('[dripl] Missing expected form elements');
     }
 
-    // ---- Optional: tiny particle/ripple layer ----
+    // Optional visuals
     if (particlesHost) {
       particlesHost.style.position = 'fixed';
       particlesHost.style.inset = '0';
@@ -97,7 +90,6 @@
     }
   });
 
-  // ---------------- particles ----------------
   function spawnInitialDroplets(host) {
     for (let i = 0; i < 10; i++) spawnDroplet(host, true);
   }
@@ -106,7 +98,7 @@
     const d = document.createElement('span');
     d.className = 'drop';
     const size = 6 + Math.random() * 12; // px
-    const dur = 4 + Math.random() * 5;   // seconds
+    const dur = 4 + Math.random() * 5;   // s
     const left = Math.random() * 100;    // vw
     const top = initial ? (10 + Math.random() * 70) : -5; // vh
 
@@ -116,9 +108,9 @@
     d.style.left = `${left}vw`;
     d.style.top = `${top}vh`;
     d.style.borderRadius = '50%';
-    d.style.background = 'radial-gradient(circle at 30% 30%, #9a7bff, #4b2aac)`;
+    d.style.background = 'radial-gradient(circle at 30% 30%, #9a7bff, #4b2aac)';
     d.style.opacity = '0.25';
-    d.style.boxShadow = '0 0 0 rgba(145,167,255,0.25)`;
+    d.style.boxShadow = '0 0 0 rgba(145,167,255,0.25)';
     d.style.transition = `transform ${dur}s linear, opacity 1s ease`;
 
     host.appendChild(d);
