@@ -204,15 +204,27 @@ app.post("/api/convert", async (req, res) => {
   });
 });
 
-// optional: hot-reload cookie pool (no redeploy)
 app.post("/api/admin/cookies/reload", async (req, res) => {
-  if (!process.env.ADMIN_TOKEN || req.headers["x-admin-token"] !== process.env.ADMIN_TOKEN) {
+  const headerToken = String(
+    req.headers["x-admin-token"] ??
+    req.headers["X-Admin-Token"] ??
+    req.get?.("x-admin-token") ??
+    ""
+  ).trim();
+
+  const envToken = String(process.env.ADMIN_TOKEN || "").trim();
+
+  if (!envToken || headerToken !== envToken) {
+    console.log("[admin] bad token",
+      { hasEnv: !!envToken, headerLen: headerToken.length }); // debug only; no secrets
     return res.status(401).json({ ok: false, error: "unauthorized" });
   }
+
   const { cookiePoolB64 } = req.body || {};
   const count = await reloadCookiePool(cookiePoolB64 || "");
   res.json({ ok: true, count });
 });
+
 
 // static files
 app.use(express.static(PUBLIC, { extensions: ["html"] }));
