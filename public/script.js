@@ -50,7 +50,7 @@
         resEl.textContent = 'Working...';
 
         try {
-          const r = await fetch('/api/auto', {
+          const r = await fetch("/api/convert", …)
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, format })
