@@ -117,7 +117,9 @@ async function runYtDlp({ url, kind, cookiesPath }) {
 
   const args = [...baseArgs, ...fmtArgs, url];
 
-  const res = await spawnYtDlp(args, { cwd: __dirname });
+console.log("[yt-dlp] Running:", args.join(" "));
+  
+const res = await spawnYtDlp(args, { cwd: __dirname });
   if (res.stderr) console.log("[yt-dlp:warn]", res.stderr.slice(0, 1500));
 
   // pick latest file written in last 2 minutes
@@ -166,42 +168,52 @@ app.post("/api/convert", async (req, res) => {
   const fmt = (kind || "mp4").toLowerCase();
   if (!["mp3", "mp4"].includes(fmt)) return res.status(400).json({ ok: false, error: "Invalid format." });
 
-  const attempts = Math.max(1, COOKIE_POOL.length) + 1; // pool + final nocookie
+  const attempts = Math.max(1, COOKIE_POOL.length) + 1; // pool + final no-cookie
   let lastErr = null;
 
   for (let i = 0; i < attempts; i++) {
     let cookiePath = null;
+    const label = (i < COOKIE_POOL.length) ? `cookie#${i+1}/${COOKIE_POOL.length}` : "no-cookies";
     try {
       cookiePath = (i < COOKIE_POOL.length) ? await nextCookiePathOrNull() : null;
+      console.log(`[convert] attempt ${i+1}/${attempts} using ${label}`);
+
       const abs = await runYtDlp({ url, kind: fmt, cookiesPath: cookiePath || undefined });
       const file = path.basename(abs);
       const publicPath = `/out/${file}`;
+      console.log(`[convert] SUCCESS via ${label} -> ${publicPath}`);
       return res.json({ ok: true, url: publicPath, file });
+
     } catch (err) {
       lastErr = err;
-      const stderr = String(err?.stderr || "").toLowerCase();
+      const stderr = String(err?.stderr || "");
+      const s = stderr.toLowerCase();
+
+      // show a concise reason in logs
+      let reason = "unknown";
+      if (s.includes("confirm you're not a bot") || s.includes("sign in to confirm")) reason = "verification";
+      else if (s.includes("age restricted")) reason = "age-restricted";
+      else if (s.includes("forbidden") || s.includes("http error 403")) reason = "403-forbidden";
+      else if (s.includes("http error 429")) reason = "429-rate";
+      else if (s.includes("account cookies are no longer valid")) reason = "cookies-invalid";
+
+      console.error(`[convert] FAIL via ${label}; reason=${reason}; code=${err?.code ?? "?"}`);
+      if (stderr) console.error("[yt-dlp:stderr]", stderr.slice(0, 600)); // first 600 chars so Render shows it
+
       const challenged =
-        stderr.includes("confirm you're not a bot") ||
-        stderr.includes("sign in to confirm") ||
-        stderr.includes("account cookies are no longer valid") ||
-        stderr.includes("age restricted") ||
-        stderr.includes("forbidden") ||
+        reason !== "unknown" ||
         err?.code === 502;
-      if (challenged && i + 1 < attempts) {
-        continue; // try next cookie or final no-cookie attempt
-      }
+
+      if (challenged && i + 1 < attempts) continue; // try next cookie or final no-cookie
       break;
+
     } finally {
-      // clean up temp cookie file if any
       try { if (cookiePath) await fsp.unlink(cookiePath); } catch {}
     }
   }
 
-  console.error("[convert fail]", lastErr?.message || lastErr);
-  return res.status(502).json({
-    ok: false,
-    error: "We’re refreshing access—try again in a moment."
-  });
+  console.error("[convert] all attempts exhausted");
+  return res.status(502).json({ ok: false, error: "We’re refreshing access—try again in a moment." });
 });
 
 app.post("/api/admin/cookies/reload", async (req, res) => {
