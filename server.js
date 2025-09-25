@@ -21,7 +21,6 @@ const PUBLIC = path.join(__dirname, "public");
 const OUT = path.join(PUBLIC, "out");
 for (const d of [PUBLIC, OUT]) if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 
-// ---- ffmpeg/ffprobe on PATH for yt-dlp ----
 const FFMPEG_BIN = (ffmpegStatic || "").toString().replace(/\\/g, "/") || "";
 const FFPROBE_BIN = (ffprobeInstaller?.path || "").toString().replace(/\\/g, "/") || "";
 const sep = process.platform === "win32" ? ";" : ":";
@@ -33,17 +32,16 @@ process.env.PATH = [
 process.env.FFMPEG_PATH = FFMPEG_BIN;
 process.env.FFPROBE_PATH = FFPROBE_BIN;
 
-// ---- yt-dlp path resolution ----
 function resolveYtDlp() {
   if (process.platform === "win32") {
     const exe = path.join(__dirname, "yt-dlp.exe");
     if (fs.existsSync(exe)) return exe;
   }
-  return "yt-dlp"; // rely on system/package
+  return "yt-dlp";
 }
 const YTDLP_BIN = resolveYtDlp();
 
-// ---------------- cookie pool + metadata ----------------
+// ---------------- cookie pool ----------------
 function b64ToText(b64) { return Buffer.from(b64.replace(/\s+/g, ""), "base64").toString("utf8"); }
 function hashId(text) { return crypto.createHash("sha256").update(text).digest("hex").slice(0, 8); }
 
@@ -53,8 +51,8 @@ function loadCookiePoolFromEnv() {
   return raw.split(",").map(s => s.trim()).filter(Boolean).map(b64ToText);
 }
 
-let COOKIE_POOL = loadCookiePoolFromEnv(); // array of plaintext cookie files
-let COOKIE_META = [];                      // [{ id, idx, ok, fail, lastOk, lastFail }]
+let COOKIE_POOL = loadCookiePoolFromEnv();
+let COOKIE_META = [];
 let COOKIE_IDX = 0;
 
 function rebuildCookieMeta() {
@@ -75,7 +73,6 @@ async function writeTempCookies(text) {
   return p;
 }
 
-// returns { path, idx, id } or null
 async function nextCookiePathOrNull() {
   if (!COOKIE_POOL.length) return null;
   const i = COOKIE_IDX % COOKIE_POOL.length;
@@ -86,13 +83,9 @@ async function nextCookiePathOrNull() {
   return { path: p, idx: i, id };
 }
 
-// called by admin reload
 async function reloadCookiePool(newPoolB64) {
   COOKIE_POOL = (newPoolB64 || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(b64ToText);
+    .split(",").map(s => s.trim()).filter(Boolean).map(b64ToText);
   COOKIE_IDX = 0;
   rebuildCookieMeta();
   return COOKIE_POOL.length;
@@ -117,25 +110,29 @@ function spawnYtDlp(args, options = {}) {
 
 async function runYtDlp({ url, kind, cookiesPath }) {
   fs.mkdirSync(OUT, { recursive: true });
-
   const outTpl = path.join(OUT, "dripl-%(id)s.%(ext)s");
 
   const baseArgs = [
     "--no-color", "--no-playlist", "--ignore-errors", "--abort-on-error",
     "--geo-bypass", "--no-progress",
     "--ffmpeg-location", FFMPEG_BIN || "",
-    "--user-agent",
-    "Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+    "--user-agent", "Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
     "--add-header", "Accept-Language: en-US,en;q=0.9",
-    // multiple client types often reduce challenges
-    "--extractor-args", "youtube:player_client=android,web_creator",
+    "--extractor-args", "youtube:player_client=android", // simplified
     "-o", outTpl
   ];
 
   if (process.env.YTDLP_FORCE_IPV4 === "1") baseArgs.push("--force-ipv4");
 
-  const proxy = (process.env.PROXY_URL || "").trim();
-  if (proxy) baseArgs.push("--proxy", proxy);
+  // Proxy rotation
+  const pool = (process.env.PROXY_POOL || "").split(",").map(s => s.trim()).filter(Boolean);
+  if (pool.length) {
+    const proxy = pool[Math.floor(Math.random() * pool.length)];
+    baseArgs.push("--proxy", proxy);
+    console.log("[yt-dlp] proxy:", proxy);
+  } else if (process.env.PROXY_URL) {
+    baseArgs.push("--proxy", process.env.PROXY_URL.trim());
+  }
 
   const extra = (process.env.YTDLP_EXTRA_ARGS || "").trim();
   if (extra) {
@@ -150,14 +147,11 @@ async function runYtDlp({ url, kind, cookiesPath }) {
     : ["-f", "bv*+ba/b", "-S", "codec:avc:m4a,res,ext", "--merge-output-format", "mp4"];
 
   const args = [...baseArgs, ...fmtArgs, url];
-
-  // log the exact command (args only; url is included at the end)
   console.log("[yt-dlp] args:", args.join(" "));
 
   const res = await spawnYtDlp(args, { cwd: __dirname });
   if (res.stderr) console.log("[yt-dlp:warn]", res.stderr.slice(0, 1000));
 
-  // pick latest file written in last 2 minutes
   const now = Date.now();
   const candidates = (await fsp.readdir(OUT))
     .map(n => {
@@ -179,34 +173,19 @@ app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// health & version
 app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: true,
-    ffmpeg: !!FFMPEG_BIN,
-    ffprobe: !!FFPROBE_BIN,
-    ytdlp: YTDLP_BIN
-  });
+  res.json({ ok: true, ffmpeg: !!FFMPEG_BIN, ffprobe: !!FFPROBE_BIN, ytdlp: YTDLP_BIN });
 });
 app.get("/api/version", (_req, res) => {
-  res.json({
-    commit: process.env.RENDER_GIT_COMMIT || "local",
-    time: new Date().toISOString(),
-    cookiePool: COOKIE_POOL.length
-  });
+  res.json({ commit: process.env.RENDER_GIT_COMMIT || "local", time: new Date().toISOString(), cookiePool: COOKIE_POOL.length });
 });
 
-// ----- admin: ping / reload / status / reset -----
+// ----- admin -----
 function adminOk(req) {
   const headerToken = String(req.headers["x-admin-token"] || "").trim();
   const envToken = String(process.env.ADMIN_TOKEN || "").trim();
   return !!envToken && headerToken === envToken;
 }
-
-app.get("/api/admin/ping", (req, res) => {
-  if (!adminOk(req)) return res.status(401).end();
-  res.json({ ok: true });
-});
 
 app.post("/api/admin/cookies/reload", async (req, res) => {
   if (!adminOk(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
@@ -214,27 +193,24 @@ app.post("/api/admin/cookies/reload", async (req, res) => {
   const count = await reloadCookiePool(cookiePoolB64 || "");
   res.json({ ok: true, count });
 });
-
 app.get("/api/admin/cookies/status", (req, res) => {
   if (!adminOk(req)) return res.status(401).json({ ok: false });
   res.json({ ok: true, size: COOKIE_POOL.length, stats: COOKIE_META });
 });
-
 app.post("/api/admin/cookies/reset", (req, res) => {
   if (!adminOk(req)) return res.status(401).json({ ok: false });
   COOKIE_META.forEach(m => { m.ok = 0; m.fail = 0; m.lastOk = null; m.lastFail = null; });
   res.json({ ok: true, size: COOKIE_POOL.length });
 });
 
-// main convert (retry across cookie pool → then no cookies)
+// ----- convert -----
 app.post("/api/convert", async (req, res) => {
   const { url, kind } = req.body || {};
   if (!url) return res.status(400).json({ ok: false, error: "Paste a link to start." });
   const fmt = (kind || "mp4").toLowerCase();
   if (!["mp3", "mp4"].includes(fmt)) return res.status(400).json({ ok: false, error: "Invalid format." });
 
-  const attempts = Math.max(1, COOKIE_POOL.length) + 1; // pool + final no-cookie
-
+  const attempts = Math.max(1, COOKIE_POOL.length) + 1;
   for (let i = 0; i < attempts; i++) {
     let cookieInfo = null;
     try {
@@ -256,7 +232,6 @@ app.post("/api/convert", async (req, res) => {
     } catch (err) {
       const stderr = String(err?.stderr || "");
       const s = stderr.toLowerCase();
-
       let reason = "unknown";
       if (s.includes("confirm you're not a bot") || s.includes("sign in to confirm")) reason = "verification";
       else if (s.includes("age restricted")) reason = "age-restricted";
@@ -272,24 +247,19 @@ app.post("/api/convert", async (req, res) => {
         const m = COOKIE_META[cookieInfo.idx];
         if (m) { m.fail++; m.lastFail = new Date().toISOString(); }
       }
-
-      const challenged = reason !== "unknown" || err?.code === 502;
-      if (challenged && i + 1 < attempts) continue;
-
-      break; // give up
+      if (reason !== "unknown" && i + 1 < attempts) continue;
+      break;
     } finally {
       try { if (cookieInfo?.path) await fsp.unlink(cookieInfo.path); } catch {}
     }
   }
-
   console.error("[convert] all attempts exhausted");
   return res.status(502).json({ ok: false, error: "We’re refreshing access—try again in a moment." });
 });
 
-// static files
+// static
 app.use(express.static(PUBLIC, { extensions: ["html"] }));
 
-// start
 const PORT = Number(process.env.PORT || 3000);
 const HOST = "0.0.0.0";
 app.listen(PORT, HOST, () => {
@@ -299,6 +269,7 @@ app.listen(PORT, HOST, () => {
   console.log("CookiePool size:", COOKIE_POOL.length);
   console.log(`Listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
