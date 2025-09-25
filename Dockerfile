@@ -1,5 +1,5 @@
-# Use GHCR mirror of the official Node image (no Docker Hub rate-limit)
-FROM ghcr.io/library/node:20-slim
+# Use AWS ECR Public mirror to avoid Docker Hub/GHCR auth limits
+FROM public.ecr.aws/docker/library/node:20-slim
 
 # Minimal deps for yt-dlp + ffmpeg
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,5 +22,6 @@ ENV PORT=10000
 EXPOSE 10000
 
 CMD ["node", "server.js"]
+
 
 
