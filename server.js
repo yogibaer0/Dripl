@@ -1,4 +1,4 @@
-// server.js — Dripl (ESM)
+// server.js — Dripl (ESM, multi-site, cookies+proxy aware)
 
 import express from "express";
 import helmet from "helmet";
@@ -41,6 +41,47 @@ function resolveYtDlp() {
 }
 const YTDLP_BIN = resolveYtDlp();
 
+// ---------------- config: hosts / extras / limits ----------------
+const ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS ||
+  "youtube.com,youtu.be,tiktok.com,vm.tiktok.com,twitter.com,x.com,instagram.com,instagr.am,soundcloud.com,vimeo.com")
+  .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+
+function isAllowedUrl(input) {
+  try {
+    const u = new URL(input);
+    return ALLOWED_HOSTS.some(h => u.hostname.toLowerCase().endsWith(h));
+  } catch { return false; }
+}
+
+// Per-host defaults (overridden by env if you set YTDLP_EXTRACTOR_ARGS / YTDLP_UA)
+const HOST_EXTRAS = {
+  "youtube.com": { extractorArgs: "youtube:player_client=web", ua: null },
+  "youtu.be":    { extractorArgs: "youtube:player_client=web", ua: null },
+  // Add tweaks per host below as you learn them:
+  // "tiktok.com": { ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) Mobile/15E148 Safari/604.1" },
+};
+
+const COOKIE_CYCLE_MAX = Number(process.env.COOKIE_CYCLE_MAX || 0); // 0 = unlimited
+
+// circuit breaker for upstream 429s (per host)
+const CB_FAILS = Number(process.env.CB_FAILS || 3);
+const CB_WINDOW_MS = Number(process.env.CB_WINDOW_MS || 2 * 60 * 1000);
+const hostBreaker = new Map(); // host -> { fails, ts }
+function is429(s = "") { return /http error 429|too many requests/i.test(s); }
+function shouldBlockHost(host) {
+  const e = hostBreaker.get(host);
+  return !!e && e.fails >= CB_FAILS && (Date.now() - e.ts) < CB_WINDOW_MS;
+}
+function noteFail(host) {
+  const e = hostBreaker.get(host) || { fails: 0, ts: 0 };
+  e.fails++; e.ts = Date.now(); hostBreaker.set(host, e);
+  setTimeout(() => {
+    const cur = hostBreaker.get(host);
+    if (cur && (Date.now() - cur.ts) >= CB_WINDOW_MS) hostBreaker.delete(host);
+  }, CB_WINDOW_MS + 1000);
+}
+function noteOk(host) { hostBreaker.delete(host); }
+
 // ---------------- cookie pool ----------------
 function b64ToText(b64) { return Buffer.from(b64.replace(/\s+/g, ""), "base64").toString("utf8"); }
 function hashId(text) { return crypto.createHash("sha256").update(text).digest("hex").slice(0, 8); }
@@ -50,19 +91,12 @@ function loadCookiePoolFromEnv() {
   if (!raw) return [];
   return raw.split(",").map(s => s.trim()).filter(Boolean).map(b64ToText);
 }
-
 let COOKIE_POOL = loadCookiePoolFromEnv();
 let COOKIE_META = [];
 let COOKIE_IDX = 0;
-
 function rebuildCookieMeta() {
   COOKIE_META = COOKIE_POOL.map((txt, i) => ({
-    id: hashId(txt),
-    idx: i,
-    ok: 0,
-    fail: 0,
-    lastOk: null,
-    lastFail: null
+    id: hashId(txt), idx: i, ok: 0, fail: 0, lastOk: null, lastFail: null
   }));
 }
 rebuildCookieMeta();
@@ -72,7 +106,6 @@ async function writeTempCookies(text) {
   await fsp.writeFile(p, text, "utf8");
   return p;
 }
-
 async function nextCookiePathOrNull() {
   if (!COOKIE_POOL.length) return null;
   const i = COOKIE_IDX % COOKIE_POOL.length;
@@ -82,7 +115,6 @@ async function nextCookiePathOrNull() {
   const p = await writeTempCookies(txt);
   return { path: p, idx: i, id };
 }
-
 async function reloadCookiePool(newPoolB64) {
   COOKIE_POOL = (newPoolB64 || "")
     .split(",").map(s => s.trim()).filter(Boolean).map(b64ToText);
@@ -108,38 +140,60 @@ function spawnYtDlp(args, options = {}) {
   });
 }
 
+async function withTimeout(promise, ms, label="task") {
+  let t;
+  const timeout = new Promise((_, rej) => t = setTimeout(() => rej(new Error(`timeout:${label}:${ms}ms`)), ms));
+  try { return await Promise.race([promise, timeout]); }
+  finally { clearTimeout(t); }
+}
+
+function pickProxyArg() {
+  const pool = (process.env.PROXY_POOL || "").split(",").map(s => s.trim()).filter(Boolean);
+  if (pool.length) return ["--proxy", pool[Math.floor(Math.random() * pool.length)]];
+  const url = (process.env.YTDLP_PROXY || process.env.PROXY_URL || "").trim();
+  return url ? ["--proxy", url] : [];
+}
+
+function hostConfigFor(url) {
+  const u = new URL(url);
+  const host = u.hostname.toLowerCase();
+  const base = { extractorArgs: null, ua: null };
+  for (const key of Object.keys(HOST_EXTRAS)) {
+    if (host.endsWith(key)) return { host, ...base, ...HOST_EXTRAS[key] };
+  }
+  return { host, ...base };
+}
+
 async function runYtDlp({ url, kind, cookiesPath }) {
   fs.mkdirSync(OUT, { recursive: true });
   const outTpl = path.join(OUT, "dripl-%(id)s.%(ext)s");
+
+  const { host, extractorArgs: hostEA, ua: hostUA } = hostConfigFor(url);
+
+  const ua = (process.env.YTDLP_UA || hostUA ||
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+
+  // Prefer env YTDLP_EXTRACTOR_ARGS, else host default, else none.
+  const extractorArgs = (process.env.YTDLP_EXTRACTOR_ARGS || hostEA || "").trim();
 
   const baseArgs = [
     "--no-color", "--no-playlist", "--ignore-errors", "--abort-on-error",
     "--geo-bypass", "--no-progress",
     "--ffmpeg-location", FFMPEG_BIN || "",
-    "--user-agent", "Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+    "--user-agent", ua,
     "--add-header", "Accept-Language: en-US,en;q=0.9",
-    "--extractor-args", "youtube:player_client=android", // simplified
     "-o", outTpl
   ];
-
+  if (extractorArgs) baseArgs.push("--extractor-args", extractorArgs);
   if (process.env.YTDLP_FORCE_IPV4 === "1") baseArgs.push("--force-ipv4");
 
-  // Proxy rotation
-  const pool = (process.env.PROXY_POOL || "").split(",").map(s => s.trim()).filter(Boolean);
-  if (pool.length) {
-    const proxy = pool[Math.floor(Math.random() * pool.length)];
-    baseArgs.push("--proxy", proxy);
-    console.log("[yt-dlp] proxy:", proxy);
-  } else if (process.env.PROXY_URL) {
-    baseArgs.push("--proxy", process.env.PROXY_URL.trim());
-  }
+  baseArgs.push(...pickProxyArg());
 
   const extra = (process.env.YTDLP_EXTRA_ARGS || "").trim();
   if (extra) {
     const parts = extra.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
     baseArgs.push(...parts.map(s => s.replace(/^"(.*)"$/, "$1")));
   }
-
   if (cookiesPath) baseArgs.push("--cookies", cookiesPath);
 
   const fmtArgs = kind === "mp3"
@@ -152,6 +206,7 @@ async function runYtDlp({ url, kind, cookiesPath }) {
   const res = await spawnYtDlp(args, { cwd: __dirname });
   if (res.stderr) console.log("[yt-dlp:warn]", res.stderr.slice(0, 1000));
 
+  // find newest file within last 2 mins
   const now = Date.now();
   const candidates = (await fsp.readdir(OUT))
     .map(n => {
@@ -162,7 +217,7 @@ async function runYtDlp({ url, kind, cookiesPath }) {
     .sort((a, b) => b.t - a.t);
 
   if (!candidates.length) throw new Error("Download finished but no file found.");
-  return candidates[0].p;
+  return { path: candidates[0].p, host };
 }
 
 // ---------------- app ----------------
@@ -173,6 +228,28 @@ app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// ---- lightweight metrics (in-memory) ----
+const METRICS = {
+  startedAt: new Date().toISOString(),
+  totals: { requests: 0, success: 0, clientErr: 0, serverErr: 0 },
+  uniques24h: new Map(), // ip -> lastSeen
+  byDay: new Map(),      // day -> { requests, success }
+  maxUniqueWindowMs: 24 * 60 * 60 * 1000,
+};
+function dayKey(d=new Date()){ return d.toISOString().slice(0,10); }
+function bumpDay(key, field){ const row = METRICS.byDay.get(key)||{requests:0,success:0}; row[field]++; METRICS.byDay.set(key,row); }
+function recordHit(req){
+  METRICS.totals.requests++; bumpDay(dayKey(),"requests");
+  const ip = req.ip || req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "unknown";
+  METRICS.uniques24h.set(String(ip), Date.now());
+  const cutoff = Date.now()-METRICS.maxUniqueWindowMs;
+  for (const [k,t] of METRICS.uniques24h) if (t<cutoff) METRICS.uniques24h.delete(k);
+}
+function recordSuccess(){ METRICS.totals.success++; bumpDay(dayKey(),"success"); }
+function recordError(status){ if(status>=500) METRICS.totals.serverErr++; else if(status>=400) METRICS.totals.clientErr++; }
+app.use((req,_res,next)=>{ recordHit(req); next(); });
+
+// health & version
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, ffmpeg: !!FFMPEG_BIN, ffprobe: !!FFPROBE_BIN, ytdlp: YTDLP_BIN });
 });
@@ -180,13 +257,18 @@ app.get("/api/version", (_req, res) => {
   res.json({ commit: process.env.RENDER_GIT_COMMIT || "local", time: new Date().toISOString(), cookiePool: COOKIE_POOL.length });
 });
 
-// ----- admin -----
+// ----- admin auth helper -----
 function adminOk(req) {
   const headerToken = String(req.headers["x-admin-token"] || "").trim();
   const envToken = String(process.env.ADMIN_TOKEN || "").trim();
   return !!envToken && headerToken === envToken;
 }
 
+// ----- admin: ping / reload / status / reset / stats / metrics -----
+app.get("/api/admin/ping", (req, res) => {
+  if (!adminOk(req)) return res.status(401).end();
+  res.json({ ok: true });
+});
 app.post("/api/admin/cookies/reload", async (req, res) => {
   if (!adminOk(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const { cookiePoolB64 } = req.body || {};
@@ -202,23 +284,53 @@ app.post("/api/admin/cookies/reset", (req, res) => {
   COOKIE_META.forEach(m => { m.ok = 0; m.fail = 0; m.lastOk = null; m.lastFail = null; });
   res.json({ ok: true, size: COOKIE_POOL.length });
 });
+function cookieRollups() {
+  return COOKIE_META.map(m => ({
+    id: m.id, idx: m.idx, ok: m.ok, fail: m.fail,
+    okRate: (m.ok+m.fail)? +(m.ok/(m.ok+m.fail)).toFixed(3) : null,
+    lastOk: m.lastOk, lastFail: m.lastFail
+  }));
+}
+app.get("/api/admin/cookies/stats", (req,res)=>{
+  if (!adminOk(req)) return res.status(401).json({ ok: false });
+  const rows = cookieRollups().sort((a,b)=>(b.ok-a.ok)||(a.fail-b.fail));
+  res.json({ ok:true, size: COOKIE_POOL.length, rows });
+});
+app.get("/api/admin/metrics", (req,res)=>{
+  if (!adminOk(req)) return res.status(401).json({ ok: false });
+  const daily = [...METRICS.byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-7)
+                  .map(([day,row])=>({day,...row}));
+  res.json({ ok:true, startedAt: METRICS.startedAt, totals: METRICS.totals,
+             uniqueIPs24h: METRICS.uniques24h.size, last7Days: daily });
+});
 
 // ----- convert -----
 app.post("/api/convert", async (req, res) => {
   const { url, kind } = req.body || {};
-  if (!url) return res.status(400).json({ ok: false, error: "Paste a link to start." });
+  if (!url) { recordError(400); return res.status(400).json({ ok: false, error: "Paste a link to start." }); }
+  if (!isAllowedUrl(url)) { recordError(400); return res.status(400).json({ ok:false, error:"unsupported_site", allowed: ALLOWED_HOSTS }); }
   const fmt = (kind || "mp4").toLowerCase();
-  if (!["mp3", "mp4"].includes(fmt)) return res.status(400).json({ ok: false, error: "Invalid format." });
+  if (!["mp3","mp4"].includes(fmt)) { recordError(400); return res.status(400).json({ ok:false, error:"Invalid format." }); }
 
-  const attempts = Math.max(1, COOKIE_POOL.length) + 1;
-  for (let i = 0; i < attempts; i++) {
+  const host = new URL(url).hostname.toLowerCase();
+  if (shouldBlockHost(host)) { recordError(429); return res.status(429).json({ ok:false, error:"cooldown", retryAfterMs: CB_WINDOW_MS }); }
+
+  const maxCycles = COOKIE_CYCLE_MAX;
+  const totalTries = (maxCycles && maxCycles>0) ? Math.min(maxCycles, Math.max(1, COOKIE_POOL.length)) + 1
+                                                : Math.max(1, COOKIE_POOL.length) + 1;
+
+  for (let i = 0; i < totalTries; i++) {
     let cookieInfo = null;
     try {
-      cookieInfo = (i < COOKIE_POOL.length) ? await nextCookiePathOrNull() : null;
-      const label = cookieInfo ? `cookie#${cookieInfo.idx + 1}/${COOKIE_POOL.length}(${cookieInfo.id})` : "no-cookies";
-      console.log(`[convert] attempt ${i+1}/${attempts} using ${label}`);
+      cookieInfo = (i < Math.max(1, COOKIE_POOL.length)) ? await nextCookiePathOrNull() : null;
+      const label = cookieInfo ? `cookie#${cookieInfo.idx + 1}/${COOKIE_POOL.length}(${COOKIE_META[cookieInfo.idx]?.id})` : "no-cookies";
+      console.log(`[convert] attempt ${i+1}/${totalTries} using ${label}`);
 
-      const abs = await runYtDlp({ url, kind: fmt, cookiesPath: cookieInfo?.path });
+      const { path: abs } = await withTimeout(
+        runYtDlp({ url, kind: fmt, cookiesPath: cookieInfo?.path }),
+        4 * 60 * 1000,
+        "yt-dlp"
+      );
       const file = path.basename(abs);
       const publicPath = `/out/${file}`;
       console.log(`[convert] SUCCESS via ${label} -> ${publicPath}`);
@@ -227,6 +339,8 @@ app.post("/api/convert", async (req, res) => {
         const m = COOKIE_META[cookieInfo.idx];
         if (m) { m.ok++; m.lastOk = new Date().toISOString(); }
       }
+      noteOk(host);
+      recordSuccess();
       return res.json({ ok: true, url: publicPath, file });
 
     } catch (err) {
@@ -238,8 +352,9 @@ app.post("/api/convert", async (req, res) => {
       else if (s.includes("forbidden") || s.includes("http error 403")) reason = "403-forbidden";
       else if (s.includes("http error 429")) reason = "429-rate";
       else if (s.includes("account cookies are no longer valid")) reason = "cookies-invalid";
+      if (is429(s)) noteFail(host);
 
-      const label = cookieInfo ? `cookie#${cookieInfo.idx + 1}/${COOKIE_POOL.length}(${cookieInfo.id})` : "no-cookies";
+      const label = cookieInfo ? `cookie#${cookieInfo.idx + 1}/${COOKIE_POOL.length}(${COOKIE_META[cookieInfo.idx]?.id})` : "no-cookies";
       console.error(`[convert] FAIL via ${label}; reason=${reason}; code=${err?.code ?? "?"}`);
       if (stderr) console.error("[yt-dlp:stderr]", stderr.slice(0, 600));
 
@@ -247,13 +362,14 @@ app.post("/api/convert", async (req, res) => {
         const m = COOKIE_META[cookieInfo.idx];
         if (m) { m.fail++; m.lastFail = new Date().toISOString(); }
       }
-      if (reason !== "unknown" && i + 1 < attempts) continue;
+      if (reason !== "unknown" && i + 1 < totalTries) continue;
       break;
     } finally {
       try { if (cookieInfo?.path) await fsp.unlink(cookieInfo.path); } catch {}
     }
   }
   console.error("[convert] all attempts exhausted");
+  recordError(502);
   return res.status(502).json({ ok: false, error: "We’re refreshing access—try again in a moment." });
 });
 
@@ -269,6 +385,7 @@ app.listen(PORT, HOST, () => {
   console.log("CookiePool size:", COOKIE_POOL.length);
   console.log(`Listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
