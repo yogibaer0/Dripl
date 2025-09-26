@@ -176,35 +176,41 @@ async function runYtDlp({ url, kind, cookiesPath }) {
   // Prefer env YTDLP_EXTRACTOR_ARGS, else host default, else none.
   const extractorArgs = (process.env.YTDLP_EXTRACTOR_ARGS || hostEA || "").trim();
 
-  const baseArgs = [
-    "--no-color", "--no-playlist", "--ignore-errors", "--abort-on-error",
-    "--geo-bypass", "--no-progress",
-    "--ffmpeg-location", FFMPEG_BIN || "",
-    "--user-agent", ua,
-    "--add-header", "Accept-Language: en-US,en;q=0.9",
-    "-o", outTpl
-  ];
-  if (extractorArgs) baseArgs.push("--extractor-args", extractorArgs);
-  if (process.env.YTDLP_FORCE_IPV4 === "1") baseArgs.push("--force-ipv4");
+  // Pseudo-diff of the important bits
+const baseArgs = [
+  "--no-color", "--no-playlist", "--ignore-errors", "--abort-on-error",
+  "--geo-bypass", "--no-progress",
+  "--ffmpeg-location", FFMPEG_BIN,
+  "--concurrent-fragments", "1", "--retry-sleep", "1",
+  "--retries", "3", "--fragment-retries", "3"
+];
 
-  baseArgs.push(...pickProxyArg());
+const desktopHeaders = [
+  "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "--add-header", "Referer:https://www.youtube.com/",
+  "--add-header", "Accept-Language:en-US,en;q=0.9"
+];
 
-  const extra = (process.env.YTDLP_EXTRA_ARGS || "").trim();
-  if (extra) {
-    const parts = extra.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-    baseArgs.push(...parts.map(s => s.replace(/^"(.*)"$/, "$1")));
-  }
-  if (cookiesPath) baseArgs.push("--cookies", cookiesPath);
+const androidClient = [
+  // only for **no-cookies** path
+  "--extractor-args", "youtube:player_client=android"
+];
 
-  const fmtArgs = kind === "mp3"
-    ? ["-f", "bestaudio/best", "--extract-audio", "--audio-format", "mp3"]
-    : ["-f", "bv*+ba/b", "-S", "codec:avc:m4a,res,ext", "--merge-output-format", "mp4"];
+// …
+const useCookies = !!cookiesPath;
+const args = [
+  ...baseArgs,
+  ...(useCookies ? desktopHeaders : androidClient),
+  ...(useCookies ? ["--cookies", cookiesPath] : []),
+  // proxy gets applied in both branches
+  ...(proxyUrl ? ["--proxy", proxyUrl] : []),
+  // format selection as you had it
+  ...(kind === "mp3" ? ["-f","bestaudio", "--extract-audio","--audio-format","mp3"]
+                     : ["-f","bv*+ba/b", "-S","codec:avc:m4a,res,ext", "--merge-output-format","mp4"]),
+  "-o", outTpl,
+  url
+];
 
-  const args = [...baseArgs, ...fmtArgs, url];
-  console.log("[yt-dlp] args:", args.join(" "));
-
-  const res = await spawnYtDlp(args, { cwd: __dirname });
-  if (res.stderr) console.log("[yt-dlp:warn]", res.stderr.slice(0, 1000));
 
   // find newest file within last 2 mins
   const now = Date.now();
@@ -385,8 +391,6 @@ app.listen(PORT, HOST, () => {
   console.log("CookiePool size:", COOKIE_POOL.length);
   console.log(`Listening on http://${HOST}:${PORT}`);
 });
-
-
 
 
 
