@@ -1,7 +1,7 @@
 // server.js (Dripl)
 // Static hosting + SPA fallback, proxy/cookie rotation,
-// cookies from base64 envs, richer error mapping, admin-only raw stderr,
-// /admin/reload-cookies and /admin/proxies.
+// cookies from base64 envs, admin upload of cookies, richer error mapping,
+// admin-only raw stderr, /admin/reload-cookies and /admin/proxies.
 
 import express from "express";
 import { spawn } from "child_process";
@@ -10,9 +10,10 @@ import fs from "fs";
 import url from "url";
 import ffmpegPath from "ffmpeg-static";
 
-
 const app = express();
-app.use(express.json({ limit: "2mb" }));
+
+// allow large JSON bodies (for cookie uploads)
+app.use(express.json({ limit: "8mb" }));
 
 // ---- Paths / Dirs ----
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -26,6 +27,12 @@ const YT_CLIENT = process.env.YT_CLIENT || ""; // "android" to try alt client
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
 // ---- Cookies: allow files on disk OR synthesize from base64 envs ----
+const DEFAULT_COOKIE_PATHS = [
+  // default locations we manage
+  "/app/secrets/cookies1.txt",
+  "/app/secrets/cookies2.txt",
+];
+
 function writeCookieFromEnv(envKey, destPath) {
   const b64 = process.env[envKey];
   if (!b64) return false;
@@ -41,25 +48,21 @@ function writeCookieFromEnv(envKey, destPath) {
   }
 }
 
-const DEFAULT_COOKIE_PATHS = [
-  "/app/secrets/cookies1.txt",
-  "/app/secrets/cookies2.txt",
-];
-
-// materialize defaults if missing
+// materialize defaults if missing (so old env flow still works)
 for (let i = 0; i < DEFAULT_COOKIE_PATHS.length; i++) {
   const envKey = `COOKIE${i + 1}_B64`;
   const filePath = DEFAULT_COOKIE_PATHS[i];
   if (!fs.existsSync(filePath)) writeCookieFromEnv(envKey, filePath);
 }
 
-// current list (filtered to existing files)
+// current list (from COOKIE_FILES env or defaults), filtered to existing files
 let COOKIE_FILES = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
   .split(",").map(s => s.trim()).filter(Boolean)
   .filter(p => fs.existsSync(p));
 
 // helper to rebuild cookie list and dedupe
 function rebuildCookieFiles() {
+  // refresh our managed /app/secrets/* from env if needed
   const map = [
     { env: "COOKIE1_B64", path: "/app/secrets/cookies1.txt" },
     { env: "COOKIE2_B64", path: "/app/secrets/cookies2.txt" },
@@ -67,12 +70,21 @@ function rebuildCookieFiles() {
   for (const { env, path: p } of map) {
     if (!fs.existsSync(p)) writeCookieFromEnv(env, p);
   }
-  const list = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
-    .split(",").map(s => s.trim()).filter(Boolean)
-    .filter(p => fs.existsSync(p));
+  const rawList = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
+    .split(",").map(s => s.trim()).filter(Boolean);
+  const list = rawList.filter(p => fs.existsSync(p));
   const seen = new Set();
   COOKIE_FILES = list.filter(p => (seen.has(p) ? false : seen.add(p)));
   return COOKIE_FILES;
+}
+
+function cookieStats() {
+  return COOKIE_FILES.map(p => ({
+    path: p,
+    exists: fs.existsSync(p),
+    size: fs.existsSync(p) ? fs.statSync(p).size : 0,
+    lines: fs.existsSync(p) ? (fs.readFileSync(p, "utf8").match(/\n/g) || []).length + 1 : 0,
+  }));
 }
 
 // ---- Proxies ----
@@ -125,10 +137,7 @@ function ytArgs({ url, cookies, proxy, format }) {
   if (cookies) args.unshift("--cookies", cookies);
   if (proxy) args.unshift("--proxy", proxy);
   if (YT_CLIENT === "android") args.unshift("--extractor-args", "youtube:player_client=android");
-  if (ffmpegPath) {
-  args.unshift("--ffmpeg-location", ffmpegPath);
-}
-
+  if (ffmpegPath) args.unshift("--ffmpeg-location", ffmpegPath);
   return args;
 }
 
@@ -161,7 +170,7 @@ function runYtDlp(opts) {
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    cookieFiles: COOKIE_FILES.map(p => ({ path: p, exists: fs.existsSync(p) })),
+    cookieFiles: cookieStats(),
     proxies: PROXIES,
     roundRobinIndex: rrIndex,
     static: fs.existsSync(STATIC_DIR),
@@ -188,12 +197,27 @@ app.post("/admin/reload-cookies", (req, res) => {
   const files = rebuildCookieFiles();
   res.json({
     ok: true,
-    cookieFiles: files.map(p => ({
-      path: p,
-      exists: fs.existsSync(p),
-      size: fs.existsSync(p) ? fs.statSync(p).size : 0
-    }))
+    cookieFiles: cookieStats(),
   });
+});
+
+// Admin: upload cookies directly (base64 -> /app/secrets/*.txt)
+app.post("/admin/upload-cookies", (req, res) => {
+  if (!ADMIN_TOKEN || req.headers["x-admin-token"] !== ADMIN_TOKEN) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+  const { cookie1_b64, cookie2_b64 } = req.body || {};
+  const writeB64 = (b64, dest) => {
+    if (!b64) return 0;
+    const buf = Buffer.from(b64, "base64");
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, buf);
+    return buf.length;
+  };
+  const s1 = writeB64(cookie1_b64, "/app/secrets/cookies1.txt");
+  const s2 = writeB64(cookie2_b64, "/app/secrets/cookies2.txt");
+  rebuildCookieFiles();
+  return res.json({ ok: true, sizes: { cookies1: s1, cookies2: s2 }, cookieFiles: cookieStats() });
 });
 
 app.post("/api/convert", async (req, res) => {
