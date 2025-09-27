@@ -1,8 +1,3 @@
-// server.js (Dripl)
-// Static hosting + SPA fallback, proxy/cookie rotation,
-// cookies from base64 envs, admin upload of cookies, richer error mapping,
-// admin-only raw stderr, /admin/reload-cookies and /admin/proxies.
-
 import express from "express";
 import { spawn } from "child_process";
 import path from "path";
@@ -26,57 +21,15 @@ const YTDLP_TIMEOUT_MS = Number(process.env.YTDLP_TIMEOUT_MS || 120_000);
 const YT_CLIENT = process.env.YT_CLIENT || ""; // "android" to try alt client
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
-// ---- Cookies: allow files on disk OR synthesize from base64 envs ----
+// ---- Cookies (read from /etc/secrets) ----
 const DEFAULT_COOKIE_PATHS = [
-  // default locations we manage
-  "/app/secrets/cookies1.txt",
-  "/app/secrets/cookies2.txt",
+  "/etc/secrets/cookies1.txt",
+  "/etc/secrets/cookies2.txt",
 ];
 
-function writeCookieFromEnv(envKey, destPath) {
-  const b64 = process.env[envKey];
-  if (!b64) return false;
-  try {
-    const buf = Buffer.from(b64, "base64");
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    fs.writeFileSync(destPath, buf);
-    console.log(`[dripl] wrote ${destPath} from ${envKey} (${buf.length} bytes)`);
-    return true;
-  } catch (e) {
-    console.warn(`[dripl] cookie write failed for ${envKey} → ${destPath}: ${e.message}`);
-    return false;
-  }
-}
-
-// materialize defaults if missing (so old env flow still works)
-for (let i = 0; i < DEFAULT_COOKIE_PATHS.length; i++) {
-  const envKey = `COOKIE${i + 1}_B64`;
-  const filePath = DEFAULT_COOKIE_PATHS[i];
-  if (!fs.existsSync(filePath)) writeCookieFromEnv(envKey, filePath);
-}
-
-// current list (from COOKIE_FILES env or defaults), filtered to existing files
 let COOKIE_FILES = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
   .split(",").map(s => s.trim()).filter(Boolean)
   .filter(p => fs.existsSync(p));
-
-// helper to rebuild cookie list and dedupe
-function rebuildCookieFiles() {
-  // refresh our managed /app/secrets/* from env if needed
-  const map = [
-    { env: "COOKIE1_B64", path: "/app/secrets/cookies1.txt" },
-    { env: "COOKIE2_B64", path: "/app/secrets/cookies2.txt" },
-  ];
-  for (const { env, path: p } of map) {
-    if (!fs.existsSync(p)) writeCookieFromEnv(env, p);
-  }
-  const rawList = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
-    .split(",").map(s => s.trim()).filter(Boolean);
-  const list = rawList.filter(p => fs.existsSync(p));
-  const seen = new Set();
-  COOKIE_FILES = list.filter(p => (seen.has(p) ? false : seen.add(p)));
-  return COOKIE_FILES;
-}
 
 function cookieStats() {
   return COOKIE_FILES.map(p => ({
@@ -89,8 +42,8 @@ function cookieStats() {
 
 // ---- Proxies ----
 let PROXIES = (process.env.PROXIES || process.env.PROXY_URL || "")
-  .split(",").map(s => s.trim()).filter(Boolean); // can be empty
-let rrIndex = 0; // round-robin pointer
+  .split(",").map(s => s.trim()).filter(Boolean);
+let rrIndex = 0;
 
 // ---- Static hosting ----
 if (fs.existsSync(STATIC_DIR)) {
@@ -113,7 +66,6 @@ function classify(stderrAll = "") {
 }
 
 function ytArgs({ url, cookies, proxy, format }) {
-  // format: "mp4" (video) or "mp3" (audio) from client
   const formatArgs = (format === "mp3")
     ? ["-f", "ba/b", "--extract-audio", "--audio-format", "mp3", "--audio-quality", "0"]
     : ["-f", 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best', "--merge-output-format", "mp4"];
@@ -177,49 +129,6 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Admin: update proxy list at runtime
-app.post("/admin/proxies", (req, res) => {
-  if (!ADMIN_TOKEN || req.headers["x-admin-token"] !== ADMIN_TOKEN) {
-    return res.status(401).json({ ok: false, error: "unauthorized" });
-  }
-  const { proxies } = req.body || {};
-  if (!Array.isArray(proxies)) return res.status(400).json({ ok: false, error: "bad_input" });
-  PROXIES = proxies.filter(Boolean);
-  rrIndex = 0;
-  res.json({ ok: true, proxies: PROXIES });
-});
-
-// Admin: reload cookie files from env and rebuild list (deduped)
-app.post("/admin/reload-cookies", (req, res) => {
-  if (!ADMIN_TOKEN || req.headers["x-admin-token"] !== ADMIN_TOKEN) {
-    return res.status(401).json({ ok: false, error: "unauthorized" });
-  }
-  const files = rebuildCookieFiles();
-  res.json({
-    ok: true,
-    cookieFiles: cookieStats(),
-  });
-});
-
-// Admin: upload cookies directly (base64 -> /app/secrets/*.txt)
-app.post("/admin/upload-cookies", (req, res) => {
-  if (!ADMIN_TOKEN || req.headers["x-admin-token"] !== ADMIN_TOKEN) {
-    return res.status(401).json({ ok: false, error: "unauthorized" });
-  }
-  const { cookie1_b64, cookie2_b64 } = req.body || {};
-  const writeB64 = (b64, dest) => {
-    if (!b64) return 0;
-    const buf = Buffer.from(b64, "base64");
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, buf);
-    return buf.length;
-  };
-  const s1 = writeB64(cookie1_b64, "/app/secrets/cookies1.txt");
-  const s2 = writeB64(cookie2_b64, "/app/secrets/cookies2.txt");
-  rebuildCookieFiles();
-  return res.json({ ok: true, sizes: { cookies1: s1, cookies2: s2 }, cookieFiles: cookieStats() });
-});
-
 app.post("/api/convert", async (req, res) => {
   try {
     const { url, format, proxyIndex, proxyUrl, rotate } = req.body || {};
@@ -227,7 +136,6 @@ app.post("/api/convert", async (req, res) => {
       return res.status(400).json({ ok: false, error: "bad_url", message: "Please provide a valid http(s) URL." });
     }
 
-    // Build proxies to try:
     let proxiesToTry = [null];
     if (PROXIES.length) {
       if (proxyUrl) {
@@ -280,7 +188,6 @@ app.post("/api/convert", async (req, res) => {
     const m = map[last.type] || map.unknown;
     const payload = { ok: false, error: m.key, message: m.message, detail: last.detail };
 
-    // Admin-only raw stderr (send header: x-admin-token: <ADMIN_TOKEN>)
     if (ADMIN_TOKEN && req.headers["x-admin-token"] === ADMIN_TOKEN) {
       payload.raw = last.raw || "";
     }
@@ -299,7 +206,6 @@ app.get("/download/:file", (req, res) => {
   res.download(file);
 });
 
-// SPA fallback (after API routes)
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api") || req.path.startsWith("/download") || !fs.existsSync(STATIC_DIR)) return next();
   res.sendFile(path.join(STATIC_DIR, "index.html"));
@@ -309,7 +215,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`[dripl] server listening on :${PORT}`);
 });
-
 
 
 
