@@ -8,6 +8,8 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import url from "url";
+import ffmpegPath from "ffmpeg-static";
+
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -123,6 +125,10 @@ function ytArgs({ url, cookies, proxy, format }) {
   if (cookies) args.unshift("--cookies", cookies);
   if (proxy) args.unshift("--proxy", proxy);
   if (YT_CLIENT === "android") args.unshift("--extractor-args", "youtube:player_client=android");
+  if (ffmpegPath) {
+  args.unshift("--ffmpeg-location", ffmpegPath);
+}
+
   return args;
 }
 
