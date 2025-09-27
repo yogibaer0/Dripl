@@ -1,6 +1,7 @@
 // server.js (Dripl)
 // Static hosting + SPA fallback, proxy/cookie rotation,
-// cookies from base64 envs, richer error mapping, admin-only raw stderr.
+// cookies from base64 envs, richer error mapping, admin-only raw stderr,
+// /admin/reload-cookies and /admin/proxies.
 
 import express from "express";
 import { spawn } from "child_process";
@@ -19,7 +20,7 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 const YTDLP = process.env.YTDLP_PATH || "yt-dlp";
 const YTDLP_TIMEOUT_MS = Number(process.env.YTDLP_TIMEOUT_MS || 120_000);
-const YT_CLIENT = process.env.YT_CLIENT || ""; // set "android" to try alt client
+const YT_CLIENT = process.env.YT_CLIENT || ""; // "android" to try alt client
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
 // ---- Cookies: allow files on disk OR synthesize from base64 envs ----
@@ -43,19 +44,38 @@ const DEFAULT_COOKIE_PATHS = [
   "/app/secrets/cookies2.txt",
 ];
 
+// materialize defaults if missing
 for (let i = 0; i < DEFAULT_COOKIE_PATHS.length; i++) {
   const envKey = `COOKIE${i + 1}_B64`;
   const filePath = DEFAULT_COOKIE_PATHS[i];
   if (!fs.existsSync(filePath)) writeCookieFromEnv(envKey, filePath);
 }
 
+// current list (filtered to existing files)
 let COOKIE_FILES = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
-  .split(",").map(s => s.trim()).filter(p => p && fs.existsSync(p));
+  .split(",").map(s => s.trim()).filter(Boolean)
+  .filter(p => fs.existsSync(p));
+
+// helper to rebuild cookie list and dedupe
+function rebuildCookieFiles() {
+  const map = [
+    { env: "COOKIE1_B64", path: "/app/secrets/cookies1.txt" },
+    { env: "COOKIE2_B64", path: "/app/secrets/cookies2.txt" },
+  ];
+  for (const { env, path: p } of map) {
+    if (!fs.existsSync(p)) writeCookieFromEnv(env, p);
+  }
+  const list = (process.env.COOKIE_FILES || DEFAULT_COOKIE_PATHS.join(","))
+    .split(",").map(s => s.trim()).filter(Boolean)
+    .filter(p => fs.existsSync(p));
+  const seen = new Set();
+  COOKIE_FILES = list.filter(p => (seen.has(p) ? false : seen.add(p)));
+  return COOKIE_FILES;
+}
 
 // ---- Proxies ----
 let PROXIES = (process.env.PROXIES || process.env.PROXY_URL || "")
   .split(",").map(s => s.trim()).filter(Boolean); // can be empty
-
 let rrIndex = 0; // round-robin pointer
 
 // ---- Static hosting ----
@@ -116,7 +136,6 @@ function runYtDlp(opts) {
     child.stderr.on("data", d => (err += d.toString()));
 
     child.on("error", (e) => {
-      // spawn issues (ENOENT, EACCES, etc.)
       resolve({ ok: false, code: "spawn_error", out, err: `spawn_error: ${e.message}` });
     });
 
@@ -143,7 +162,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Admin: set a new proxy list at runtime (in-memory only)
+// Admin: update proxy list at runtime
 app.post("/admin/proxies", (req, res) => {
   if (!ADMIN_TOKEN || req.headers["x-admin-token"] !== ADMIN_TOKEN) {
     return res.status(401).json({ ok: false, error: "unauthorized" });
@@ -155,6 +174,22 @@ app.post("/admin/proxies", (req, res) => {
   res.json({ ok: true, proxies: PROXIES });
 });
 
+// Admin: reload cookie files from env and rebuild list (deduped)
+app.post("/admin/reload-cookies", (req, res) => {
+  if (!ADMIN_TOKEN || req.headers["x-admin-token"] !== ADMIN_TOKEN) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+  const files = rebuildCookieFiles();
+  res.json({
+    ok: true,
+    cookieFiles: files.map(p => ({
+      path: p,
+      exists: fs.existsSync(p),
+      size: fs.existsSync(p) ? fs.statSync(p).size : 0
+    }))
+  });
+});
+
 app.post("/api/convert", async (req, res) => {
   try {
     const { url, format, proxyIndex, proxyUrl, rotate } = req.body || {};
@@ -162,11 +197,7 @@ app.post("/api/convert", async (req, res) => {
       return res.status(400).json({ ok: false, error: "bad_url", message: "Please provide a valid http(s) URL." });
     }
 
-    // Build attempt plan:
-    // - If proxyUrl provided, try it first
-    // - Else if proxyIndex provided, use that one
-    // - Else if rotate=="next", advance rrIndex; use that
-    // - Else use round-robin current
+    // Build proxies to try:
     let proxiesToTry = [null];
     if (PROXIES.length) {
       if (proxyUrl) {
@@ -219,7 +250,7 @@ app.post("/api/convert", async (req, res) => {
     const m = map[last.type] || map.unknown;
     const payload = { ok: false, error: m.key, message: m.message, detail: last.detail };
 
-    // Admin-only raw stderr (add header: x-admin-token: <ADMIN_TOKEN>)
+    // Admin-only raw stderr (send header: x-admin-token: <ADMIN_TOKEN>)
     if (ADMIN_TOKEN && req.headers["x-admin-token"] === ADMIN_TOKEN) {
       payload.raw = last.raw || "";
     }
@@ -248,6 +279,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`[dripl] server listening on :${PORT}`);
 });
+
 
 
 
