@@ -1,4 +1,4 @@
-// server.js — Dripl (Docker/Render). Calls the yt-dlp binary directly.
+// server.js — Dripl (Docker/Render). Calls the yt-dlp binary directly + serves static UI.
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -17,6 +17,9 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
 const PROXY_URL = process.env.PROXY_URL || "";
 const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
+
+// NEW: allow serving your existing UI wherever it lives (default /public)
+const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
 
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 const COOKIE_TIKTOK  = process.env.COOKIE_TIKTOK  || path.join(COOKIES_DIR, "tiktok.txt");
@@ -38,6 +41,18 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
 app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
+
+// NEW: serve static UI if the folder exists
+try {
+  if (fs.existsSync(STATIC_DIR)) {
+    app.use(express.static(STATIC_DIR));
+    console.log(`[dripl] serving static from ${STATIC_DIR}`);
+  } else {
+    console.log(`[dripl] STATIC_DIR not found: ${STATIC_DIR}`);
+  }
+} catch (e) {
+  console.log("[dripl] static serve skip:", e?.message || e);
+}
 
 // ---- Helpers
 const YTDLP = "/usr/local/bin/yt-dlp"; // installed by Dockerfile
@@ -86,7 +101,7 @@ app.post("/api/probe", async (req, res) => {
     args.push(url);
 
     const { stdout } = await runYtDlp(args);
-    // yt-dlp may print progress lines; try to parse last JSON block
+    // yt-dlp may print progress lines; parse last JSON block
     const lastBrace = stdout.lastIndexOf("}");
     const firstBrace = stdout.indexOf("{");
     const json = (firstBrace >= 0 && lastBrace > firstBrace) ? JSON.parse(stdout.slice(firstBrace, lastBrace+1)) : {};
@@ -147,6 +162,7 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
+// Root (fallback text if no index.html in STATIC_DIR)
 app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/download"));
 
 app.listen(PORT, () => {
@@ -154,6 +170,7 @@ app.listen(PORT, () => {
   if (PROXY_URL) console.log(`[dripl] using proxy ${PROXY_URL}`);
   console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
 });
+
 
 
 

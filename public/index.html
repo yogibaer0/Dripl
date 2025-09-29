@@ -5,55 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dripl — MP3/MP4 Converter</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/dripl/favicon-32.png">
+  <link rel="icon" type="image/svg+xml" href="/assets/dripl/dripl.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css" />
-<link rel="icon" type="image/svg+xml" href="/assets/dripl/dripl.svg">
 </head>
 <body>
-  <!-- particle layer -->
   <div id="particles"></div>
 
-    <header class="site-header">
-  <div class="brand">
-    <img class="logo" src="/assets/dripl/dripl.png" alt="Dripl" />
-    <span class="title">Dripl</span>
-    <span class="beta">beta</span>
-  </div>
+  <header class="site-header">
+    <div class="brand">
+      <img class="logo" src="/assets/dripl/dripl.png" alt="Dripl" />
+      <span class="title">Dripl</span>
+      <span class="beta">beta</span>
+    </div>
+  </header>
 
-</header>
-<!-- MAIN: hero + form (centered) -->
-<main class="main">
-  <div class="hero">
-    <img class="mark" src="/assets/dripl/dripl.png" alt="Dripl logo" />
-    <h1 class="hero-title">Dripl</h1>
-  </div>
+  <main class="main">
+    <div class="hero">
+      <img class="mark" src="/assets/dripl/dripl.png" alt="Dripl logo" />
+      <h1 class="hero-title">Dripl</h1>
+    </div>
 
-  <!-- Keep your existing convert section inside here -->
-  <section class="card xl">
+    <section class="card xl">
       <form id="convertForm">
-  <div class="row biggap">
-    <input id="url" name="url" class="input"
-           placeholder="https://example.com/video or page URL" />
-    <select id="format" name="format" class="select">
-      <option value="mp3">MP3 (audio)</option>
-      <option value="mp4">MP4 (video)</option>
-    </select>
-  </div>
+        <div class="row biggap">
+          <input id="url" name="url" class="input" placeholder="https://example.com/video or page URL" />
+          <select id="format" name="format" class="select">
+            <option value="mp4">MP4 (video)</option>
+            <option value="mp3">MP3 (audio)</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button id="convertBtn" type="submit" class="btn primary">Convert</button>
+        </div>
+        <div id="result" class="result" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
 
-  <div class="actions">
-    <button id="convertBtn" type="submit" class="btn primary">Convert</button>
-  </div>
-
-  <div id="result" class="result" aria-live="polite"></div>
-</form>
-
-</main>
-
- <footer class="site-footer">
+  <footer class="site-footer">
     <span>© <span id="year"></span> Dripl</span>
   </footer>
-<script src="/script.js" defer></script>
+
+  <script src="/script.js" defer></script>
 </body>
 </html>
+
