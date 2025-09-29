@@ -1,192 +1,158 @@
-// server.js — Dripl (yt-dlp + static UI + cookies via path/B64/multipart + debug)
+// server.js — Dripl (lean)
+// Cookie sources: Secret Files -> Remote URL
+// Admin reload, debug, yt-dlp API, minimal deps & clean logs.
+
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+import axios from "axios";
+import { nanoid } from "nanoid";
 import { tmpdir } from "os";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { nanoid } from "nanoid";
-import rateLimit from "express-rate-limit";
 import { spawn } from "child_process";
-import zlib from "zlib";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ===== ENV =====
+// ------------ ENV ------------
 const PORT = process.env.PORT || 10000;
 const PROXY_URL = process.env.PROXY_URL || "";
-const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
+
+const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
+const COOKIE_TIKTOK = process.env.COOKIE_TIKTOK || path.join(COOKIES_DIR, "tiktok.txt");
+const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
+
+const COOKIE_TIKTOK_URL  = (process.env.COOKIE_TIKTOK_URL  || "").trim();
+const COOKIE_YOUTUBE_URL = (process.env.COOKIE_YOUTUBE_URL || "").trim();
+
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
+
+// Optional: extra yt-dlp args string, e.g. `--concurrent-fragments 16`
 const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
 
-const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
-const COOKIE_TIKTOK  = process.env.COOKIE_TIKTOK  || path.join(COOKIES_DIR, "tiktok.txt");
-
-// ===== Helpers =====
+// yt-dlp binary path (Dockerfile installs to here)
 const YTDLP = "/usr/local/bin/yt-dlp";
+
+// ------------ utils ------------
 const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
 const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
 const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
-const runYtDlp = (args) => new Promise((resolve, reject) => {
-  const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
-  let stdout = "", stderr = "";
-  child.stdout.on("data", d => stdout += d.toString());
-  child.stderr.on("data", d => stderr += d.toString());
-  child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
-});
 
-// ===== Cookie utils (single definitions) =====
-function envLen(s) { return (typeof s === "string") ? s.length : 0; }
-function countPartVars(prefix) {
-  const re = new RegExp(`^${prefix}_\\d+$`, "i");
-  return Object.keys(process.env).filter(k => re.test(k)).length;
-}
-function readMultipartEnv(prefix) {
-  const parts = Object.entries(process.env)
-    .filter(([k]) => k.toUpperCase().startsWith((prefix + "_").toUpperCase()))
-    .map(([k, v]) => {
-      const m = k.match(/_(\d+)$/);
-      return { idx: m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER, v };
-    })
-    .filter(x => Number.isFinite(x.idx))
-    .sort((a, b) => a.idx - b.idx)
-    .map(x => x.v);
-  return parts.length ? parts.join("") : "";
-}
-// Return { ok, data?, error?, joinedLen, isGz }
-function decodeCookieB64(joined) {
-  const s = (joined || "").trim();
-  const isGz = /^GZ:/i.test(s);
-  const joinedLen = s.length;
-  if (!s) return { ok:false, error:"empty", joinedLen, isGz:false };
-  try {
-    if (isGz) {
-      const raw = Buffer.from(s.slice(3), "base64");
-      const data = zlib.gunzipSync(raw);
-      return { ok:true, data, joinedLen, isGz:true };
-    } else {
-      const data = Buffer.from(s, "base64");
-      return { ok:true, data, joinedLen, isGz:false };
-    }
-  } catch (e) {
-    return { ok:false, error: String(e?.message || e), joinedLen, isGz };
-  }
+function runYtDlp(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "", stderr = "";
+    child.stdout.on("data", d => stdout += d.toString());
+    child.stderr.on("data", d => stderr += d.toString());
+    child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
+  });
 }
 
-const pickCookieFor = (url) => {
+function pickCookieFor(url) {
   try {
     const host = new URL(url).hostname.toLowerCase();
     if (host.includes("youtube.") || host.includes("youtu.be")) return fileExists(COOKIE_YOUTUBE) ? COOKIE_YOUTUBE : null;
     if (host.includes("tiktok.")) return fileExists(COOKIE_TIKTOK) ? COOKIE_TIKTOK : null;
     return null;
   } catch { return null; }
-};
-const pickFormat = ({ audioOnly, quality }) => {
+}
+
+function pickFormat({ audioOnly, quality }) {
   if (audioOnly) return "bestaudio[ext=m4a]/bestaudio/best";
   if (quality === "1080p") return "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
   if (quality === "720p")  return "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
   return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-};
-
-// ===== Cookie init (verbose) =====
-try {
-  fs.mkdirSync(COOKIES_DIR, { recursive: true });
-
-  const ttSingle = (process.env.COOKIE_TIKTOK_B64 || "").trim();
-  const ytSingle = (process.env.COOKIE_YOUTUBE_B64 || "").trim();
-  const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
-  const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
-
-  // Prefer single if present; else join parts
-  const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
-  const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
-
-  console.log(`[dripl] cookie envs: TT single=${envLen(ttSingle)} chars, TT parts=${ttPartsCount}; YT single=${envLen(ytSingle)} chars, YT parts=${ytPartsCount}`);
-
-  const ttDec = decodeCookieB64(ttJoined);
-  console.log(`[dripl] TT joined_len=${ttDec.joinedLen}, isGZ=${ttDec.isGz}, decode_ok=${ttDec.ok}${ttDec.error ? `, error=${ttDec.error}` : ""}`);
-
-  const ytDec = decodeCookieB64(ytJoined);
-  console.log(`[dripl] YT joined_len=${ytDec.joinedLen}, isGZ=${ytDec.isGz}, decode_ok=${ytDec.ok}${ytDec.error ? `, error=${ytDec.error}` : ""}`);
-
-  if (ttDec.ok) {
-    fs.writeFileSync(COOKIE_TIKTOK, ttDec.data);
-    const sz = fs.statSync(COOKIE_TIKTOK).size;
-    console.log(`[dripl] TikTok cookies loaded -> ${COOKIE_TIKTOK} (${sz} bytes)`);
-  } else {
-    console.log("[dripl] TikTok cookies not loaded (no env or decode failed).");
-  }
-
-  if (ytDec.ok) {
-    fs.writeFileSync(COOKIE_YOUTUBE, ytDec.data);
-    const sz = fs.statSync(COOKIE_YOUTUBE).size;
-    console.log(`[dripl] YouTube cookies loaded -> ${COOKIE_YOUTUBE} (${sz} bytes)`);
-  } else {
-    console.log("[dripl] YouTube cookies not loaded (no env or decode failed).");
-  }
-} catch (e) {
-  console.warn("[dripl] cookie init fatal:", e?.message || e);
 }
 
-// ===== App =====
+async function fetchToFile(url, outPath) {
+  const resp = await axios.get(url, { responseType: "arraybuffer", timeout: 30000, maxContentLength: Infinity });
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, resp.data);
+  return fs.statSync(outPath).size;
+}
+
+// ------------ cookie load (lean) ------------
+async function loadCookiesOnce() {
+  fs.mkdirSync(COOKIES_DIR, { recursive: true });
+
+  // 1) Secret files at /etc/secrets/*
+  const secrets = { tiktok: "/etc/secrets/tiktok.txt", youtube: "/etc/secrets/youtube.txt" };
+  for (const [key, src] of Object.entries(secrets)) {
+    if (fileExists(src)) {
+      const dest = key === "tiktok" ? COOKIE_TIKTOK : COOKIE_YOUTUBE;
+      fs.copyFileSync(src, dest);
+      const sz = fs.statSync(dest).size;
+      console.log(`[dripl] ${key} cookies loaded from secret file -> ${dest} (${sz} bytes)`);
+    }
+  }
+
+  // 2) Remote URL fetch (only if not present from secrets)
+  const urls = { tiktok: COOKIE_TIKTOK_URL, youtube: COOKIE_YOUTUBE_URL };
+  for (const key of ["tiktok","youtube"]) {
+    const url = (urls[key] || "").trim();
+    const dest = key === "tiktok" ? COOKIE_TIKTOK : COOKIE_YOUTUBE;
+    if (!fileExists(dest) && url) {
+      try {
+        const sz = await fetchToFile(url, dest);
+        console.log(`[dripl] ${key} cookies fetched from URL -> ${dest} (${sz} bytes)`);
+      } catch (e) {
+        console.warn(`[dripl] ${key} cookie fetch failed: ${e?.message || e}`);
+      }
+    }
+  }
+
+  // Summary
+  const haveTT = fileExists(COOKIE_TIKTOK),  ttSz = haveTT ? fs.statSync(COOKIE_TIKTOK).size : 0;
+  const haveYT = fileExists(COOKIE_YOUTUBE), ytSz = haveYT ? fs.statSync(COOKIE_YOUTUBE).size : 0;
+  console.log(`[dripl] cookies summary -> TT: ${haveTT ? "ok" : "missing"} (${ttSz}), YT: ${haveYT ? "ok" : "missing"} (${ytSz})`);
+}
+
+// ------------ app ------------
 const app = express();
+app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
-app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false })); // a touch higher
 
-// Static UI
-try {
-  if (fs.existsSync(STATIC_DIR)) {
-    app.use(express.static(STATIC_DIR));
-    console.log(`[dripl] serving static from ${STATIC_DIR}`);
-  } else {
-    console.log(`[dripl] STATIC_DIR not found: ${STATIC_DIR}`);
-  }
-} catch (e) {
-  console.log("[dripl] static serve skip:", e?.message || e);
+// serve static UI if present
+if (fileExists(STATIC_DIR)) {
+  app.use(express.static(STATIC_DIR));
+  console.log(`[dripl] serving static from ${STATIC_DIR}`);
+} else {
+  console.log(`[dripl] no static dir at ${STATIC_DIR} (ok)`);
 }
 
-// Debug endpoint
+// health & debug
+app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
 app.get("/debug/cookies", (_req, res) => {
-  const ttSingle = (process.env.COOKIE_TIKTOK_B64 || "").trim();
-  const ytSingle = (process.env.COOKIE_YOUTUBE_B64 || "").trim();
-  const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
-  const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
-  const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
-  const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
-  const ttDec = decodeCookieB64(ttJoined);
-  const ytDec = decodeCookieB64(ytJoined);
-
   res.json({
-    env: {
-      TT_single_len: envLen(ttSingle),
-      TT_parts_count: ttPartsCount,
-      TT_joined_len: ttDec.joinedLen,
-      TT_is_gz: ttDec.isGz,
-      TT_decode_ok: ttDec.ok,
-      YT_single_len: envLen(ytSingle),
-      YT_parts_count: ytPartsCount,
-      YT_joined_len: ytDec.joinedLen,
-      YT_is_gz: ytDec.isGz,
-      YT_decode_ok: ytDec.ok
-    },
-    files: {
-      dir: COOKIES_DIR,
-      tiktok_exists: fileExists(COOKIE_TIKTOK),
-      youtube_exists: fileExists(COOKIE_YOUTUBE),
-      tiktok_size: fileExists(COOKIE_TIKTOK) ? fs.statSync(COOKIE_TIKTOK).size : 0,
-      youtube_size: fileExists(COOKIE_YOUTUBE) ? fs.statSync(COOKIE_YOUTUBE).size : 0
-    }
+    dir: COOKIES_DIR,
+    tiktok_exists: fileExists(COOKIE_TIKTOK),
+    youtube_exists: fileExists(COOKIE_YOUTUBE),
+    tiktok_size: fileExists(COOKIE_TIKTOK) ? fs.statSync(COOKIE_TIKTOK).size : 0,
+    youtube_size: fileExists(COOKIE_YOUTUBE) ? fs.statSync(COOKIE_YOUTUBE).size : 0,
+    tiktok_url_set: Boolean(COOKIE_TIKTOK_URL),
+    youtube_url_set: Boolean(COOKIE_YOUTUBE_URL)
   });
 });
 
-// Health
-app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
+// admin: reload cookies on demand
+app.post("/admin/reload-cookies", async (req, res) => {
+  if (!ADMIN_TOKEN || req.get("x-admin-token") !== ADMIN_TOKEN) return res.status(401).json({ error: "unauthorized" });
+  try {
+    await loadCookiesOnce();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok:false, error: String(e?.message || e) });
+  }
+});
 
-// Probe
+// probe (metadata)
 app.post("/api/probe", async (req, res) => {
   try {
     const { url } = req.body || {};
@@ -200,18 +166,17 @@ app.post("/api/probe", async (req, res) => {
     args.push(url);
 
     const { stdout } = await runYtDlp(args);
-    const lastBrace = stdout.lastIndexOf("}");
-    const firstBrace = stdout.indexOf("{");
-    const json = (firstBrace >= 0 && lastBrace > firstBrace) ? JSON.parse(stdout.slice(firstBrace, lastBrace+1)) : {};
+    const a = stdout.indexOf("{"), b = stdout.lastIndexOf("}");
+    const json = (a >= 0 && b > a) ? JSON.parse(stdout.slice(a, b+1)) : {};
     res.json(json);
   } catch (err) {
     res.status(500).json({ error: String(err?.message || err) });
   }
 });
 
-// Download
+// download
 app.post("/api/download", async (req, res) => {
-  const startedAt = Date.now();
+  const t0 = Date.now();
   try {
     const { url, audioOnly = false, quality = "", filename = "" } = req.body || {};
     if (!url) return res.status(400).json({ error: "Missing url" });
@@ -220,9 +185,9 @@ app.post("/api/download", async (req, res) => {
     const cookieFile = pickCookieFor(url);
 
     const id = nanoid(10);
-    const outBase = sanitizeName(filename) || "dripl";
+    const base = sanitizeName(filename) || "dripl";
     const ext = audioOnly ? "m4a" : "mp4";
-    const outPath = path.join(tmpdir(), `${outBase}-${id}.%(ext)s`);
+    const outPath = path.join(tmpdir(), `${base}-${id}.%(ext)s`);
 
     const args = [
       "-f", format,
@@ -241,7 +206,7 @@ app.post("/api/download", async (req, res) => {
     await runYtDlp(args);
 
     const tmp = tmpdir();
-    const candidates = fs.readdirSync(tmp).filter(f => f.startsWith(outBase) && f.includes(id)).map(f => path.join(tmp, f));
+    const candidates = fs.readdirSync(tmp).filter(f => f.startsWith(base) && f.includes(id)).map(f => path.join(tmp, f));
     if (!candidates.length) return res.status(500).json({ error: "No output file was produced." });
     const filePath = candidates.find(f => f.endsWith(`.${ext}`)) || candidates[0];
 
@@ -252,7 +217,7 @@ app.post("/api/download", async (req, res) => {
 
     const stream = fs.createReadStream(filePath);
     stream.pipe(res);
-    stream.on("close", () => { fs.unlink(filePath, () => {}); console.log(`[dripl] served in ${Date.now()-startedAt}ms`); });
+    stream.on("close", () => { fs.unlink(filePath, () => {}); console.log(`[dripl] served in ${Date.now() - t0}ms`); });
     stream.on("error", e => { console.error("stream error", e); fs.unlink(filePath, () => {}); });
   } catch (err) {
     console.error(err);
@@ -260,15 +225,24 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
-// Root
+// root
 app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/download"));
 
-app.listen(PORT, () => {
-  console.log(`[dripl] server listening on :${PORT}`);
-  if (PROXY_URL) console.log(`[dripl] using proxy ${PROXY_URL}`);
-  console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
-  if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
-});
+// boot
+(async () => {
+  try { await loadCookiesOnce(); } catch (e) { console.warn("[dripl] cookie init warn:", e?.message || e); }
+  // small perf: keep-alive for Node HTTP server (helps with multiple fragments)
+  const server = app.listen(PORT, () => {
+    console.log(`[dripl] server listening on :${PORT}`);
+    if (PROXY_URL) console.log(`[dripl] using proxy ${PROXY_URL}`);
+    console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
+    if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
+  });
+  server.keepAliveTimeout = 75_000; // default 5s; bump helps HLS/many requests
+  server.headersTimeout   = 90_000;
+})();
+
+
 
 
 
