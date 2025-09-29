@@ -14,13 +14,13 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.1.0",
     "morgan": "^1.10.0",
-    "nanoid": "^5.0.7",
-    "yt-dlp-exec": "^2.4.8"
+    "nanoid": "^5.0.7"
   },
   "devDependencies": {
     "cross-env": "^7.0.3"
   }
 }
+
 
 
 
