@@ -1,4 +1,4 @@
-// server.js — Dripl (Docker/Render). Calls the yt-dlp binary directly + serves static UI.
+// server.js — Dripl (Docker/Render). yt-dlp binary + static UI + cookies (B64) + extra args.
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -17,10 +17,13 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
 const PROXY_URL = process.env.PROXY_URL || "";
 const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
-
-// NEW: allow serving your existing UI wherever it lives (default /public)
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
 
+// NEW: optional extra args to quickly test yt-dlp flags without code changes
+// Example: set YTDLP_EXTRA_ARGS="--force-ipv4"
+const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
+
+// cookie paths / B64 sources
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 const COOKIE_TIKTOK  = process.env.COOKIE_TIKTOK  || path.join(COOKIES_DIR, "tiktok.txt");
 const COOKIE_YOUTUBE_B64 = process.env.COOKIE_YOUTUBE_B64 || "";
@@ -42,7 +45,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
 app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
 
-// NEW: serve static UI if the folder exists
+// Serve static UI
 try {
   if (fs.existsSync(STATIC_DIR)) {
     app.use(express.static(STATIC_DIR));
@@ -55,7 +58,7 @@ try {
 }
 
 // ---- Helpers
-const YTDLP = "/usr/local/bin/yt-dlp"; // installed by Dockerfile
+const YTDLP = "/usr/local/bin/yt-dlp"; // installed in Dockerfile
 const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
 
 const pickCookieFor = (url) => {
@@ -76,6 +79,7 @@ const pickFormat = ({ audioOnly, quality }) => {
 
 const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
 
+const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g).map(a => a.replace(/^"(.*)"$/, "$1")) : []); // crude shell-ish split
 const runYtDlp = (args) => new Promise((resolve, reject) => {
   const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "", stderr = "";
@@ -92,16 +96,14 @@ app.post("/api/probe", async (req, res) => {
     const { url } = req.body || {};
     if (!url) return res.status(400).json({ error: "Missing url" });
 
-    const args = [
-      "--dump-single-json", "--simulate", "--no-warnings", "--no-call-home",
-    ];
+    const args = ["--dump-single-json", "--simulate", "--no-warnings"];
     if (PROXY_URL) args.push("--proxy", PROXY_URL);
     const cookieFile = pickCookieFor(url);
     if (cookieFile) args.push("--cookies", cookieFile);
+    if (YTDLP_EXTRA_ARGS) args.push(...splitArgs(YTDLP_EXTRA_ARGS));
     args.push(url);
 
     const { stdout } = await runYtDlp(args);
-    // yt-dlp may print progress lines; parse last JSON block
     const lastBrace = stdout.lastIndexOf("}");
     const firstBrace = stdout.indexOf("{");
     const json = (firstBrace >= 0 && lastBrace > firstBrace) ? JSON.parse(stdout.slice(firstBrace, lastBrace+1)) : {};
@@ -133,11 +135,11 @@ app.post("/api/download", async (req, res) => {
       "--retries", "6",
       "--fragment-retries", "10",
       "--no-warnings",
-      "--no-call-home",
       "--no-check-certificates"
     ];
     if (PROXY_URL) args.push("--proxy", PROXY_URL);
     if (cookieFile) args.push("--cookies", cookieFile);
+    if (YTDLP_EXTRA_ARGS) args.push(...splitArgs(YTDLP_EXTRA_ARGS));
     args.push(url);
 
     await runYtDlp(args);
@@ -162,14 +164,15 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
-// Root (fallback text if no index.html in STATIC_DIR)
 app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/download"));
 
 app.listen(PORT, () => {
   console.log(`[dripl] server listening on :${PORT}`);
   if (PROXY_URL) console.log(`[dripl] using proxy ${PROXY_URL}`);
   console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
+  if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
 });
+
 
 
 
