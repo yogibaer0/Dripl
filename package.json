@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "scripts": {
     "start": "node server.js",
     "dev": "cross-env DEBUG_ERRORS=1 node server.js"
@@ -17,11 +15,12 @@
     "express-rate-limit": "^8.1.0",
     "morgan": "^1.10.0",
     "nanoid": "^5.0.7",
-    "yt-dlp-exec": "^2.5.6"
+    "yt-dlp-exec": "^2.4.8"
   },
   "devDependencies": {
     "cross-env": "^7.0.3"
   }
 }
+
 
 
