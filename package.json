@@ -11,18 +11,17 @@
     "dev": "cross-env DEBUG_ERRORS=1 node server.js"
   },
   "dependencies": {
-    "@ffprobe-installer/ffprobe": "^1.4.1",
     "axios": "^1.12.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-rate-limit": "^8.1.0",
-    "ffmpeg-static": "^5.2.0",
-    "helmet": "^7.2.0",
-    "mime": "^4.1.0",
-    "p-queue": "^8.1.1",
-    "uuid": "^9.0.1"
+    "morgan": "^1.10.0",
+    "nanoid": "^5.0.7",
+    "yt-dlp-exec": "^2.5.6"
   },
   "devDependencies": {
     "cross-env": "^7.0.3"
   }
 }
+
+
