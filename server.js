@@ -102,11 +102,44 @@ const runYtDlp = (args) => new Promise((resolve, reject) => {
   child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
 });
 
-// ===== Cookie init + verbose diagnostics =====
+// ===== Cookie init + ultra-verbose diagnostics =====
 function envLen(s) { return (typeof s === "string") ? s.length : 0; }
 function countPartVars(prefix) {
   const re = new RegExp(`^${prefix}_\\d+$`, "i");
   return Object.keys(process.env).filter(k => re.test(k)).length;
+}
+
+// Returns { ok:boolean, data?:Buffer, error?:string, joinedLen:number, isGz:boolean }
+function decodeCookieB64(joined) {
+  const s = (joined || "").trim();
+  const isGz = /^GZ:/i.test(s);
+  const joinedLen = s.length;
+  if (!s) return { ok:false, error:"empty", joinedLen, isGz:false };
+  try {
+    if (isGz) {
+      const raw = Buffer.from(s.slice(3), "base64");
+      const data = zlib.gunzipSync(raw);
+      return { ok:true, data, joinedLen, isGz:true };
+    } else {
+      const data = Buffer.from(s, "base64");
+      return { ok:true, data, joinedLen, isGz:false };
+    }
+  } catch (e) {
+    return { ok:false, error: String(e?.message || e), joinedLen, isGz };
+  }
+}
+
+function readMultipartEnv(prefix) {
+  const parts = Object.entries(process.env)
+    .filter(([k]) => k.toUpperCase().startsWith((prefix + "_").toUpperCase()))
+    .map(([k, v]) => {
+      const m = k.match(/_(\d+)$/);
+      return { idx: m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER, v };
+    })
+    .filter(x => Number.isFinite(x.idx))
+    .sort((a, b) => a.idx - b.idx)
+    .map(x => x.v);
+  return parts.length ? parts.join("") : "";
 }
 
 try {
@@ -117,31 +150,80 @@ try {
   const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
   const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
 
-  // Prefer single over multipart if present
+  // Prefer single (if non-empty) over parts
   const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
   const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
 
   console.log(`[dripl] cookie envs: TT single=${envLen(ttSingle)} chars, TT parts=${ttPartsCount}; YT single=${envLen(ytSingle)} chars, YT parts=${ytPartsCount}`);
 
-  const ttW = writeCookieFromB64IfAny(COOKIE_TIKTOK, ttJoined);
-  const ytW = writeCookieFromB64IfAny(COOKIE_YOUTUBE, ytJoined);
+  const ttDec = decodeCookieB64(ttJoined);
+  console.log(`[dripl] TT joined_len=${ttDec.joinedLen}, isGZ=${ttDec.isGz}, decode_ok=${ttDec.ok}${ttDec.error ? `, error=${ttDec.error}` : ""}`);
 
-  if (ttW) {
-    const sz = fs.statSync(COOKIE_TIKTOK).size;
-    console.log(`[dripl] TikTok cookies loaded -> ${COOKIE_TIKTOK} (${sz} bytes)`);
+  const ytDec = decodeCookieB64(ytJoined);
+  console.log(`[dripl] YT joined_len=${ytDec.joinedLen}, isGZ=${ytDec.isGz}, decode_ok=${ytDec.ok}${ytDec.error ? `, error=${ytDec.error}` : ""}`);
+
+  if (ttDec.ok) {
+    try {
+      fs.writeFileSync(COOKIE_TIKTOK, ttDec.data);
+      const sz = fs.statSync(COOKIE_TIKTOK).size;
+      console.log(`[dripl] TikTok cookies loaded -> ${COOKIE_TIKTOK} (${sz} bytes)`);
+    } catch (e) {
+      console.warn(`[dripl] TikTok cookie write failed: ${e?.message || e}`);
+    }
   } else {
     console.log("[dripl] TikTok cookies not loaded (no env or decode failed).");
   }
 
-  if (ytW) {
-    const sz = fs.statSync(COOKIE_YOUTUBE).size;
-    console.log(`[dripl] YouTube cookies loaded -> ${COOKIE_YOUTUBE} (${sz} bytes)`);
+  if (ytDec.ok) {
+    try {
+      fs.writeFileSync(COOKIE_YOUTUBE, ytDec.data);
+      const sz = fs.statSync(COOKIE_YOUTUBE).size;
+      console.log(`[dripl] YouTube cookies loaded -> ${COOKIE_YOUTUBE} (${sz} bytes)`);
+    } catch (e) {
+      console.warn(`[dripl] YouTube cookie write failed: ${e?.message || e}`);
+    }
   } else {
     console.log("[dripl] YouTube cookies not loaded (no env or decode failed).");
   }
 } catch (e) {
-  console.warn("[dripl] cookie init warn:", e?.message || e);
+  console.warn("[dripl] cookie init fatal:", e?.message || e);
 }
+
+// ---- Debug route: show env counts, joined lengths, decode status, and file sizes
+app.get("/debug/cookies", (_req, res) => {
+  const ttSingle = (process.env.COOKIE_TIKTOK_B64 || "").trim();
+  const ytSingle = (process.env.COOKIE_YOUTUBE_B64 || "").trim();
+  const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
+  const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
+
+  const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
+  const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
+
+  const ttDec = decodeCookieB64(ttJoined);
+  const ytDec = decodeCookieB64(ytJoined);
+
+  res.json({
+    env: {
+      TT_single_len: envLen(ttSingle),
+      TT_parts_count: ttPartsCount,
+      TT_joined_len: ttDec.joinedLen,
+      TT_is_gz: ttDec.isGz,
+      TT_decode_ok: ttDec.ok,
+      YT_single_len: envLen(ytSingle),
+      YT_parts_count: ytPartsCount,
+      YT_joined_len: ytDec.joinedLen,
+      YT_is_gz: ytDec.isGz,
+      YT_decode_ok: ytDec.ok
+    },
+    files: {
+      dir: COOKIES_DIR,
+      tiktok_exists: fileExists(COOKIE_TIKTOK),
+      youtube_exists: fileExists(COOKIE_YOUTUBE),
+      tiktok_size: fileExists(COOKIE_TIKTOK) ? fs.statSync(COOKIE_TIKTOK).size : 0,
+      youtube_size: fileExists(COOKIE_YOUTUBE) ? fs.statSync(COOKIE_YOUTUBE).size : 0
+    }
+  });
+});
 
 // ===== App =====
 const app = express();
