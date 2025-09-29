@@ -14,27 +14,35 @@ import zlib from "zlib";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- ENV
+// ===== ENV =====
 const PORT = process.env.PORT || 10000;
 const PROXY_URL = process.env.PROXY_URL || "";
 const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
 const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
 
-// Cookie file targets (where to write decoded cookies)
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 const COOKIE_TIKTOK  = process.env.COOKIE_TIKTOK  || path.join(COOKIES_DIR, "tiktok.txt");
 
-// Base64 (single-var form also supported)
-const COOKIE_YOUTUBE_B64 = process.env.COOKIE_YOUTUBE_B64 || "";
-const COOKIE_TIKTOK_B64  = process.env.COOKIE_TIKTOK_B64  || "";
-
-// ---- Helpers
+// ===== Helpers =====
 const YTDLP = "/usr/local/bin/yt-dlp";
 const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
+const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
+const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
+const runYtDlp = (args) => new Promise((resolve, reject) => {
+  const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
+  let stdout = "", stderr = "";
+  child.stdout.on("data", d => stdout += d.toString());
+  child.stderr.on("data", d => stderr += d.toString());
+  child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
+});
 
-// Read multipart envs like PREFIX_1, PREFIX_2, ... then join in order.
-// If the *single* key exists, the caller should prefer it instead of this.
+// ===== Cookie utils (single definitions) =====
+function envLen(s) { return (typeof s === "string") ? s.length : 0; }
+function countPartVars(prefix) {
+  const re = new RegExp(`^${prefix}_\\d+$`, "i");
+  return Object.keys(process.env).filter(k => re.test(k)).length;
+}
 function readMultipartEnv(prefix) {
   const parts = Object.entries(process.env)
     .filter(([k]) => k.toUpperCase().startsWith((prefix + "_").toUpperCase()))
@@ -47,69 +55,7 @@ function readMultipartEnv(prefix) {
     .map(x => x.v);
   return parts.length ? parts.join("") : "";
 }
-
-// Write Base64 (or GZ+Base64) to target path
-function writeCookieFromB64IfAny(targetPath, b64) {
-  const joined = (b64 || "").trim();
-  if (!joined) return false;
-
-  let data;
-  try {
-    if (/^GZ:/i.test(joined)) {
-      const raw = Buffer.from(joined.slice(3), "base64");
-      data = zlib.gunzipSync(raw);
-    } else {
-      data = Buffer.from(joined, "base64");
-    }
-  } catch (e) {
-    console.warn(`[dripl] cookie decode failed for ${path.basename(targetPath)}:`, e?.message || e);
-    return false;
-  }
-
-  try {
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.writeFileSync(targetPath, data);
-    return true;
-  } catch (e) {
-    console.warn(`[dripl] cookie write failed for ${targetPath}:`, e?.message || e);
-    return false;
-  }
-}
-
-const pickCookieFor = (url) => {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    if (host.includes("youtube.") || host.includes("youtu.be")) return fileExists(COOKIE_YOUTUBE) ? COOKIE_YOUTUBE : null;
-    if (host.includes("tiktok.")) return fileExists(COOKIE_TIKTOK) ? COOKIE_TIKTOK : null;
-    return null;
-  } catch { return null; }
-};
-
-const pickFormat = ({ audioOnly, quality }) => {
-  if (audioOnly) return "bestaudio[ext=m4a]/bestaudio/best";
-  if (quality === "1080p") return "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-  if (quality === "720p")  return "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-  return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-};
-
-const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
-const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
-const runYtDlp = (args) => new Promise((resolve, reject) => {
-  const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
-  let stdout = "", stderr = "";
-  child.stdout.on("data", d => stdout += d.toString());
-  child.stderr.on("data", d => stderr += d.toString());
-  child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
-});
-
-// ===== Cookie init + ultra-verbose diagnostics =====
-function envLen(s) { return (typeof s === "string") ? s.length : 0; }
-function countPartVars(prefix) {
-  const re = new RegExp(`^${prefix}_\\d+$`, "i");
-  return Object.keys(process.env).filter(k => re.test(k)).length;
-}
-
-// Returns { ok:boolean, data?:Buffer, error?:string, joinedLen:number, isGz:boolean }
+// Return { ok, data?, error?, joinedLen, isGz }
 function decodeCookieB64(joined) {
   const s = (joined || "").trim();
   const isGz = /^GZ:/i.test(s);
@@ -129,19 +75,22 @@ function decodeCookieB64(joined) {
   }
 }
 
-function readMultipartEnv(prefix) {
-  const parts = Object.entries(process.env)
-    .filter(([k]) => k.toUpperCase().startsWith((prefix + "_").toUpperCase()))
-    .map(([k, v]) => {
-      const m = k.match(/_(\d+)$/);
-      return { idx: m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER, v };
-    })
-    .filter(x => Number.isFinite(x.idx))
-    .sort((a, b) => a.idx - b.idx)
-    .map(x => x.v);
-  return parts.length ? parts.join("") : "";
-}
+const pickCookieFor = (url) => {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.includes("youtube.") || host.includes("youtu.be")) return fileExists(COOKIE_YOUTUBE) ? COOKIE_YOUTUBE : null;
+    if (host.includes("tiktok.")) return fileExists(COOKIE_TIKTOK) ? COOKIE_TIKTOK : null;
+    return null;
+  } catch { return null; }
+};
+const pickFormat = ({ audioOnly, quality }) => {
+  if (audioOnly) return "bestaudio[ext=m4a]/bestaudio/best";
+  if (quality === "1080p") return "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
+  if (quality === "720p")  return "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
+  return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
+};
 
+// ===== Cookie init (verbose) =====
 try {
   fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
@@ -150,7 +99,7 @@ try {
   const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
   const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
 
-  // Prefer single (if non-empty) over parts
+  // Prefer single if present; else join parts
   const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
   const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
 
@@ -163,25 +112,17 @@ try {
   console.log(`[dripl] YT joined_len=${ytDec.joinedLen}, isGZ=${ytDec.isGz}, decode_ok=${ytDec.ok}${ytDec.error ? `, error=${ytDec.error}` : ""}`);
 
   if (ttDec.ok) {
-    try {
-      fs.writeFileSync(COOKIE_TIKTOK, ttDec.data);
-      const sz = fs.statSync(COOKIE_TIKTOK).size;
-      console.log(`[dripl] TikTok cookies loaded -> ${COOKIE_TIKTOK} (${sz} bytes)`);
-    } catch (e) {
-      console.warn(`[dripl] TikTok cookie write failed: ${e?.message || e}`);
-    }
+    fs.writeFileSync(COOKIE_TIKTOK, ttDec.data);
+    const sz = fs.statSync(COOKIE_TIKTOK).size;
+    console.log(`[dripl] TikTok cookies loaded -> ${COOKIE_TIKTOK} (${sz} bytes)`);
   } else {
     console.log("[dripl] TikTok cookies not loaded (no env or decode failed).");
   }
 
   if (ytDec.ok) {
-    try {
-      fs.writeFileSync(COOKIE_YOUTUBE, ytDec.data);
-      const sz = fs.statSync(COOKIE_YOUTUBE).size;
-      console.log(`[dripl] YouTube cookies loaded -> ${COOKIE_YOUTUBE} (${sz} bytes)`);
-    } catch (e) {
-      console.warn(`[dripl] YouTube cookie write failed: ${e?.message || e}`);
-    }
+    fs.writeFileSync(COOKIE_YOUTUBE, ytDec.data);
+    const sz = fs.statSync(COOKIE_YOUTUBE).size;
+    console.log(`[dripl] YouTube cookies loaded -> ${COOKIE_YOUTUBE} (${sz} bytes)`);
   } else {
     console.log("[dripl] YouTube cookies not loaded (no env or decode failed).");
   }
@@ -189,16 +130,33 @@ try {
   console.warn("[dripl] cookie init fatal:", e?.message || e);
 }
 
-// ---- Debug route: show env counts, joined lengths, decode status, and file sizes
+// ===== App =====
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+app.use(morgan("tiny"));
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
+
+// Static UI
+try {
+  if (fs.existsSync(STATIC_DIR)) {
+    app.use(express.static(STATIC_DIR));
+    console.log(`[dripl] serving static from ${STATIC_DIR}`);
+  } else {
+    console.log(`[dripl] STATIC_DIR not found: ${STATIC_DIR}`);
+  }
+} catch (e) {
+  console.log("[dripl] static serve skip:", e?.message || e);
+}
+
+// Debug endpoint
 app.get("/debug/cookies", (_req, res) => {
   const ttSingle = (process.env.COOKIE_TIKTOK_B64 || "").trim();
   const ytSingle = (process.env.COOKIE_YOUTUBE_B64 || "").trim();
   const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
   const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
-
   const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
   const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
-
   const ttDec = decodeCookieB64(ttJoined);
   const ytDec = decodeCookieB64(ytJoined);
 
@@ -225,48 +183,10 @@ app.get("/debug/cookies", (_req, res) => {
   });
 });
 
-// ===== App =====
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-app.use(morgan("tiny"));
-app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
-
-// Serve static UI
-try {
-  if (fs.existsSync(STATIC_DIR)) {
-    app.use(express.static(STATIC_DIR));
-    console.log(`[dripl] serving static from ${STATIC_DIR}`);
-  } else {
-    console.log(`[dripl] STATIC_DIR not found: ${STATIC_DIR}`);
-  }
-} catch (e) {
-  console.log("[dripl] static serve skip:", e?.message || e);
-}
-
-// ===== Debug route to inspect cookie envs/files =====
-app.get("/debug/cookies", (_req, res) => {
-  const info = {
-    env: {
-      TT_single_len: envLen(process.env.COOKIE_TIKTOK_B64 || ""),
-      TT_parts_count: countPartVars("COOKIE_TIKTOK_B64"),
-      YT_single_len: envLen(process.env.COOKIE_YOUTUBE_B64 || ""),
-      YT_parts_count: countPartVars("COOKIE_YOUTUBE_B64"),
-    },
-    files: {
-      dir: COOKIES_DIR,
-      tiktok_exists: fileExists(COOKIE_TIKTOK),
-      youtube_exists: fileExists(COOKIE_YOUTUBE),
-      tiktok_size: fileExists(COOKIE_TIKTOK) ? fs.statSync(COOKIE_TIKTOK).size : 0,
-      youtube_size: fileExists(COOKIE_YOUTUBE) ? fs.statSync(COOKIE_YOUTUBE).size : 0,
-    }
-  };
-  res.json(info);
-});
-
-// ===== Routes =====
+// Health
 app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
 
+// Probe
 app.post("/api/probe", async (req, res) => {
   try {
     const { url } = req.body || {};
@@ -289,7 +209,7 @@ app.post("/api/probe", async (req, res) => {
   }
 });
 
-// body: { url, audioOnly?: boolean, quality?: "720p"|"1080p", filename?: string }
+// Download
 app.post("/api/download", async (req, res) => {
   const startedAt = Date.now();
   try {
@@ -340,6 +260,7 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
+// Root
 app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/download"));
 
 app.listen(PORT, () => {
@@ -348,6 +269,7 @@ app.listen(PORT, () => {
   console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
   if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
 });
+
 
 
 
