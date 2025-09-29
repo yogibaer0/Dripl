@@ -1,4 +1,4 @@
-// server.js — Dripl (yt-dlp binary + static UI + cookies via path/B64/multipart)
+// server.js — Dripl (yt-dlp + static UI + cookies via path/B64/multipart + debug)
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -21,11 +21,11 @@ const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
 const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
 
-// Cookie file targets (where to write the decoded cookies)
+// Cookie file targets (where to write decoded cookies)
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 const COOKIE_TIKTOK  = process.env.COOKIE_TIKTOK  || path.join(COOKIES_DIR, "tiktok.txt");
 
-// Base64 envs (single-var form still supported)
+// Base64 (single-var form also supported)
 const COOKIE_YOUTUBE_B64 = process.env.COOKIE_YOUTUBE_B64 || "";
 const COOKIE_TIKTOK_B64  = process.env.COOKIE_TIKTOK_B64  || "";
 
@@ -33,11 +33,9 @@ const COOKIE_TIKTOK_B64  = process.env.COOKIE_TIKTOK_B64  || "";
 const YTDLP = "/usr/local/bin/yt-dlp";
 const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
 
-// Read multi-part envs like PREFIX_1, PREFIX_2, ..., concatenate in order
+// Read multipart envs like PREFIX_1, PREFIX_2, ... then join in order.
+// If the *single* key exists, the caller should prefer it instead of this.
 function readMultipartEnv(prefix) {
-  // exact match wins
-  if (process.env[prefix]) return process.env[prefix];
-  // collect numbered parts (case-insensitive)
   const parts = Object.entries(process.env)
     .filter(([k]) => k.toUpperCase().startsWith((prefix + "_").toUpperCase()))
     .map(([k, v]) => {
@@ -50,12 +48,11 @@ function readMultipartEnv(prefix) {
   return parts.length ? parts.join("") : "";
 }
 
-// Write Base64 (or gz+Base64) to target path
-function writeCookieFromB64IfAny(targetPath, ...b64Candidates) {
-  const joined = b64Candidates.find(Boolean) || "";
+// Write Base64 (or GZ+Base64) to target path
+function writeCookieFromB64IfAny(targetPath, b64) {
+  const joined = (b64 || "").trim();
   if (!joined) return false;
 
-  // Support optional gz+base64 (prefix "GZ:" or "gz:")
   let data;
   try {
     if (/^GZ:/i.test(joined)) {
@@ -96,7 +93,6 @@ const pickFormat = ({ audioOnly, quality }) => {
 };
 
 const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
-
 const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
 const runYtDlp = (args) => new Promise((resolve, reject) => {
   const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -106,30 +102,55 @@ const runYtDlp = (args) => new Promise((resolve, reject) => {
   child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
 });
 
-// ---- Cookie init (supports single-var and multipart)
+// ===== Cookie init + verbose diagnostics =====
+function envLen(s) { return (typeof s === "string") ? s.length : 0; }
+function countPartVars(prefix) {
+  const re = new RegExp(`^${prefix}_\\d+$`, "i");
+  return Object.keys(process.env).filter(k => re.test(k)).length;
+}
+
 try {
   fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
-  const ttJoined = readMultipartEnv("COOKIE_TIKTOK_B64") || COOKIE_TIKTOK_B64;
-  const ytJoined = readMultipartEnv("COOKIE_YOUTUBE_B64") || COOKIE_YOUTUBE_B64;
+  const ttSingle = (process.env.COOKIE_TIKTOK_B64 || "").trim();
+  const ytSingle = (process.env.COOKIE_YOUTUBE_B64 || "").trim();
+  const ttPartsCount = countPartVars("COOKIE_TIKTOK_B64");
+  const ytPartsCount = countPartVars("COOKIE_YOUTUBE_B64");
+
+  // Prefer single over multipart if present
+  const ttJoined = ttSingle || readMultipartEnv("COOKIE_TIKTOK_B64");
+  const ytJoined = ytSingle || readMultipartEnv("COOKIE_YOUTUBE_B64");
+
+  console.log(`[dripl] cookie envs: TT single=${envLen(ttSingle)} chars, TT parts=${ttPartsCount}; YT single=${envLen(ytSingle)} chars, YT parts=${ytPartsCount}`);
 
   const ttW = writeCookieFromB64IfAny(COOKIE_TIKTOK, ttJoined);
   const ytW = writeCookieFromB64IfAny(COOKIE_YOUTUBE, ytJoined);
 
-  if (ttW) console.log("[dripl] TikTok cookies loaded from Base64 (parts or single).");
-  if (ytW) console.log("[dripl] YouTube cookies loaded from Base64 (parts or single).");
+  if (ttW) {
+    const sz = fs.statSync(COOKIE_TIKTOK).size;
+    console.log(`[dripl] TikTok cookies loaded -> ${COOKIE_TIKTOK} (${sz} bytes)`);
+  } else {
+    console.log("[dripl] TikTok cookies not loaded (no env or decode failed).");
+  }
+
+  if (ytW) {
+    const sz = fs.statSync(COOKIE_YOUTUBE).size;
+    console.log(`[dripl] YouTube cookies loaded -> ${COOKIE_YOUTUBE} (${sz} bytes)`);
+  } else {
+    console.log("[dripl] YouTube cookies not loaded (no env or decode failed).");
+  }
 } catch (e) {
   console.warn("[dripl] cookie init warn:", e?.message || e);
 }
 
-// ---- App
+// ===== App =====
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
 app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
 
-// Static UI
+// Serve static UI
 try {
   if (fs.existsSync(STATIC_DIR)) {
     app.use(express.static(STATIC_DIR));
@@ -141,7 +162,27 @@ try {
   console.log("[dripl] static serve skip:", e?.message || e);
 }
 
-// ---- Routes
+// ===== Debug route to inspect cookie envs/files =====
+app.get("/debug/cookies", (_req, res) => {
+  const info = {
+    env: {
+      TT_single_len: envLen(process.env.COOKIE_TIKTOK_B64 || ""),
+      TT_parts_count: countPartVars("COOKIE_TIKTOK_B64"),
+      YT_single_len: envLen(process.env.COOKIE_YOUTUBE_B64 || ""),
+      YT_parts_count: countPartVars("COOKIE_YOUTUBE_B64"),
+    },
+    files: {
+      dir: COOKIES_DIR,
+      tiktok_exists: fileExists(COOKIE_TIKTOK),
+      youtube_exists: fileExists(COOKIE_YOUTUBE),
+      tiktok_size: fileExists(COOKIE_TIKTOK) ? fs.statSync(COOKIE_TIKTOK).size : 0,
+      youtube_size: fileExists(COOKIE_YOUTUBE) ? fs.statSync(COOKIE_YOUTUBE).size : 0,
+    }
+  };
+  res.json(info);
+});
+
+// ===== Routes =====
 app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
 
 app.post("/api/probe", async (req, res) => {
@@ -225,6 +266,8 @@ app.listen(PORT, () => {
   console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
   if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
 });
+
+
 
 
 
