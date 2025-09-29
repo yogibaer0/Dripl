@@ -1,6 +1,6 @@
-// server.js — Dripl (lean)
-// Cookie sources: Secret Files -> Remote URL
-// Admin reload, debug, yt-dlp API, minimal deps & clean logs.
+// server.js — Dripl (remote-first cookies)
+// Priority: Remote URL (+optional headers) -> Secret Files -> (missing)
+// Endpoints: /api/probe, /api/download, /debug/cookies, /admin/reload-cookies
 
 import express from "express";
 import cors from "cors";
@@ -17,27 +17,29 @@ import { spawn } from "child_process";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ------------ ENV ------------
+// -------- ENV --------
 const PORT = process.env.PORT || 10000;
 const PROXY_URL = process.env.PROXY_URL || "";
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
-
 const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
 const COOKIE_TIKTOK = process.env.COOKIE_TIKTOK || path.join(COOKIES_DIR, "tiktok.txt");
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 
-const COOKIE_TIKTOK_URL  = (process.env.COOKIE_TIKTOK_URL  || "").trim();
+// Remote fetch
+const COOKIE_TIKTOK_URL = (process.env.COOKIE_TIKTOK_URL || "").trim();
 const COOKIE_YOUTUBE_URL = (process.env.COOKIE_YOUTUBE_URL || "").trim();
+// Optional JSON headers, e.g. {"Authorization":"Bearer <token>"}
+const COOKIE_TIKTOK_HEADERS = safeParseJSON(process.env.COOKIE_TIKTOK_HEADERS);
+const COOKIE_YOUTUBE_HEADERS = safeParseJSON(process.env.COOKIE_YOUTUBE_HEADERS);
 
 const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
-
-// Optional: extra yt-dlp args string, e.g. `--concurrent-fragments 16`
 const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
-
-// yt-dlp binary path (Dockerfile installs to here)
 const YTDLP = "/usr/local/bin/yt-dlp";
 
-// ------------ utils ------------
+// -------- utils --------
+function safeParseJSON(s) {
+  try { return s ? JSON.parse(s) : undefined; } catch { return undefined; }
+}
 const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
 const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
 const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
@@ -68,39 +70,51 @@ function pickFormat({ audioOnly, quality }) {
   return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
 }
 
-async function fetchToFile(url, outPath) {
-  const resp = await axios.get(url, { responseType: "arraybuffer", timeout: 30000, maxContentLength: Infinity });
+async function fetchToFile(url, outPath, headers) {
+  const resp = await axios.get(url, {
+    responseType: "arraybuffer",
+    timeout: 30000,
+    maxContentLength: Infinity,
+    headers: headers || undefined
+  });
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, resp.data);
   return fs.statSync(outPath).size;
 }
 
-// ------------ cookie load (lean) ------------
+// -------- cookie load (REMOTE FIRST) --------
 async function loadCookiesOnce() {
   fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
-  // 1) Secret files at /etc/secrets/*
-  const secrets = { tiktok: "/etc/secrets/tiktok.txt", youtube: "/etc/secrets/youtube.txt" };
-  for (const [key, src] of Object.entries(secrets)) {
-    if (fileExists(src)) {
-      const dest = key === "tiktok" ? COOKIE_TIKTOK : COOKIE_YOUTUBE;
-      fs.copyFileSync(src, dest);
-      const sz = fs.statSync(dest).size;
-      console.log(`[dripl] ${key} cookies loaded from secret file -> ${dest} (${sz} bytes)`);
+  // 1) Remote fetch first (if URLs provided)
+  const remotes = [
+    { key: "tiktok",  url: COOKIE_TIKTOK_URL,  dest: COOKIE_TIKTOK,  headers: COOKIE_TIKTOK_HEADERS },
+    { key: "youtube", url: COOKIE_YOUTUBE_URL, dest: COOKIE_YOUTUBE, headers: COOKIE_YOUTUBE_HEADERS },
+  ];
+  for (const r of remotes) {
+    if (r.url) {
+      try {
+        const sz = await fetchToFile(r.url, r.dest, r.headers);
+        console.log(`[dripl] ${r.key} cookies fetched from URL -> ${r.dest} (${sz} bytes)`);
+      } catch (e) {
+        console.warn(`[dripl] ${r.key} cookie fetch failed: ${e?.message || e}`);
+      }
     }
   }
 
-  // 2) Remote URL fetch (only if not present from secrets)
-  const urls = { tiktok: COOKIE_TIKTOK_URL, youtube: COOKIE_YOUTUBE_URL };
-  for (const key of ["tiktok","youtube"]) {
-    const url = (urls[key] || "").trim();
+  // 2) Secret Files fallback
+  const secretCandidates = {
+    tiktok:  ["/etc/secrets/tiktok.txt",  "/etc/secrets/ttcookies.txt"],
+    youtube: ["/etc/secrets/youtube.txt", "/etc/secrets/ytcookies.txt"]
+  };
+  for (const [key, candidates] of Object.entries(secretCandidates)) {
     const dest = key === "tiktok" ? COOKIE_TIKTOK : COOKIE_YOUTUBE;
-    if (!fileExists(dest) && url) {
-      try {
-        const sz = await fetchToFile(url, dest);
-        console.log(`[dripl] ${key} cookies fetched from URL -> ${dest} (${sz} bytes)`);
-      } catch (e) {
-        console.warn(`[dripl] ${key} cookie fetch failed: ${e?.message || e}`);
+    if (!fileExists(dest)) {
+      const found = candidates.find(p => fileExists(p));
+      if (found) {
+        fs.copyFileSync(found, dest);
+        const sz = fs.statSync(dest).size;
+        console.log(`[dripl] ${key} cookies loaded from secret file -> ${dest} (${sz} bytes)`);
       }
     }
   }
@@ -111,15 +125,14 @@ async function loadCookiesOnce() {
   console.log(`[dripl] cookies summary -> TT: ${haveTT ? "ok" : "missing"} (${ttSz}), YT: ${haveYT ? "ok" : "missing"} (${ytSz})`);
 }
 
-// ------------ app ------------
+// -------- app --------
 const app = express();
 app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
-app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false })); // a touch higher
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false }));
 
-// serve static UI if present
 if (fileExists(STATIC_DIR)) {
   app.use(express.static(STATIC_DIR));
   console.log(`[dripl] serving static from ${STATIC_DIR}`);
@@ -127,7 +140,6 @@ if (fileExists(STATIC_DIR)) {
   console.log(`[dripl] no static dir at ${STATIC_DIR} (ok)`);
 }
 
-// health & debug
 app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
 app.get("/debug/cookies", (_req, res) => {
   res.json({
@@ -141,18 +153,13 @@ app.get("/debug/cookies", (_req, res) => {
   });
 });
 
-// admin: reload cookies on demand
 app.post("/admin/reload-cookies", async (req, res) => {
   if (!ADMIN_TOKEN || req.get("x-admin-token") !== ADMIN_TOKEN) return res.status(401).json({ error: "unauthorized" });
-  try {
-    await loadCookiesOnce();
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ ok:false, error: String(e?.message || e) });
-  }
+  try { await loadCookiesOnce(); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ ok:false, error: String(e?.message || e) }); }
 });
 
-// probe (metadata)
+// Probe (metadata only)
 app.post("/api/probe", async (req, res) => {
   try {
     const { url } = req.body || {};
@@ -174,7 +181,7 @@ app.post("/api/probe", async (req, res) => {
   }
 });
 
-// download
+// Download
 app.post("/api/download", async (req, res) => {
   const t0 = Date.now();
   try {
@@ -225,22 +232,22 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
-// root
+// Root
 app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/download"));
 
-// boot
+// Boot
 (async () => {
   try { await loadCookiesOnce(); } catch (e) { console.warn("[dripl] cookie init warn:", e?.message || e); }
-  // small perf: keep-alive for Node HTTP server (helps with multiple fragments)
   const server = app.listen(PORT, () => {
     console.log(`[dripl] server listening on :${PORT}`);
     if (PROXY_URL) console.log(`[dripl] using proxy ${PROXY_URL}`);
     console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
     if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
   });
-  server.keepAliveTimeout = 75_000; // default 5s; bump helps HLS/many requests
+  server.keepAliveTimeout = 75_000;
   server.headersTimeout   = 90_000;
 })();
+
 
 
 
