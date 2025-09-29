@@ -1,4 +1,4 @@
-// server.js — Dripl (Docker/Render). yt-dlp binary + static UI + cookies (B64) + extra args.
+// server.js — Dripl (yt-dlp binary + static UI + cookies via path/B64/multipart)
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { nanoid } from "nanoid";
 import rateLimit from "express-rate-limit";
 import { spawn } from "child_process";
+import zlib from "zlib";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,48 +19,65 @@ const PORT = process.env.PORT || 10000;
 const PROXY_URL = process.env.PROXY_URL || "";
 const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
-
-// NEW: optional extra args to quickly test yt-dlp flags without code changes
-// Example: set YTDLP_EXTRA_ARGS="--force-ipv4"
 const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
 
-// cookie paths / B64 sources
+// Cookie file targets (where to write the decoded cookies)
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 const COOKIE_TIKTOK  = process.env.COOKIE_TIKTOK  || path.join(COOKIES_DIR, "tiktok.txt");
+
+// Base64 envs (single-var form still supported)
 const COOKIE_YOUTUBE_B64 = process.env.COOKIE_YOUTUBE_B64 || "";
 const COOKIE_TIKTOK_B64  = process.env.COOKIE_TIKTOK_B64  || "";
 
-// Ensure cookie files (from Base64 if provided)
-try {
-  fs.mkdirSync(COOKIES_DIR, { recursive: true });
-  if (COOKIE_YOUTUBE_B64) fs.writeFileSync(COOKIE_YOUTUBE, Buffer.from(COOKIE_YOUTUBE_B64, "base64"));
-  if (COOKIE_TIKTOK_B64)  fs.writeFileSync(COOKIE_TIKTOK,  Buffer.from(COOKIE_TIKTOK_B64,  "base64"));
-} catch (e) {
-  console.warn("[dripl] cookie init warn:", e?.message || e);
-}
-
-// ---- App
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-app.use(morgan("tiny"));
-app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
-
-// Serve static UI
-try {
-  if (fs.existsSync(STATIC_DIR)) {
-    app.use(express.static(STATIC_DIR));
-    console.log(`[dripl] serving static from ${STATIC_DIR}`);
-  } else {
-    console.log(`[dripl] STATIC_DIR not found: ${STATIC_DIR}`);
-  }
-} catch (e) {
-  console.log("[dripl] static serve skip:", e?.message || e);
-}
-
 // ---- Helpers
-const YTDLP = "/usr/local/bin/yt-dlp"; // installed in Dockerfile
+const YTDLP = "/usr/local/bin/yt-dlp";
 const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
+
+// Read multi-part envs like PREFIX_1, PREFIX_2, ..., concatenate in order
+function readMultipartEnv(prefix) {
+  // exact match wins
+  if (process.env[prefix]) return process.env[prefix];
+  // collect numbered parts (case-insensitive)
+  const parts = Object.entries(process.env)
+    .filter(([k]) => k.toUpperCase().startsWith((prefix + "_").toUpperCase()))
+    .map(([k, v]) => {
+      const m = k.match(/_(\d+)$/);
+      return { idx: m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER, v };
+    })
+    .filter(x => Number.isFinite(x.idx))
+    .sort((a, b) => a.idx - b.idx)
+    .map(x => x.v);
+  return parts.length ? parts.join("") : "";
+}
+
+// Write Base64 (or gz+Base64) to target path
+function writeCookieFromB64IfAny(targetPath, ...b64Candidates) {
+  const joined = b64Candidates.find(Boolean) || "";
+  if (!joined) return false;
+
+  // Support optional gz+base64 (prefix "GZ:" or "gz:")
+  let data;
+  try {
+    if (/^GZ:/i.test(joined)) {
+      const raw = Buffer.from(joined.slice(3), "base64");
+      data = zlib.gunzipSync(raw);
+    } else {
+      data = Buffer.from(joined, "base64");
+    }
+  } catch (e) {
+    console.warn(`[dripl] cookie decode failed for ${path.basename(targetPath)}:`, e?.message || e);
+    return false;
+  }
+
+  try {
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.writeFileSync(targetPath, data);
+    return true;
+  } catch (e) {
+    console.warn(`[dripl] cookie write failed for ${targetPath}:`, e?.message || e);
+    return false;
+  }
+}
 
 const pickCookieFor = (url) => {
   try {
@@ -79,7 +97,7 @@ const pickFormat = ({ audioOnly, quality }) => {
 
 const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
 
-const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g).map(a => a.replace(/^"(.*)"$/, "$1")) : []); // crude shell-ish split
+const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
 const runYtDlp = (args) => new Promise((resolve, reject) => {
   const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "", stderr = "";
@@ -87,6 +105,41 @@ const runYtDlp = (args) => new Promise((resolve, reject) => {
   child.stderr.on("data", d => stderr += d.toString());
   child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
 });
+
+// ---- Cookie init (supports single-var and multipart)
+try {
+  fs.mkdirSync(COOKIES_DIR, { recursive: true });
+
+  const ttJoined = readMultipartEnv("COOKIE_TIKTOK_B64") || COOKIE_TIKTOK_B64;
+  const ytJoined = readMultipartEnv("COOKIE_YOUTUBE_B64") || COOKIE_YOUTUBE_B64;
+
+  const ttW = writeCookieFromB64IfAny(COOKIE_TIKTOK, ttJoined);
+  const ytW = writeCookieFromB64IfAny(COOKIE_YOUTUBE, ytJoined);
+
+  if (ttW) console.log("[dripl] TikTok cookies loaded from Base64 (parts or single).");
+  if (ytW) console.log("[dripl] YouTube cookies loaded from Base64 (parts or single).");
+} catch (e) {
+  console.warn("[dripl] cookie init warn:", e?.message || e);
+}
+
+// ---- App
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+app.use(morgan("tiny"));
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
+
+// Static UI
+try {
+  if (fs.existsSync(STATIC_DIR)) {
+    app.use(express.static(STATIC_DIR));
+    console.log(`[dripl] serving static from ${STATIC_DIR}`);
+  } else {
+    console.log(`[dripl] STATIC_DIR not found: ${STATIC_DIR}`);
+  }
+} catch (e) {
+  console.log("[dripl] static serve skip:", e?.message || e);
+}
 
 // ---- Routes
 app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
@@ -172,6 +225,7 @@ app.listen(PORT, () => {
   console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
   if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
 });
+
 
 
 
