@@ -1,259 +1,342 @@
-// server.js — Dripl (remote-first cookies)
-// Priority: Remote URL (+optional headers) -> Secret Files -> (missing)
-// Endpoints: /api/probe, /api/download, /debug/cookies, /admin/reload-cookies
+// server.js (ESM)
+// Node 20+, "type": "module"
 
+import fs from "node:fs";
+import fsp from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import os from "node:os";
+import crypto from "node:crypto";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import axios from "axios";
-import { nanoid } from "nanoid";
-import { tmpdir } from "os";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
+import fetch from "node-fetch";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// -------- ENV --------
-const PORT = process.env.PORT || 10000;
-const PROXY_URL = process.env.PROXY_URL || "";
-const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, "public");
-const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
-const COOKIE_TIKTOK = process.env.COOKIE_TIKTOK || path.join(COOKIES_DIR, "tiktok.txt");
-const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
+// ===== Config / ENV =====
+const PORT = Number(process.env.PORT || 10000);
+const STATIC_DIR = path.join(__dirname, "public");
+const COOKIES_DIR = process.env.COOKIES_DIR || "/app/cookies";
+const TT_COOKIE_PATH = path.join(COOKIES_DIR, "tiktok.txt");
+const YT_COOKIE_PATH = path.join(COOKIES_DIR, "youtube.txt");
 
-// Remote fetch (e.g. GitHub API “contents” URLs)
-const COOKIE_TIKTOK_URL   = (process.env.COOKIE_TIKTOK_URL   || "").trim();
-const COOKIE_YOUTUBE_URL  = (process.env.COOKIE_YOUTUBE_URL  || "").trim();
-// Optional JSON headers, e.g. {"Authorization":"Bearer <github_pat_...>","Accept":"application/vnd.github.v3.raw"}
-const COOKIE_TIKTOK_HEADERS  = safeParseJSON(process.env.COOKIE_TIKTOK_HEADERS);
+const COOKIE_TIKTOK_URL = process.env.COOKIE_TIKTOK_URL || "";
+const COOKIE_YOUTUBE_URL = process.env.COOKIE_YOUTUBE_URL || "";
+const COOKIE_TIKTOK_HEADERS = safeParseJSON(process.env.COOKIE_TIKTOK_HEADERS);
 const COOKIE_YOUTUBE_HEADERS = safeParseJSON(process.env.COOKIE_YOUTUBE_HEADERS);
+const GITHUB_TOKEN = (process.env.GITHUB_TOKEN || "").trim();
 
-const ADMIN_TOKEN       = (process.env.ADMIN_TOKEN || "").trim();
-const YTDLP_EXTRA_ARGS  = (process.env.YTDLP_EXTRA_ARGS || "").trim();
-const YTDLP             = "/usr/local/bin/yt-dlp";
+const PROXY_URL = (process.env.PROXY_URL || "").trim();
 
-// -------- utils --------
+const YTDLP_UA = process.env.YTDLP_UA || ""; // set your stable UA here if desired
+const YTDLP_EXTRACTOR_ARGS = process.env.YTDLP_EXTRACTOR_ARGS || "youtube:player_client=android";
+
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
+
+const ALERT_WEBHOOK_URL = process.env.ALERT_WEBHOOK_URL || "";
+const ALERT_MIN_ERRORS = Number(process.env.ALERT_MIN_ERRORS || 5);
+const ALERT_WINDOW_SEC = Number(process.env.ALERT_WINDOW_SEC || 300);
+const ALERT_COOLDOWN_SEC = Number(process.env.ALERT_COOLDOWN_SEC || 900);
+const COOKIE_REFRESH_HOURS = Number(process.env.COOKIE_REFRESH_HOURS || 6);
+
+// ===== Helpers =====
 function safeParseJSON(s) {
-  try { return s ? JSON.parse(s) : undefined; } catch { return undefined; }
+  if (!s) return null;
+  try { return JSON.parse(s); } catch { return null; }
 }
-const fileExists = (p) => { try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; } };
-const sanitizeName = (s) => s?.replace(/[^\p{L}\p{N}\-_.\s]/gu, "").trim().slice(0,120) || "dripl";
-const splitArgs = (s) => (s ? s.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(a => a.replace(/^"(.*)"$/, "$1")) ?? [] : []);
+function ensureDirSync(p) { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }); }
+ensureDirSync(COOKIES_DIR);
 
-function runYtDlp(args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(YTDLP, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "", stderr = "";
-    child.stdout.on("data", d => stdout += d.toString());
-    child.stderr.on("data", d => stderr += d.toString());
-    child.on("close", code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr || `yt-dlp exit ${code}`)));
-  });
+function nowSec() { return Math.floor(Date.now() / 1000); }
+function isYouTubeUrl(u) { return /youtube\.com|youtu\.be/i.test(u); }
+function isTikTokUrl(u) { return /tiktok\.com/i.test(u); }
+
+// ===== Monitoring & Alerts =====
+const errBuckets = { youtube: [], tiktok: [] };
+let lastAlertAt = { youtube: 0, tiktok: 0 };
+
+function pushError(provider, detail) {
+  const ts = nowSec();
+  const bucket = errBuckets[provider];
+  bucket.push({ ts, detail: String(detail || "").slice(0, 500) });
+  while (bucket.length && bucket[0].ts < ts - ALERT_WINDOW_SEC) bucket.shift();
 }
-
-function pickCookieFor(url) {
+function windowErrorCount(provider) {
+  const ts = nowSec();
+  return errBuckets[provider].filter(e => e.ts >= ts - ALERT_WINDOW_SEC).length;
+}
+async function maybeAlert(provider, sampleError) {
   try {
-    const host = new URL(url).hostname.toLowerCase();
-    if (host.includes("youtube.") || host.includes("youtu.be")) return fileExists(COOKIE_YOUTUBE) ? COOKIE_YOUTUBE : null;
-    if (host.includes("tiktok.")) return fileExists(COOKIE_TIKTOK) ? COOKIE_TIKTOK : null;
-    return null;
-  } catch { return null; }
-}
+    const count = windowErrorCount(provider);
+    if (count < ALERT_MIN_ERRORS) return;
+    const ts = nowSec();
+    if (ts - lastAlertAt[provider] < ALERT_COOLDOWN_SEC) return;
+    lastAlertAt[provider] = ts;
 
-function pickFormat({ audioOnly, quality }) {
-  if (audioOnly) return "bestaudio[ext=m4a]/bestaudio/best";
-  if (quality === "1080p") return "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-  if (quality === "720p")  return "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-  return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
-}
-
-async function fetchToFile(url, outPath, headers) {
-  const resp = await axios.get(url, {
-    responseType: "arraybuffer",
-    timeout: 30000,
-    maxContentLength: Infinity,
-    headers: headers || undefined
-  });
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, resp.data);
-  return fs.statSync(outPath).size;
-}
-
-// -------- cookie load (REMOTE FIRST) --------
-async function loadCookiesOnce() {
-  fs.mkdirSync(COOKIES_DIR, { recursive: true });
-
-  // 1) Remote fetch first (if URLs provided)
-  const remotes = [
-    { key: "tiktok",  url: COOKIE_TIKTOK_URL,  dest: COOKIE_TIKTOK,  headers: COOKIE_TIKTOK_HEADERS },
-    { key: "youtube", url: COOKIE_YOUTUBE_URL, dest: COOKIE_YOUTUBE, headers: COOKIE_YOUTUBE_HEADERS },
-  ];
-  for (const r of remotes) {
-    if (r.url) {
-      try {
-        const sz = await fetchToFile(r.url, r.dest, r.headers);
-        console.log(`[dripl] ${r.key} cookies fetched from URL -> ${r.dest} (${sz} bytes)`);
-      } catch (e) {
-        console.warn(`[dripl] ${r.key} cookie fetch failed: ${e?.message || e}`);
-      }
+    const msg = `[dripl] High ${provider.toUpperCase()} failure rate: ${count} errors in last ${ALERT_WINDOW_SEC}s. Example: ${String(sampleError || "").slice(0, 300)}`;
+    if (!ALERT_WEBHOOK_URL) {
+      console.warn(msg);
+      return;
     }
+    await fetch(ALERT_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // Discord-compatible payload (also works for Slack via "text")
+      body: JSON.stringify({ content: msg, username: "dripl" })
+    });
+  } catch (e) {
+    console.warn("[dripl] alert send failed:", e.message || e);
   }
-
-  // 2) Secret Files fallback (Render → /etc/secrets/<filename>)
-  const secretCandidates = {
-    tiktok:  ["/etc/secrets/tiktok.txt",  "/etc/secrets/ttcookies.txt"],
-    youtube: ["/etc/secrets/youtube.txt", "/etc/secrets/ytcookies.txt"]
-  };
-  for (const [key, candidates] of Object.entries(secretCandidates)) {
-    const dest = key === "tiktok" ? COOKIE_TIKTOK : COOKIE_YOUTUBE;
-    if (!fileExists(dest)) {
-      const found = candidates.find(p => fileExists(p));
-      if (found) {
-        fs.copyFileSync(found, dest);
-        const sz = fs.statSync(dest).size;
-        console.log(`[dripl] ${key} cookies loaded from secret file -> ${dest} (${sz} bytes)`);
-      }
-    }
-  }
-
-  // Summary (quick, non-chatty)
-  const haveTT = fileExists(COOKIE_TIKTOK),  ttSz = haveTT ? fs.statSync(COOKIE_TIKTOK).size : 0;
-  const haveYT = fileExists(COOKIE_YOUTUBE), ytSz = haveYT ? fs.statSync(COOKIE_YOUTUBE).size : 0;
-  console.log(`[dripl] cookies summary -> TT: ${haveTT ? "ok" : "missing"} (${ttSz}), YT: ${haveYT ? "ok" : "missing"} (${ytSz})`);
 }
 
-// -------- app --------
+const YT_COOKIE_PATTERNS = [
+  "Sign in to confirm you’re not a bot",
+  "Sign in to confirm you're not a bot",
+  "HTTP Error 410",
+  "Login required",
+  "YouTube said: This video is only available to Music Premium",
+  "Unable to extract",
+];
+const TT_COOKIE_PATTERNS = [
+  "Login required",
+  "403 Forbidden",
+  "Please sign in",
+];
+
+function looksLikeCookieError(provider, stderr) {
+  const hay = (stderr || "").toString();
+  const patt = provider === "youtube" ? YT_COOKIE_PATTERNS : TT_COOKIE_PATTERNS;
+  return patt.some(p => hay.includes(p));
+}
+
+// ===== Cookie fetch from Remote (GitHub or any HTTPS) =====
+function headersForUrl(url, explicitHeaders) {
+  // Priority: explicit JSON headers -> GITHUB_TOKEN -> none
+  if (explicitHeaders && typeof explicitHeaders === "object") return explicitHeaders;
+  const h = { };
+  if (GITHUB_TOKEN && /api\.github\.com\/repos/i.test(url)) {
+    h.Authorization = `Bearer ${GITHUB_TOKEN}`;
+    h.Accept = "application/vnd.github.v3.raw";
+  }
+  return h;
+}
+
+async function fetchToFile(url, headers, destPath) {
+  if (!url) return false;
+  const res = await fetch(url, { headers: headers || {} });
+  if (!res.ok) throw new Error(`fetch ${url} -> ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  await fsp.writeFile(destPath, buf);
+  return buf.length;
+}
+
+async function refreshCookiesFromRemote() {
+  const results = { tiktok: { ok:false, len:0, path:TT_COOKIE_PATH }, youtube: { ok:false, len:0, path:YT_COOKIE_PATH } };
+  try {
+    if (COOKIE_TIKTOK_URL) {
+      const len = await fetchToFile(
+        COOKIE_TIKTOK_URL,
+        headersForUrl(COOKIE_TIKTOK_URL, COOKIE_TIKTOK_HEADERS),
+        TT_COOKIE_PATH
+      );
+      results.tiktok.ok = true; results.tiktok.len = len;
+      console.log(`[dripl] tiktok cookies fetched from URL -> ${TT_COOKIE_PATH} (${len} bytes)`);
+    }
+  } catch (e) {
+    console.warn("[dripl] tiktok cookie fetch failed:", e.message || e);
+  }
+  try {
+    if (COOKIE_YOUTUBE_URL) {
+      const len = await fetchToFile(
+        COOKIE_YOUTUBE_URL,
+        headersForUrl(COOKIE_YOUTUBE_URL, COOKIE_YOUTUBE_HEADERS),
+        YT_COOKIE_PATH
+      );
+      results.youtube.ok = true; results.youtube.len = len;
+      console.log(`[dripl] youtube cookies fetched from URL -> ${YT_COOKIE_PATH} (${len} bytes)`);
+    }
+  } catch (e) {
+    console.warn("[dripl] youtube cookie fetch failed:", e.message || e);
+  }
+  return results;
+}
+
+function cookieSummary() {
+  const stat = p => fs.existsSync(p) ? fs.statSync(p).size : 0;
+  const tt = stat(TT_COOKIE_PATH);
+  const yt = stat(YT_COOKIE_PATH);
+  console.log(`[dripl] cookies summary -> TT: ${tt ? "ok" : "missing (0)"} (${tt}), YT: ${yt ? "ok" : "missing (0)"} (${yt})`);
+  return { tiktok: { path: TT_COOKIE_PATH, bytes: tt }, youtube: { path: YT_COOKIE_PATH, bytes: yt } };
+}
+
+// ===== App =====
 const app = express();
-app.set("trust proxy", 1);
 app.use(cors());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
-app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false }));
+app.use(rateLimit({ windowMs: 60_000, max: 100, legacyHeaders: false }));
 
-if (fileExists(STATIC_DIR)) {
+// Serve static UI if present
+if (fs.existsSync(STATIC_DIR)) {
   app.use(express.static(STATIC_DIR));
-  console.log(`[dripl] serving static from ${STATIC_DIR}`);
-} else {
-  console.log(`[dripl] no static dir at ${STATIC_DIR} (ok)`);
 }
 
-app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
+// ===== Health / Stats / Debug =====
+app.get("/health", (_req, res) => {
+  const ytErrs = windowErrorCount("youtube");
+  const ttErrs = windowErrorCount("tiktok");
+  const ok = ytErrs < ALERT_MIN_ERRORS && ttErrs < ALERT_MIN_ERRORS;
+  res.status(ok ? 200 : 503).json({
+    ok,
+    youtube_errors_last_window: ytErrs,
+    tiktok_errors_last_window: ttErrs,
+    window_seconds: ALERT_WINDOW_SEC
+  });
+});
+
+app.get("/stats", (_req, res) => {
+  res.json({
+    window_seconds: ALERT_WINDOW_SEC,
+    thresholds: { ALERT_MIN_ERRORS, ALERT_COOLDOWN_SEC },
+    youtube: {
+      errors_in_window: windowErrorCount("youtube"),
+      last_alert_at: lastAlertAt.youtube
+    },
+    tiktok: {
+      errors_in_window: windowErrorCount("tiktok"),
+      last_alert_at: lastAlertAt.tiktok
+    }
+  });
+});
 
 app.get("/debug/cookies", (_req, res) => {
+  const tt = fs.existsSync(TT_COOKIE_PATH) ? fs.statSync(TT_COOKIE_PATH).size : 0;
+  const yt = fs.existsSync(YT_COOKIE_PATH) ? fs.statSync(YT_COOKIE_PATH).size : 0;
   res.json({
     dir: COOKIES_DIR,
-    tiktok_exists: fileExists(COOKIE_TIKTOK),
-    youtube_exists: fileExists(COOKIE_YOUTUBE),
-    tiktok_size: fileExists(COOKIE_TIKTOK) ? fs.statSync(COOKIE_TIKTOK).size : 0,
-    youtube_size: fileExists(COOKIE_YOUTUBE) ? fs.statSync(COOKIE_YOUTUBE).size : 0,
-    tiktok_url_set: Boolean(COOKIE_TIKTOK_URL),
-    youtube_url_set: Boolean(COOKIE_YOUTUBE_URL)
+    tiktok: { path: TT_COOKIE_PATH, bytes: tt },
+    youtube: { path: YT_COOKIE_PATH, bytes: yt }
   });
 });
 
-app.post("/admin/reload-cookies", async (req, res) => {
-  if (!ADMIN_TOKEN || req.get("x-admin-token") !== ADMIN_TOKEN) {
-    return res.status(401).json({ error: "unauthorized" });
+// Manual refresh (secure with ADMIN_TOKEN if provided)
+app.post("/admin/refresh", async (req, res) => {
+  if (ADMIN_TOKEN) {
+    if ((req.headers["x-admin-token"] || "") !== ADMIN_TOKEN) {
+      return res.status(401).json({ error: "unauthorized" });
+    }
   }
   try {
-    await loadCookiesOnce();
-    res.json({ ok: true });
+    const r = await refreshCookiesFromRemote();
+    const summary = cookieSummary();
+    res.json({ ok: true, fetch: r, summary });
   } catch (e) {
-    res.status(500).json({ ok:false, error: String(e?.message || e) });
+    res.status(500).json({ ok: false, error: String(e.message || e) });
   }
 });
 
-// Probe (metadata only)
-app.post("/api/probe", async (req, res) => {
-  try {
-    const { url } = req.body || {};
-    if (!url) return res.status(400).json({ error: "Missing url" });
-
-    const args = ["--dump-single-json", "--simulate", "--no-warnings"];
-    if (PROXY_URL) args.push("--proxy", PROXY_URL);
-    const cookieFile = pickCookieFor(url);
-    if (cookieFile) args.push("--cookies", cookieFile);
-    if (YTDLP_EXTRA_ARGS) args.push(...splitArgs(YTDLP_EXTRA_ARGS));
-    args.push(url);
-
-    const { stdout } = await runYtDlp(args);
-    const a = stdout.indexOf("{"), b = stdout.lastIndexOf("}");
-    const json = (a >= 0 && b > a) ? JSON.parse(stdout.slice(a, b+1)) : {};
-    res.json(json);
-  } catch (err) {
-    res.status(500).json({ error: String(err?.message || err) });
-  }
-});
-
-// Download
+// ===== Download API =====
+// Body: { url: "https://...", format?: string }
 app.post("/api/download", async (req, res) => {
-  const t0 = Date.now();
-  try {
-    const { url, audioOnly = false, quality = "", filename = "" } = req.body || {};
-    if (!url) return res.status(400).json({ error: "Missing url" });
+  const url = (req.body?.url || "").trim();
+  if (!url) return res.status(400).json({ error: "missing url" });
 
-    const format = pickFormat({ audioOnly, quality });
-    const cookieFile = pickCookieFor(url);
+  const isYT = isYouTubeUrl(url);
+  const isTT = isTikTokUrl(url);
+  if (!isYT && !isTT) return res.status(400).json({ error: "unsupported url" });
 
-    const id = nanoid(10);
-    const base = sanitizeName(filename) || "dripl";
-    const ext = audioOnly ? "m4a" : "mp4";
-    const outPath = path.join(tmpdir(), `${base}-${id}.%(ext)s`);
-
-    const args = [
-      "-f", format,
-      "-o", outPath,
-      "--merge-output-format", audioOnly ? "m4a" : "mp4",
-      "--retries", "6",
-      "--fragment-retries", "10",
-      "--no-warnings",
-      "--no-check-certificates"
-    ];
-    if (PROXY_URL) args.push("--proxy", PROXY_URL);
-    if (cookieFile) args.push("--cookies", cookieFile);
-    if (YTDLP_EXTRA_ARGS) args.push(...splitArgs(YTDLP_EXTRA_ARGS));
-    args.push(url);
-
-    await runYtDlp(args);
-
-    const tmp = tmpdir();
-    const candidates = fs.readdirSync(tmp).filter(f => f.startsWith(base) && f.includes(id)).map(f => path.join(tmp, f));
-    if (!candidates.length) return res.status(500).json({ error: "No output file was produced." });
-    const filePath = candidates.find(f => f.endsWith(`.${ext}`)) || candidates[0];
-
-    const stat = fs.statSync(filePath);
-    res.setHeader("Content-Type", audioOnly ? "audio/mp4" : "video/mp4");
-    res.setHeader("Content-Length", stat.size);
-    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
-
-    const stream = fs.createReadStream(filePath);
-    stream.pipe(res);
-    stream.on("close", () => { fs.unlink(filePath, () => {}); console.log(`[dripl] served in ${Date.now() - t0}ms`); });
-    stream.on("error", e => { console.error("stream error", e); fs.unlink(filePath, () => {}); });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: String(err?.message || err) });
+  const cookieFile = isYT ? YT_COOKIE_PATH : TT_COOKIE_PATH;
+  if (!fs.existsSync(cookieFile) || fs.statSync(cookieFile).size < 50_000) {
+    return res.status(503).json({ error: `${isYT ? "YouTube" : "TikTok"} cookies missing or too small` });
   }
+
+  // output temp path
+  const outName = `dripl-${Date.now()}-${crypto.randomUUID().slice(0,8)}.mp4`;
+  const outPath = path.join(os.tmpdir(), outName);
+
+  const args = [
+    url,
+    "--no-call-home",            // stays safe
+    "--no-warnings",
+    "--restrict-filenames",
+    "--downloader", "ffmpeg",
+    "--ffmpeg-location", "/usr/bin/ffmpeg",
+    "--cookies", cookieFile,
+    "-o", outPath,
+  ];
+
+  if (YTDLP_UA) args.push("--user-agent", YTDLP_UA);
+  if (YTDLP_EXTRACTOR_ARGS) args.push("--extractor-args", YTDLP_EXTRACTOR_ARGS);
+  if (PROXY_URL) args.push("--proxy", PROXY_URL);
+
+  const child = spawn("yt-dlp", args, { stdio: ["ignore", "pipe", "pipe"] });
+
+  let stderr = "", stdout = "";
+  child.stdout.on("data", d => { stdout += d.toString(); });
+  child.stderr.on("data", d => { stderr += d.toString(); });
+
+  child.on("close", async (code) => {
+    const provider = isYT ? "youtube" : "tiktok";
+    if (code !== 0) {
+      if (looksLikeCookieError(provider, stderr)) {
+        pushError(provider, stderr);
+        maybeAlert(provider, stderr);
+      }
+      console.warn("yt-dlp error:", stderr.slice(0, 1000));
+      return res.status(500).json({ error: "yt-dlp failed", details: stderr.slice(0, 500) });
+    }
+
+    try {
+      // stream the file then unlink
+      res.setHeader("Content-Type", "video/mp4");
+      res.setHeader("Content-Disposition", `attachment; filename="${outName}"`);
+      const stream = fs.createReadStream(outPath);
+      stream.pipe(res);
+      stream.on("close", () => {
+        fs.existsSync(outPath) && fs.unlinkSync(outPath);
+      });
+    } catch (e) {
+      fs.existsSync(outPath) && fs.unlinkSync(outPath);
+      res.status(500).json({ error: String(e.message || e) });
+    }
+  });
 });
 
-// Root
-app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/download"));
-
-// Boot
+// ===== Boot =====
 (async () => {
-  try { await loadCookiesOnce(); } catch (e) { console.warn("[dripl] cookie init warn:", e?.message || e); }
-  const server = app.listen(PORT, () => {
-    console.log(`[dripl] server listening on :${PORT}`);
-    if (PROXY_URL) console.log(`[dripl] using proxy ${PROXY_URL}`);
-    console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
-    if (YTDLP_EXTRA_ARGS) console.log(`[dripl] extra yt-dlp args: ${YTDLP_EXTRA_ARGS}`);
-  });
-  server.keepAliveTimeout = 75_000;
-  server.headersTimeout   = 90_000;
+  console.log("==> Deploying...");
+  // Initial fetch (won't crash if missing vars)
+  await refreshCookiesFromRemote();
+  cookieSummary();
+
+  // periodic re-pull of cookie files from your GitHub URLs
+  if (COOKIE_REFRESH_HOURS > 0) {
+    setInterval(async () => {
+      try {
+        console.log(`[dripl] periodic refresh firing (every ${COOKIE_REFRESH_HOURS}h)…`);
+        await refreshCookiesFromRemote();
+        cookieSummary();
+      } catch (e) {
+        console.warn("[dripl] periodic refresh failed:", e.message || e);
+      }
+    }, COOKIE_REFRESH_HOURS * 3600 * 1000).unref();
+  }
+
+  // Static + server start
+  if (fs.existsSync(STATIC_DIR)) {
+    console.log(`[dripl] serving static from ${STATIC_DIR}`);
+  }
+  console.log(`[dripl] server listening on :${PORT}`);
+  console.log(`[dripl] cookies dir ${COOKIES_DIR}`);
+  app.listen(PORT);
 })();
+
 
 
 
