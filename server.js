@@ -25,16 +25,16 @@ const COOKIES_DIR = process.env.COOKIES_DIR || path.join(__dirname, "cookies");
 const COOKIE_TIKTOK = process.env.COOKIE_TIKTOK || path.join(COOKIES_DIR, "tiktok.txt");
 const COOKIE_YOUTUBE = process.env.COOKIE_YOUTUBE || path.join(COOKIES_DIR, "youtube.txt");
 
-// Remote fetch
-const COOKIE_TIKTOK_URL = (process.env.COOKIE_TIKTOK_URL || "").trim();
-const COOKIE_YOUTUBE_URL = (process.env.COOKIE_YOUTUBE_URL || "").trim();
-// Optional JSON headers, e.g. {"Authorization":"Bearer <token>"}
-const COOKIE_TIKTOK_HEADERS = safeParseJSON(process.env.COOKIE_TIKTOK_HEADERS);
+// Remote fetch (e.g. GitHub API “contents” URLs)
+const COOKIE_TIKTOK_URL   = (process.env.COOKIE_TIKTOK_URL   || "").trim();
+const COOKIE_YOUTUBE_URL  = (process.env.COOKIE_YOUTUBE_URL  || "").trim();
+// Optional JSON headers, e.g. {"Authorization":"Bearer <github_pat_...>","Accept":"application/vnd.github.v3.raw"}
+const COOKIE_TIKTOK_HEADERS  = safeParseJSON(process.env.COOKIE_TIKTOK_HEADERS);
 const COOKIE_YOUTUBE_HEADERS = safeParseJSON(process.env.COOKIE_YOUTUBE_HEADERS);
 
-const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
-const YTDLP_EXTRA_ARGS = (process.env.YTDLP_EXTRA_ARGS || "").trim();
-const YTDLP = "/usr/local/bin/yt-dlp";
+const ADMIN_TOKEN       = (process.env.ADMIN_TOKEN || "").trim();
+const YTDLP_EXTRA_ARGS  = (process.env.YTDLP_EXTRA_ARGS || "").trim();
+const YTDLP             = "/usr/local/bin/yt-dlp";
 
 // -------- utils --------
 function safeParseJSON(s) {
@@ -102,7 +102,7 @@ async function loadCookiesOnce() {
     }
   }
 
-  // 2) Secret Files fallback
+  // 2) Secret Files fallback (Render → /etc/secrets/<filename>)
   const secretCandidates = {
     tiktok:  ["/etc/secrets/tiktok.txt",  "/etc/secrets/ttcookies.txt"],
     youtube: ["/etc/secrets/youtube.txt", "/etc/secrets/ytcookies.txt"]
@@ -119,7 +119,7 @@ async function loadCookiesOnce() {
     }
   }
 
-  // Summary
+  // Summary (quick, non-chatty)
   const haveTT = fileExists(COOKIE_TIKTOK),  ttSz = haveTT ? fs.statSync(COOKIE_TIKTOK).size : 0;
   const haveYT = fileExists(COOKIE_YOUTUBE), ytSz = haveYT ? fs.statSync(COOKIE_YOUTUBE).size : 0;
   console.log(`[dripl] cookies summary -> TT: ${haveTT ? "ok" : "missing"} (${ttSz}), YT: ${haveYT ? "ok" : "missing"} (${ytSz})`);
@@ -141,6 +141,7 @@ if (fileExists(STATIC_DIR)) {
 }
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "dripl", time: new Date().toISOString() }));
+
 app.get("/debug/cookies", (_req, res) => {
   res.json({
     dir: COOKIES_DIR,
@@ -154,9 +155,15 @@ app.get("/debug/cookies", (_req, res) => {
 });
 
 app.post("/admin/reload-cookies", async (req, res) => {
-  if (!ADMIN_TOKEN || req.get("x-admin-token") !== ADMIN_TOKEN) return res.status(401).json({ error: "unauthorized" });
-  try { await loadCookiesOnce(); res.json({ ok: true }); }
-  catch (e) { res.status(500).json({ ok:false, error: String(e?.message || e) }); }
+  if (!ADMIN_TOKEN || req.get("x-admin-token") !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  try {
+    await loadCookiesOnce();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok:false, error: String(e?.message || e) });
+  }
 });
 
 // Probe (metadata only)
@@ -247,6 +254,9 @@ app.get("/", (_req, res) => res.type("text").send("dripl api is up. POST /api/do
   server.keepAliveTimeout = 75_000;
   server.headersTimeout   = 90_000;
 })();
+
+
+
 
 
 
