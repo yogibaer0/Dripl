@@ -22,25 +22,25 @@
     </div>
   </header>
 
-  <!-- GLOW LINE with CSS motion-path dot -->
+  <!-- GLOW LINE (SVG path + JS-driven glow dot) -->
   <div class="glow-line" aria-hidden="true">
-  <svg viewBox="0 0 100 24" preserveAspectRatio="none">
-    <defs>
-      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"  stop-color="#b48bff"/>
-        <stop offset="40%" stop-color="#9a66ff"/>
-        <stop offset="100%" stop-color="#7b3fe4"/>
-      </linearGradient>
-    </defs>
+    <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"  stop-color="#b48bff"/>
+          <stop offset="40%" stop-color="#9a66ff"/>
+          <stop offset="100%" stop-color="#7b3fe4"/>
+        </linearGradient>
+      </defs>
 
-    <!-- fatter blurred aura + main stroke with the slash -->
-    <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-    <path class="line"                          d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-  </svg>
+      <!-- aura + main stroke with slash -->
+      <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+      <path class="line" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    </svg>
 
-  <!-- the moving glow (we’ll position it with JS so it stays perfectly round) -->
-  <div class="glow-dot" id="glowDot"></div>
-</div>
+    <!-- the glow dot JS will move along the path -->
+    <div class="glow-dot" id="glowDot"></div>
+  </div>
 
   <!-- THREE PILLARS -->
   <main class="grid">
