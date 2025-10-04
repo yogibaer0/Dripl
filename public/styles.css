@@ -95,14 +95,22 @@ body{
 }
 .glow-dot{
   position:absolute; inset:0;
-  width:12px; height:12px; border-radius:999px;
-  background: radial-gradient(60% 60% at 50% 40%, #f0e6ff 0%, #caa8ff 45%, #7b3fe4 100%);
-  box-shadow: 0 0 10px rgba(154,102,255,1), 0 0 26px rgba(154,102,255,.85), 0 0 46px rgba(154,102,255,.55);
-  offset-path: path("M 0% 50% L 77% 50% L 83% 29% L 100% 50%");
+  width:10px; height:10px; border-radius:50%;
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(190,130,255,.65) 40%, rgba(123,63,228,0) 70%);
+  box-shadow: 0 0 16px rgba(154,102,255,.9), 0 0 32px rgba(154,102,255,.6);
+  
+  /* motion path: follow same path as svg line */
+  offset-path: path("M 0 50 L 77 50 L 83 29 L 100 50");
   offset-rotate: auto;
-  animation: driplDot 2.1s linear infinite; /* quicker */
+  animation: driplDot 1.5s linear infinite;
 }
-@keyframes driplDot{ from{offset-distance:0%} to{offset-distance:100%} }
+
+@keyframes driplDot{
+  0%   { offset-distance: 0%;   opacity:.2; }
+  10%  { opacity:1; }  /* bright spike like an EKG blip */
+  50%  { offset-distance: 50%; opacity:.6; }
+  100% { offset-distance: 100%; opacity:.2; }
+}
 
 
 /* corner brand */
