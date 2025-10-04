@@ -1,308 +1,217 @@
-
-/* =============================================================================
-   Dripl — consolidated styles.css
-   - Dark glass UI
-   - Particles behind UI
-   - Header brand (small logo + name)
-   - Centered hero (big logo + Dripl) above convert card
-   - Clean form styling, buttons, and responsive tweaks
-============================================================================= */
-
-/* ----------------------- CSS Variables ----------------------- */
+/* =========================
+   Dripl Dream-Core Palette
+   ========================= */
 :root{
-  --ink: #e7e6ff;
-  --ink-dim: #b9b7da;
-  --bg-1: #0f0e1a;
-  --bg-2: #171329;
-  --card: #1b1733;
-  --card-2: #1f1a3b;
-  --brand-1: #7a44ff;
-  --brand-2: #ff4fd8;
-  --accent: #6c5cff;
-  --ok: #4cdfa0;
-  --danger: #ff6f76;
+  /* abyss + surface */
+  --bg-900:#0e0b18;
+  --bg-850:#121026;
+  --surface:#1b1736;
 
-  --radius-lg: 18px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  /* brand purples */
+  --pri-700:#5b2bc3;
+  --pri-600:#6b2ee6;
+  --pri-500:#7b3fe4;
+  --pri-400:#9a66ff;   /* MP4 light purple */
+  --pri-300:#b48bff;
 
-  --shadow-1: 0 8px 30px rgba(0,0,0,.25);
-  --shadow-2: 0 16px 48px rgba(0,0,0,.38);
+  /* bluish-lilac for MP3 */
+  --mp3-600:#4ea8ff;
+  --mp3-500:#6ab8ff;
+  --mp3-400:#89c8ff;
+  --mp3-300:#a9d6ff;
+
+  /* text + lines */
+  --text-100:#eef0ff;
+  --text-300:#c7c9e6;
+  --line: rgba(255,255,255,.06);
+
+  --radius-xxl: 20px;
+  --shadow: 0 10px 30px rgba(0,0,0,.45);
 }
 
-/* ----------------------- Base ----------------------- */
-*{ box-sizing:border-box }
-html,body{ height:100% }
-html{ color-scheme: dark; }
+/* Base */
+*{box-sizing:border-box}
+html,body{height:100%}
 body{
   margin:0;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  color:var(--ink);
+  color:var(--text-100);
   background:
-    radial-gradient(60% 60% at 70% 10%, #1b1437 0%, transparent 60%),
-    radial-gradient(50% 20% at 80% 80%, #1a1534 0%, transparent 60%),
-    #0e0c18;
-  overflow-x:hidden;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
+    radial-gradient(1200px 600px at 20% -10%, #20184a 0%, transparent 60%),
+    radial-gradient(1000px 500px at 120% 20%, #1b1140 0%, transparent 55%),
+    var(--bg-900);
+  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
 }
 
-a{ color:#aeb4ff; text-decoration:none }
-a:hover{ text-decoration:underline }
+/* Layout helpers */
+.row{display:flex; gap:14px; align-items:center}
+.stack{display:flex; gap:12px; flex-direction:column}
+.grid{
+  max-width: 980px;
+  margin: 26px auto 80px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 18px;
+  padding: 0 14px;
+}
+.muted{color:var(--text-300)}
+.tiny{font-size:.85rem}
 
-/* ----------------------- Particles (behind) ----------------------- */
-#particles{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  overflow:hidden;
-  z-index:0;
-}
+/* Header */
+.site{max-width: 1100px; margin: 38px auto 0; padding: 0 14px}
+.brand{display:flex; align-items:center; gap:14px}
+.logo{width:72px; height:72px; object-fit:contain; filter:drop-shadow(0 10px 20px rgba(154,102,255,.35))}
+.title{font-size:48px; margin:0}
 
-/* (Optional droplet particle styling if you spawn <span class="drop">) */
-.drop{
-  position:absolute;
-  left:var(--left, 20px);
-  top:-20px;
-  width:var(--size, 12px);
-  height:var(--size, 12px);
-  border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, var(--brand-2), var(--brand-1), #542d9f);
-  filter: blur(.2px);
-  opacity:.25;
-  animation: fall var(--dur, 6s) linear var(--delay, 0s) forwards,
-             ripple 2s ease var(--delay, 0s) forwards;
-}
-@keyframes fall{
-  to{ transform: translateY(105vh); opacity:.18; }
-}
-@keyframes ripple{
-  0%{ box-shadow: 0 0 0 rgba(145,167,255,.25); }
-  100%{ box-shadow: 0 0 12px rgba(145,167,255,.2); }
-}
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .7rem;border-radius:999px;font-weight:700;font-size:.85rem}
+.badge.beta{background:linear-gradient(90deg,#2b2b4a,#3a2c66);color:#cfd2ff;border:1px solid var(--line)}
+.badge.mp4{ background: linear-gradient(90deg, var(--pri-400), var(--pri-300)); color:#1b1536; }
+.badge.mp3{ background: linear-gradient(90deg, var(--mp3-400), var(--mp3-300)); color:#0b1225; }
+.dot{display:inline-block;width:.6rem;height:.6rem;border-radius:999px}
+.dot.mp4{background:var(--pri-400)}
+.dot.mp3{background:var(--mp3-400)}
 
-/* ----------------------- Layout ----------------------- */
-.container{
-  max-width:1200px;
-  margin:0 auto;
-  padding:0 20px;
-}
-
-/* Header stays above particles */
-.site-header{
-  position:relative;
-  z-index:1;
-  display:flex;
-  align-items:center;
-  padding:22px 22px 10px;
-}
-
-/* Brand (small logo + Dripl + beta) */
-.brand{
-  display:flex;
-  align-items:center;
-  gap:20px;
-}
-.logo{ display:block }
-.title{
-  font-weight:900;
-  letter-spacing:.2px;
-  font-size:20px;
-}
-.beta{
-  font-size:12px;
-  padding:2px 6px;
-  border-radius:6px;
-  background:#2b2551;
-  color:#c6c1ff;
-  border:1px solid #3a3464;
-}
-/* Keep the small logo crisp and in the correct ratio */
-.site-header .brand .logo {
-  height: 22px;      /* or 24px if you want it a touch larger */
-  width: auto;       /* preserves aspect ratio */
-  object-fit: contain;
-}
-
-/* optional: tighten spacing in the brand row */
-.site-header .brand { gap: 8px; }  /* was 10px */
-
-
-/* ----------------------- Main: Hero + Convert Card ----------------------- */
-.main{
-  /* centers the hero + card stack */
-  max-width:980px;
-  margin:80px auto 120px;
-  padding:0 20px;
-  display:flex;
-  flex-direction:column;
-  gap:28px;
-  position:relative;
-  z-index:1; /* above particles */
-}
-
-/* ===== HERO layout (logo + title) ===== */
-.hero {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;              /* smaller gap = closer; try 6–12px */
-}
-
-.hero .hero-title{
-  order:1;                      /* put the title BEFORE (to the left of) the image */
-  font-size: clamp(52px, 8vw, 150px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: .02em;
-  color: var(--ink);
-  text-shadow: 0 8px 24px rgba(0,0,0,.35);
-}
-.hero .hero-title::first-letter {
-  font-size: 1.25em;   /* tweak 1.15–1.35em as you like */
-  line-height: 1;
+/* Glow line (same width as cards/convert) */
+.glow-line{
+  max-width: 980px;           /* keep in sync with .card.convert width */
+  margin: 10px auto 30px;
   position: relative;
-  top: 0.02em;         /* tiny vertical nudge */
+}
+.glow-line svg{
+  width: 100%;
+  height: 18px;
+  display:block;
+  overflow:visible;
+  filter: drop-shadow(0 0 6px rgba(154,102,255,.55));
+}
+.glow-line .line{
+  stroke: rgba(154,102,255,.55);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.glow-line .dot{
+  filter: drop-shadow(0 0 10px rgba(154,102,255,.95));
+}
+@media (prefers-reduced-motion: reduce){
+  .glow-line .dot animateMotion { display:none; }
 }
 
-
-.hero .mark {
-  height: 150px;          /* bump this up/down until it feels right (e.g., 140–180) */
-  width: auto;
-  transform: translateY(4px); /* tiny nudge so it aligns nicely with the baseline */
-}
-
-/* Stack on small screens */
-@media (max-width: 640px){
-  .hero{
-    flex-direction:column;
-    gap:12px;
-  }
-  .hero .hero-title{
-    order:0;                     /* title above logo when stacked */
-    font-size: clamp(36px, 10vw, 56px);
-  }
-}
-/* tighten spacing between the word and the droplet */
-.hero {
-  gap: 0 !important;
-  column-gap: 0;
-}
-
-/* remove any extra margins */
-.hero .hero-title { margin: 0 0 0 -16px; }  /* nudge the word left */
-.hero .mark       { margin: 0; display: block; width: auto; }
-
-/* nudge past the PNG’s transparent padding */
-/* If the DROPLET is on the LEFT of the word: */
-.hero .mark { margin-right: -8px; }   /* make more negative to tuck closer */
-
-/* If the DROPLET is on the RIGHT of the word, use this instead: */
-/* .hero .mark { margin-left: -8px; } */
-
-
-/* Convert card */
+/* Cards */
 .card{
-  background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-2);
-  padding:28px;
+  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)),
+              var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xxl);
+  box-shadow: var(--shadow);
+  overflow:hidden;
 }
-.card.xl{ width:100%; max-width:980px; margin:0 auto; }
-.card h1{
-  margin:0 0 6px;
-  font-size:32px;
-  letter-spacing:.3px;
+.card.convert{
+  max-width: 980px;
+  margin: 0 auto 26px;
+  padding: 22px;
 }
-.card p{
-  margin:0 0 18px;
-  color:var(--ink-dim);
-}
-
-/* ----------------------- Form ----------------------- */
-.row{
-  display:flex;
-  gap:14px;
-}
-.row.biggap{ gap:14px; }
-
-.input, .select{
-  appearance:none;
-  outline:none;
-  border:none;
-  width:100%;
-  padding:16px 16px;
-  font-size:16px;
-  color:var(--ink);
-  background: #1a1732;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius: var(--radius-md);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
-}
-.select{
-  width:260px;
-  min-width:220px;
-  background-image:
-     linear-gradient(45deg, transparent 50%, var(--ink) 50%),
-     linear-gradient(135deg, var(--ink) 50%, transparent 50%),
-     linear-gradient(to right, transparent, transparent);
-  background-position:
-     calc(100% - 22px) calc(50% - 3px),
-     calc(100% - 16px) calc(50% - 3px),
-     calc(100% - 2.5em) 0.6em;
-  background-size: 6px 6px, 6px 6px, 1px 1.6em;
-  background-repeat:no-repeat;
-}
-
-.actions{ margin-top:16px }
-.btn{
-  appearance:none;
-  border:none;
-  border-radius: var(--radius-md);
-  padding:12px 18px;
-  font-weight:700;
-  background: linear-gradient(180deg, #5d58ff, #3e37f6);
-  color:white;
-  box-shadow: 0 8px 22px rgba(82,75,255,.28);
+.card summary{
+  list-style:none;
   cursor:pointer;
+  padding:16px 16px;
+  display:flex; align-items:center; gap:10px;
+  user-select:none;
 }
-.btn:hover{ filter:brightness(1.06) }
-.btn:active{ transform: translateY(1px) }
+.card[open] summary{ border-bottom:1px solid var(--line); }
+.card__icon{width:30px;text-align:center;opacity:.9}
+.card__title{font-weight:700}
+.card__body{ padding:16px; }
 
-/* Status/result text area (if you show messages below the form) */
-.result{
-  margin-top:12px;
-  color:var(--ink-dim);
+/* Card flavor tints */
+.card--upload{
+  background:
+    linear-gradient(180deg, rgba(146,119,255,.10), rgba(146,119,255,.02)),
+    var(--surface);
+  border-color: rgba(146,119,255,.25);
+}
+.card--import{
+  background:
+    linear-gradient(180deg, rgba(120,197,255,.10), rgba(120,197,255,.02)),
+    var(--surface);
+  border-color: rgba(120,197,255,.25);
+}
+.card--storage{
+  background:
+    linear-gradient(180deg, rgba(241,150,255,.10), rgba(241,150,255,.02)),
+    var(--surface);
+  border-color: rgba(241,150,255,.25);
 }
 
-/* ----------------------- Footer ----------------------- */
-footer{
-  position:relative;
-  z-index:1;
-  color:#9a96c8;
-  text-align:center;
-  padding:32px 0 40px;
-  font-size:14px;
+/* Convert row */
+.input{
+  flex:1 1 auto;
+  height:48px;
+  padding:0 14px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#120f26;
+  color:var(--text-100);
+  outline:none;
+}
+.input::placeholder{color:#8a86a6}
+
+.select{
+  position:relative; min-width:190px;
+  border:1px solid var(--line); border-radius:12px; background:#120f26;
+}
+.select__btn{
+  height:48px; width:100%;
+  display:flex; align-items:center; gap:8px; justify-content:center;
+  background:transparent; border:0; color:var(--text-100); font-weight:700; cursor:pointer;
+}
+.select__menu{
+  position:absolute; left:0; right:0; top:calc(100% + 6px);
+  background:#0f0c21; border:1px solid var(--line); border-radius:12px; padding:8px;
+  display:none;
+}
+.select:hover .select__menu{ display:block; }
+.select__menu li{
+  list-style:none; padding:10px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:8px;
+}
+.select__menu li:hover{ background:#18143a }
+
+.btn{
+  appearance:none; border:0; cursor:pointer; color:white; font-weight:700;
+  height:48px; padding:0 18px; border-radius:14px;
+  background:#343057;
+}
+.btn.xs{height:34px; padding:0 12px; font-size:.85rem}
+
+.btn-convert{
+  background: radial-gradient(120% 180% at 30% 20%, #b48bff 0%, #7b3fe4 40%, #5b2bc3 100%);
+  box-shadow: 0 0 20px rgba(123,63,228,.35), inset 0 0 24px rgba(255,255,255,.08);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.btn-convert:hover{
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 0 30px rgba(154,102,255,.45), inset 0 0 28px rgba(255,255,255,.10);
+  filter: saturate(1.12);
 }
 
-/* ----------------------- Utilities ----------------------- */
-.hidden{ display:none !important; }
+.hint{margin:10px 2px 0; color:var(--text-300); font-size:.9rem}
 
-/* ----------------------- Responsive ----------------------- */
-@media (max-width: 860px){
-  .hero-title{ font-size:48px; }
-  .hero .mark{ width:120px }
-  .row{ flex-direction:column }
-  .select{ width:100%; min-width:0 }
+/* Upload body bits */
+.dropzone{
+  padding:26px; border:1px dashed rgba(255,255,255,.12); border-radius:14px; text-align:center; color:var(--text-300);
 }
-@media (max-width: 420px){
-  .hero-title{ font-size:40px; }
-  .site-header{ padding:18px 16px 8px }
-  .main{ margin:64px auto 96px; padding:0 16px; gap:22px }
-  .card{ padding:22px }
+.list{display:grid; gap:8px}
+.list__item{
+  height:42px; border-radius:10px; background:#161233; color:var(--text-100);
+  border:1px solid var(--line); display:flex; align-items:center; padding:0 12px; gap:8px; cursor:pointer;
 }
-@media (max-width: 640px) {
-  .hero { gap: 8px; }  /* or whatever you prefer when stacked */
-}
+.list__item:hover{ background:#1b1736 }
+
+/* Storage list */
+.files{display:grid; gap:10px}
+.file{display:grid; grid-template-columns: 56px 1fr auto; gap:12px; align-items:center}
+.thumb{width:56px; height:40px; border-radius:8px; background:#26214d}
+.meta .name{font-weight:700}
+
+/* Footer */
+.foot{opacity:.7; text-align:center; padding:60px 10px}
 

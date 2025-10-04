@@ -2,54 +2,119 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dripl — MP3/MP4 Converter</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/dripl/favicon-32.png">
-  <link rel="icon" type="image/svg+xml" href="/assets/dripl/dripl.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dripl — beta</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="particles"></div>
-
-  <header class="site-header">
+  <!-- HEADER / HERO -->
+  <header class="site">
     <div class="brand">
-      <img class="logo" src="/assets/dripl/dripl.png" alt="Dripl" />
-      <span class="title">Dripl</span>
-      <span class="beta">beta</span>
+      <img class="logo" src="dripl.png" alt="Dripl logo" />
+      <h1 class="title">Dripl <span class="badge beta">beta</span></h1>
+    </div>
+
+    <!-- glow line sized to the same width as the convert card -->
+    <div class="glow-line" aria-hidden="true">
+      <svg viewBox="0 0 100 20" preserveAspectRatio="none">
+        <!-- straight -> small kink near 75% -> back to baseline -->
+        <path id="driplGlowPath" class="line" d="M0,10 L75,10 L82,7 L100,10" fill="none" />
+        <!-- animated dot tracing the path -->
+        <circle r="1.8" class="dot" fill="url(#dotGrad)">
+          <animateMotion dur="4s" repeatCount="indefinite" rotate="auto">
+            <mpath xlink:href="#driplGlowPath"/>
+          </animateMotion>
+        </circle>
+
+        <defs>
+          <radialGradient id="dotGrad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%"  stop-color="#caa8ff"/>
+            <stop offset="40%" stop-color="#9a66ff"/>
+            <stop offset="100%" stop-color="#7b3fe4"/>
+          </radialGradient>
+        </defs>
+      </svg>
     </div>
   </header>
 
-  <main class="main">
-    <div class="hero">
-      <img class="mark" src="/assets/dripl/dripl.png" alt="Dripl logo" />
-      <h1 class="hero-title">Dripl</h1>
+  <!-- CONVERT PANEL -->
+  <section class="card convert">
+    <div class="row">
+      <input class="input" id="urlInput" placeholder="Paste link (YouTube, TikTok, etc.)" />
+      <div class="select" id="formatSelect" data-format="mp4" role="listbox" aria-label="Format">
+        <button class="select__btn"><span class="dot mp4"></span> MP4 (video)</button>
+        <!-- dropdown (static html; swap text/classes in your JS if you want interactive) -->
+        <ul class="select__menu">
+          <li data-format="mp4"><span class="dot mp4"></span> MP4 (video)</li>
+          <li data-format="mp3"><span class="dot mp3"></span> MP3 (audio)</li>
+        </ul>
+      </div>
+      <button class="btn btn-convert" id="convertBtn">Convert</button>
     </div>
+    <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+  </section>
 
-    <section class="card xl">
-      <form id="convertForm">
-        <div class="row biggap">
-          <input id="url" name="url" class="input" placeholder="https://example.com/video or page URL" />
-          <select id="format" name="format" class="select">
-            <option value="mp4">MP4 (video)</option>
-            <option value="mp3">MP3 (audio)</option>
-          </select>
+  <!-- THREE PILLARS (compact → expandable) -->
+  <main class="grid">
+    <details class="card card--upload">
+      <summary>
+        <div class="card__icon">⬆️</div>
+        <div class="card__title">Upload</div>
+      </summary>
+      <div class="card__body">
+        <div class="stack">
+          <div class="dropzone">Drag &amp; drop files here</div>
+          <label class="btn ghost">
+            Browse files
+            <input type="file" hidden multiple />
+          </label>
         </div>
-        <div class="actions">
-          <button id="convertBtn" type="submit" class="btn primary">Convert</button>
+      </div>
+    </details>
+
+    <details class="card card--import">
+      <summary>
+        <div class="card__icon">🌐</div>
+        <div class="card__title">Import</div>
+      </summary>
+      <div class="card__body">
+        <div class="list">
+          <button class="list__item"><span>Connect YouTube</span></button>
+          <button class="list__item"><span>Connect TikTok</span></button>
+          <button class="list__item"><span>Connect Google Drive</span></button>
+          <button class="list__item"><span>Connect Dropbox</span></button>
         </div>
-        <div id="result" class="result" aria-live="polite"></div>
-      </form>
-    </section>
+      </div>
+    </details>
+
+    <details class="card card--storage">
+      <summary>
+        <div class="card__icon">💾</div>
+        <div class="card__title">Storage</div>
+      </summary>
+      <div class="card__body">
+        <div class="files">
+          <div class="file">
+            <div class="thumb"></div>
+            <div class="meta">
+              <div class="name">example.mp4</div>
+              <div class="row tiny">
+                <span class="badge mp4">MP4</span>
+                <span class="muted">1080p · 42MB</span>
+              </div>
+            </div>
+            <button class="btn xs">Download</button>
+          </div>
+          <!-- repeat file rows as needed -->
+        </div>
+      </div>
+    </details>
   </main>
 
-  <footer class="site-footer">
-    <span>© <span id="year"></span> Dripl</span>
-  </footer>
+  <footer class="foot">© 2025 Dripl</footer>
 
-  <script src="/script.js" defer></script>
+  <!-- (optional) your existing script.js can be reused as-is -->
 </body>
 </html>
+
 
