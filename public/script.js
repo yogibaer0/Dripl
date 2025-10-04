@@ -67,40 +67,37 @@ if (form && urlInput && formatSelect && resultBox) {
   formatSelect.dispatchEvent(new Event('change'));
 }
 
-// === Glow dot animation along SVG path ===
+// === Glow dot animation along SVG path (SVG coordinates; no screen mapping) ===
 (function(){
-  const wrap = document.querySelector('.glow-line');
-  const svg  = wrap?.querySelector('svg');
-  const path = svg?.querySelector('#driplGlowPath');
-  const dot  = document.getElementById('glowDot');
-  if(!wrap || !svg || !path || !dot) return;
+  const svg  = document.getElementById('glowSVG');
+  const path = document.getElementById('driplGlowPath');
+  const dot  = document.getElementById('glowDotSvg');
+  if(!svg || !path || !dot) return;
 
-  let len = 0, t = 0, dir = 1;
-
-  function measure(){
-    len = path.getTotalLength();
-  }
+  let len = path.getTotalLength();
+  let t = 0, dir = 1;
 
   function tick(){
-    // speed: adjust 0.006 for slower/faster
-    t += dir * 0.006;
-    if (t >= 1) { t = 1; dir = -1; }
+    // speed: bump number for faster travel
+    t += dir * 0.008;                 // was 0.006
+    if (t >= 1) { t = 1; dir = -1; }  // ping–pong
     if (t <= 0) { t = 0; dir =  1; }
 
     const p = path.getPointAtLength(len * t);
-    const box = svg.getBoundingClientRect();
-    const x = box.left + (p.x / 100) * box.width;
-    const y = box.top  + (p.y / 24)  * box.height;
+    // place the circle in the SAME coordinate system as the SVG (0..100, 0..24)
+    dot.setAttribute('cx', p.x);
+    dot.setAttribute('cy', p.y);
 
-    dot.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     requestAnimationFrame(tick);
   }
 
-  const ro = new ResizeObserver(measure);
+  // if the SVG rescales, length is unchanged (viewBox), but re-measure anyway
+  const ro = new ResizeObserver(() => { len = path.getTotalLength(); });
   ro.observe(svg);
-  measure();
+
   tick();
 })();
+
 
 
 
