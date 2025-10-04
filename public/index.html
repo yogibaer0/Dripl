@@ -24,32 +24,24 @@
 
   <!-- GLOW LINE (thick, slash, aura, animated) -->
   <div class="glow-line" aria-hidden="true">
-    <svg viewBox="0 0 100 24" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"  stop-color="#b48bff"/>
-          <stop offset="40%" stop-color="#9a66ff"/>
-          <stop offset="100%" stop-color="#7b3fe4"/>
-        </linearGradient>
-        <radialGradient id="dotGrad" cx="50%" cy="50%" r="60%">
-          <stop offset="0%"  stop-color="#e8d7ff"/>
-          <stop offset="40%" stop-color="#b88cff"/>
-          <stop offset="100%" stop-color="#7b3fe4"/>
-        </radialGradient>
-      </defs>
+  <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"  stop-color="#b48bff"/>
+        <stop offset="40%" stop-color="#9a66ff"/>
+        <stop offset="100%" stop-color="#7b3fe4"/>
+      </linearGradient>
+    </defs>
 
-      <!-- fat blurred aura + main stroke with stronger slash -->
-      <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-      <path class="line" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    <!-- fat blurred aura + main gradient stroke with a stronger slash -->
+    <path class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    <path class="line"       d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+  </svg>
 
-      <!-- moving glowing dot -->
-      <circle r="2.6" class="dot" fill="url(#dotGrad)">
-        <animateMotion dur="3.2s" repeatCount="indefinite" rotate="auto">
-          <mpath xlink:href="#driplGlowPath"/>
-        </animateMotion>
-      </circle>
-    </svg>
-  </div>
+  <!-- perfectly round glow dot driven by CSS motion path -->
+  <div class="glow-dot"></div>
+</div>
+
 
   <!-- THREE PILLARS -->
   <main class="grid">
