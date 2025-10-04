@@ -74,28 +74,36 @@ body{
 /* Super-charged glow line */
 .glow-line{
   max-width: 980px;
-  margin: 14px auto 22px;
+  margin: 14px auto 22px;      /* sits under the hero */
   position: relative;
 }
 .glow-line svg{
   width:100%; height:28px; display:block; overflow:visible;
-  filter: drop-shadow(0 0 14px rgba(154,102,255,.75));
+  filter: drop-shadow(0 0 18px rgba(154,102,255,.85));  /* more glow */
 }
 /* base line + blurred aura */
 .glow-line .line{
   stroke: url(#lineGrad);
-  stroke-width: 4;              /* thicker */
+  stroke-width: 4;
   vector-effect: non-scaling-stroke;
 }
 .glow-line .line.aura{
-  stroke: #9a66ff;
-  stroke-width: 12;             /* fat blur */
-  opacity: .25;
-  filter: blur(6px);
+  stroke:#9a66ff;
+  stroke-width:14;        /* fatter aura */
+  opacity:.28;
+  filter: blur(7px);
 }
-.glow-line .dot{
-  filter: drop-shadow(0 0 18px rgba(154,102,255,1));
+.glow-dot{
+  position:absolute; inset:0;
+  width:12px; height:12px; border-radius:999px;
+  background: radial-gradient(60% 60% at 50% 40%, #f0e6ff 0%, #caa8ff 45%, #7b3fe4 100%);
+  box-shadow: 0 0 10px rgba(154,102,255,1), 0 0 26px rgba(154,102,255,.85), 0 0 46px rgba(154,102,255,.55);
+  offset-path: path("M 0% 50% L 77% 50% L 83% 29% L 100% 50%");
+  offset-rotate: auto;
+  animation: driplDot 2.1s linear infinite; /* quicker */
 }
+@keyframes driplDot{ from{offset-distance:0%} to{offset-distance:100%} }
+
 
 /* corner brand */
 .corner{
@@ -155,8 +163,9 @@ body{
     var(--surface);
   border-color: rgba(241,150,255,.25);
 }
-.grid{ margin: 26px auto 28px; }
-.card.convert{ margin-top: 0; }
+.grid{ margin: 34px auto 30px; }   
+.card.convert{ margin-top: 10px; } /* a bit of space below the cards */
+
 
 
 /* Convert row */

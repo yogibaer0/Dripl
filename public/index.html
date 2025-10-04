@@ -22,26 +22,25 @@
     </div>
   </header>
 
-  <!-- GLOW LINE (thick, slash, aura, animated) -->
+  <!-- GLOW LINE with CSS motion-path dot -->
   <div class="glow-line" aria-hidden="true">
-  <svg viewBox="0 0 100 24" preserveAspectRatio="none">
-    <defs>
-      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"  stop-color="#b48bff"/>
-        <stop offset="40%" stop-color="#9a66ff"/>
-        <stop offset="100%" stop-color="#7b3fe4"/>
-      </linearGradient>
-    </defs>
+    <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"  stop-color="#b48bff"/>
+          <stop offset="40%" stop-color="#9a66ff"/>
+          <stop offset="100%" stop-color="#7b3fe4"/>
+        </linearGradient>
+      </defs>
 
-    <!-- fat blurred aura + main gradient stroke with a stronger slash -->
-    <path class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-    <path class="line"       d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-  </svg>
+      <!-- blurred aura + main stroke with slash -->
+      <path class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+      <path class="line"       d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    </svg>
 
-  <!-- perfectly round glow dot driven by CSS motion path -->
-  <div class="glow-dot"></div>
-</div>
-
+    <!-- round glow dot (animated via CSS) -->
+    <div class="glow-dot"></div>
+  </div>
 
   <!-- THREE PILLARS -->
   <main class="grid">
