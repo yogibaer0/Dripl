@@ -94,22 +94,26 @@ body{
   filter: blur(7px);
 }
 .glow-dot{
-  position:absolute; inset:0;
-  width:10px; height:10px; border-radius:50%;
-  background: radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(190,130,255,.65) 40%, rgba(123,63,228,0) 70%);
-  box-shadow: 0 0 16px rgba(154,102,255,.9), 0 0 32px rgba(154,102,255,.6);
-  
-  /* motion path: follow same path as svg line */
-  offset-path: path("M 0 50 L 77 50 L 83 29 L 100 50");
-  offset-rotate: auto;
-  animation: driplDot 1.5s linear infinite;
+  position: fixed;          /* we position it with page coords from JS */
+  z-index: 3;
+  width: 10px; height: 10px; border-radius: 50%;
+  pointer-events: none;
+
+  background: radial-gradient(circle,
+              rgba(255,255,255,1) 0%,
+              rgba(190,130,255,.65) 40%,
+              rgba(123,63,228,0) 80%);
+  box-shadow:
+    0 0 10px rgba(180,120,255,.95),
+    0 0 26px rgba(154,102,255,.9),
+    0 0 48px rgba(154,102,255,.65);
+  /* subtle pulse as it travels */
+  animation: dotPulse 900ms ease-in-out infinite alternate;
 }
 
-@keyframes driplDot{
-  0%   { offset-distance: 0%;   opacity:.2; }
-  10%  { opacity:1; }  /* bright spike like an EKG blip */
-  50%  { offset-distance: 50%; opacity:.6; }
-  100% { offset-distance: 100%; opacity:.2; }
+@keyframes dotPulse{
+  0%   { opacity:.35; transform: translate(var(--x,0), var(--y,0)) scale(1); }
+  100% { opacity:1;   transform: translate(var(--x,0), var(--y,0)) scale(1.25); }
 }
 
 

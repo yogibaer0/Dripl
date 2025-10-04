@@ -65,6 +65,49 @@ window.driplProbe = async function (url) {
   });
   return res.json();
 };
+// after your existing code:
+formatSelect.addEventListener('change', () => {
+  const mp = formatSelect.value.toLowerCase() === 'mp3' ? 'mp3' : 'mp4';
+  formatSelect.dataset.format = mp;
+});
+formatSelect.dispatchEvent(new Event('change'));
+// === keeping dot on path ===
+(function(){
+  const wrap = document.querySelector('.glow-line');
+  const svg  = wrap?.querySelector('svg');
+  const path = svg?.querySelector('#driplGlowPath');
+  const dot  = document.getElementById('glowDot');
+  if(!wrap || !svg || !path || !dot) return;
+
+  let len = 0, t = 0, dir = 1;
+
+  function measure(){
+    len = path.getTotalLength();
+  }
+
+  function tick(){
+    // speed: adjust 0.006 for slower/faster
+    t += dir * 0.006;
+    if (t >= 1) { t = 1; dir = -1; }
+    if (t <= 0) { t = 0; dir = 1; }
+
+    const p = path.getPointAtLength(len * t);
+    const box = svg.getBoundingClientRect();
+    const x = box.left + (p.x / 100) * box.width;
+    const y = box.top  + (p.y / 24)  * box.height;
+
+    dot.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+
+    requestAnimationFrame(tick);
+  }
+
+  const ro = new ResizeObserver(measure);
+  ro.observe(svg);
+  measure();
+  tick();
+})();
+
+
 
 
 
