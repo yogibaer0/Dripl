@@ -33,25 +33,41 @@
         <stop offset="100%" stop-color="#7b3fe4"/>
       </linearGradient>
 
-      <!-- soft purple glow for the dot -->
-      <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b1"/>
-        <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="b2"/>
+      <!-- bright core for the dot -->
+      <radialGradient id="dotCore" cx="50%" cy="50%" r="60%">
+        <stop offset="0%"  stop-color="#ffffff" />
+        <stop offset="35%" stop-color="#e9ddff" />
+        <stop offset="70%" stop-color="#b88cff" />
+        <stop offset="100%" stop-color="#7b3fe4" />
+      </radialGradient>
+
+      <!-- hot glow (stronger than before) -->
+      <filter id="dotBlast" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="b1"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b2"/>
+        <feColorMatrix in="b2" type="matrix"
+          values="1 0 0 0 0
+                  0 1 0 0 0
+                  0 0 1 0 0
+                  0 0 0 1.6 0" result="b2x"/>  <!-- boost intensity -->
         <feMerge>
-          <feMergeNode in="b2"/>
+          <feMergeNode in="b2x"/>
           <feMergeNode in="b1"/>
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
     </defs>
 
-    <!-- aura + main stroke with slash -->
+    <!-- aura + main stroke with slash (unchanged) -->
     <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
     <path class="line" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
 
-    <!-- dot that JS will move in SVG space (so it sits exactly on the line) -->
-    <circle id="glowDotSvg" r="1.9" cx="0" cy="12"
-            fill="#d9c7ff" filter="url(#dotGlow)" opacity="0.9"/>
+    <!-- brighter "ON" dot locked to the line -->
+    <circle id="glowDotSvg"
+            r="2.2" cx="0" cy="12"
+            fill="url(#dotCore)"
+            stroke="#ffffff" stroke-opacity=".65" stroke-width=".25"
+            filter="url(#dotBlast)" opacity="1"/>
   </svg>
 </div>
 
@@ -114,7 +130,8 @@
   <!-- CONVERT PANEL (with the IDs your JS expects) -->
   <section class="card convert">
     <form id="convertForm" class="row">
-      <input class="input" id="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
+      <input class="input" 
+"url" placeholder="Paste link (YouTube, TikTok, etc.)" />
       <select id="format" class="select__native" aria-label="Format">
         <option value="mp4" selected>MP4 (video)</option>
         <option value="mp3">MP3 (audio)</option>
