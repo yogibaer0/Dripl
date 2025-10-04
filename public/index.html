@@ -15,12 +15,13 @@
   </nav>
 
   <!-- HERO -->
-  <header class="site">
-    <div class="brand">
-      <img class="logo" src="assets/dripl.png" alt="Dripl logo" />
-      <h1 class="title">Dripl <span class="badge beta">beta</span></h1>
-    </div>
-  </header>
+<header class="site">
+  <div class="brand">
+    <img class="logo" src="assets/dripl.png" alt="Dripl logo" />
+    <h1 class="title">Dripl</h1>
+  </div>
+</header>
+
 
   <!-- GLOW LINE (SVG path + JS-driven glow dot) -->
   <div class="glow-line" aria-hidden="true">
@@ -98,24 +99,25 @@
     </details>
   </main>
 
-  <!-- CONVERT PANEL -->
+  <!-- CONVERT PANEL (with the IDs your JS expects) -->
   <section class="card convert">
-    <div class="row">
-      <input class="input" id="urlInput" placeholder="Paste link (YouTube, TikTok, etc.)" />
-      <div class="select" id="formatSelect" data-format="mp4" role="listbox" aria-label="Format">
-        <button class="select__btn"><span class="dot mp4"></span> MP4 (video)</button>
-        <ul class="select__menu">
-          <li data-format="mp4"><span class="dot mp4"></span> MP4 (video)</li>
-          <li data-format="mp3"><span class="dot mp3"></span> MP3 (audio)</li>
-        </ul>
-      </div>
-      <button class="btn btn-convert" id="convertBtn">Convert</button>
-    </div>
-    <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+    <form id="convertForm" class="row">
+      <input class="input" id="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
+      <select id="format" class="select__native" aria-label="Format">
+        <option value="mp4" selected>MP4 (video)</option>
+        <option value="mp3">MP3 (audio)</option>
+      </select>
+      <button class="btn btn-convert" type="submit">Convert</button>
+    </form>
+    <p class="hint" id="result">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
   </section>
 
-  <footer class="foot">© 2025 Dripl</footer>
+  <footer class="foot">© <span id="year">2025</span> Dripl</footer>
+
+  <!-- Load front-end logic -->
+  <script src="script.js" defer></script>
 </body>
 </html>
+
 
 
