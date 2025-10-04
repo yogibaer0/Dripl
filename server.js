@@ -9,7 +9,7 @@ import os from "node:os";
 import crypto from "node:crypto";
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
+// import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { spawn } from "node:child_process";
@@ -177,7 +177,7 @@ function cookieSummary() {
 // ===== App =====
 const app = express();
 app.use(cors());
-app.use(helmet({ crossOriginResourcePolicy: false }));
+// app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
 app.use(rateLimit({ windowMs: 60_000, max: 100, legacyHeaders: false }));
