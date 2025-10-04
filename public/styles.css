@@ -71,30 +71,44 @@ body{
 .dot.mp4{background:var(--pri-400)}
 .dot.mp3{background:var(--mp3-400)}
 
-/* Glow line (same width as cards/convert) */
+/* Super-charged glow line */
 .glow-line{
-  max-width: 980px;           /* keep in sync with .card.convert width */
-  margin: 10px auto 30px;
+  max-width: 980px;
+  margin: 14px auto 22px;
   position: relative;
 }
 .glow-line svg{
-  width: 100%;
-  height: 18px;
-  display:block;
-  overflow:visible;
-  filter: drop-shadow(0 0 6px rgba(154,102,255,.55));
+  width:100%; height:28px; display:block; overflow:visible;
+  filter: drop-shadow(0 0 14px rgba(154,102,255,.75));
 }
+/* base line + blurred aura */
 .glow-line .line{
-  stroke: rgba(154,102,255,.55);
-  stroke-width: 2.5;
+  stroke: url(#lineGrad);
+  stroke-width: 4;              /* thicker */
   vector-effect: non-scaling-stroke;
 }
+.glow-line .line.aura{
+  stroke: #9a66ff;
+  stroke-width: 12;             /* fat blur */
+  opacity: .25;
+  filter: blur(6px);
+}
 .glow-line .dot{
-  filter: drop-shadow(0 0 10px rgba(154,102,255,.95));
+  filter: drop-shadow(0 0 18px rgba(154,102,255,1));
 }
-@media (prefers-reduced-motion: reduce){
-  .glow-line .dot animateMotion { display:none; }
+
+/* corner brand */
+.corner{
+  position: fixed; top:14px; left:14px; z-index:50;
+  display:flex; align-items:center; gap:8px;
+  padding:6px 10px; border-radius:999px;
+  background: rgba(10,8,25,.35);
+  border: 1px solid rgba(255,255,255,.06);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 22px rgba(0,0,0,.35);
 }
+.corner__logo{ width:18px; height:18px; object-fit:contain; }
+.corner__name{ font-weight:800; letter-spacing:.2px; }
 
 /* Cards */
 .card{
@@ -141,6 +155,9 @@ body{
     var(--surface);
   border-color: rgba(241,150,255,.25);
 }
+.grid{ margin: 26px auto 28px; }
+.card.convert{ margin-top: 0; }
+
 
 /* Convert row */
 .input{
