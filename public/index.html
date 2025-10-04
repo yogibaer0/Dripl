@@ -25,23 +25,35 @@
 
   <!-- GLOW LINE (SVG path + JS-driven glow dot) -->
   <div class="glow-line" aria-hidden="true">
-    <svg viewBox="0 0 100 24" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"  stop-color="#b48bff"/>
-          <stop offset="40%" stop-color="#9a66ff"/>
-          <stop offset="100%" stop-color="#7b3fe4"/>
-        </linearGradient>
-      </defs>
+  <svg viewBox="0 0 100 24" preserveAspectRatio="none" id="glowSVG">
+    <defs>
+      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"  stop-color="#b48bff"/>
+        <stop offset="40%" stop-color="#9a66ff"/>
+        <stop offset="100%" stop-color="#7b3fe4"/>
+      </linearGradient>
 
-      <!-- aura + main stroke with slash -->
-      <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-      <path class="line" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-    </svg>
+      <!-- soft purple glow for the dot -->
+      <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b1"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="b2"/>
+        <feMerge>
+          <feMergeNode in="b2"/>
+          <feMergeNode in="b1"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
 
-    <!-- the glow dot JS will move along the path -->
-    <div class="glow-dot" id="glowDot"></div>
-  </div>
+    <!-- aura + main stroke with slash -->
+    <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    <path class="line" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+
+    <!-- dot that JS will move in SVG space (so it sits exactly on the line) -->
+    <circle id="glowDotSvg" r="1.9" cx="0" cy="12"
+            fill="#d9c7ff" filter="url(#dotGlow)" opacity="0.9"/>
+  </svg>
+</div>
 
   <!-- THREE PILLARS -->
   <main class="grid">
