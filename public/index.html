@@ -33,37 +33,28 @@
         <stop offset="100%" stop-color="#7b3fe4"/>
       </linearGradient>
 
-      <!-- bright, ON-style dot -->
-      <radialGradient id="dotCore" cx="50%" cy="50%" r="60%">
-        <stop offset="0%"  stop-color="#ffffff"/>
-        <stop offset="35%" stop-color="#efe7ff"/>
-        <stop offset="70%" stop-color="#c39bff"/>
-        <stop offset="100%" stop-color="#7b3fe4"/>
+      <!-- tight purple halo for the dot -->
+      <radialGradient id="dotHalo" cx="50%" cy="50%" r="60%">
+        <stop offset="0%"   stop-color="#caa8ff" />
+        <stop offset="55%"  stop-color="#9a66ff" />
+        <stop offset="100%" stop-color="#7b3fe4" />
       </radialGradient>
-      <filter id="dotBlast" x="-90%" y="-90%" width="280%" height="280%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b1"/>
-        <feGaussianBlur in="SourceGraphic" stdDeviation="4.6" result="b2"/>
-        <feColorMatrix in="b2" type="matrix"
-          values="1 0 0 0 0
-                  0 1 0 0 0
-                  0 0 1 0 0
-                  0 0 0 1.9 0" result="b2x"/>
-        <feMerge>
-          <feMergeNode in="b2x"/>
-          <feMergeNode in="b1"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
+
+      <!-- glow amplifier -->
+      <filter id="dotBlast" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" />
       </filter>
     </defs>
 
-    <!-- aura + main stroke + slash -->
+    <!-- aura + main stroke + slash (unchanged) -->
     <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
     <path class="line"                 d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
 
-    <!-- hot dot locked to the path -->
-    <circle id="glowDotSvg" r="2.3" cx="0" cy="12"
-            fill="url(#dotCore)" stroke="#fff" stroke-opacity=".75" stroke-width=".28"
-            filter="url(#dotBlast)" opacity="1"/>
+    <!-- DOT = crisp white core + tight halo; JS moves the whole group -->
+    <g id="glowDot" transform="translate(0,12)">
+      <circle class="core" r="2.2" fill="#ffffff" />
+      <circle class="halo" r="6.2" fill="url(#dotHalo)" filter="url(#dotBlast)" opacity="0.85"/>
+    </g>
   </svg>
 </div>
 

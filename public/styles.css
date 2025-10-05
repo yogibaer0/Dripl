@@ -118,10 +118,20 @@ body{
   opacity:.28;
   filter: blur(7px);
 }
-/* SVG dot pulse (position is handled by JS via cx/cy) */
-#glowDotSvg{
-  animation: svgDotPulse 900ms ease-in-out infinite alternate;
+/* DOT styling: crisp core + tight halo; JS handles positioning */
+#glowDot{ animation: dotBlink 650ms ease-in-out infinite alternate; }
+#glowDot .core{
+  filter: drop-shadow(0 0 2px #ffffff);
 }
+#glowDot .halo{
+  /* already has filter via SVG; no transform animations here */
+}
+
+@keyframes dotBlink{
+  from { opacity: .80; }
+  to   { opacity: 1;   }
+}
+
 @keyframes svgDotPulse{
   0%   { opacity:.55 }
   100% { opacity:1 }

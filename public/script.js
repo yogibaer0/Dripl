@@ -67,36 +67,33 @@ if (form && urlInput && formatSelect && resultBox) {
   formatSelect.dispatchEvent(new Event('change'));
 }
 
-// === Glow dot animation along SVG path (SVG coordinates; no screen mapping) ===
+// === Glow dot animation (move the GROUP in SVG coords) ===
 (function(){
   const svg  = document.getElementById('glowSVG');
   const path = document.getElementById('driplGlowPath');
-  const dot  = document.getElementById('glowDotSvg');
-  if(!svg || !path || !dot) return;
+  const dotG = document.getElementById('glowDot');
+  if(!svg || !path || !dotG) return;
 
   let len = path.getTotalLength();
   let t = 0, dir = 1;
 
   function tick(){
-    // speed: bump number for faster travel
-    t += dir * 0.008;                 // was 0.006
-    if (t >= 1) { t = 1; dir = -1; }  // ping–pong
+    t += dir * 0.010;                   // speed (↑ to go faster)
+    if (t >= 1) { t = 1; dir = -1; }    // ping-pong; change to =0 for snap-back
     if (t <= 0) { t = 0; dir =  1; }
 
     const p = path.getPointAtLength(len * t);
-    // place the circle in the SAME coordinate system as the SVG (0..100, 0..24)
-    dot.setAttribute('cx', p.x);
-    dot.setAttribute('cy', p.y);
+    dotG.setAttribute('transform', `translate(${p.x}, ${p.y})`);
 
     requestAnimationFrame(tick);
   }
 
-  // if the SVG rescales, length is unchanged (viewBox), but re-measure anyway
   const ro = new ResizeObserver(() => { len = path.getTotalLength(); });
   ro.observe(svg);
 
   tick();
 })();
+
 
 
 
