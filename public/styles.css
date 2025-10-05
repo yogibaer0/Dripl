@@ -118,31 +118,32 @@ body{
   opacity:.28;
   filter: blur(7px);
 }
-/* Fixed-size glowing dot that rides the line (JS sets transform) */
+/* Fixed-size glowing dot: tiny hot core + big halo (no transform animation) */
 .glow-dot-fx{
-  position: fixed;               /* use screen coords for perfect circle */
+  position: fixed;
   z-index: 3;
-  width: 14px; height: 14px;     /* true circle */
+  width: 14px; height: 14px;          /* stays a circle, always */
   border-radius: 50%;
   pointer-events: none;
 
-  /* bright white core + tight purple halo */
-  background: radial-gradient(circle at 50% 45%,
-              #ffffff 0%,
-              #efe7ff 40%,
-              rgba(255,255,255,0) 60%);
+  /* tiny white core, mostly halo */
+  background: radial-gradient(circle at 50% 50%,
+              rgba(255,255,255,0.95) 0%,
+              rgba(255,255,255,0.95) 12%,
+              rgba(255,255,255,0) 28%);
   box-shadow:
-    0 0 10px rgba(255,255,255,.95),
-    0 0 22px rgba(186,140,255,.95),
-    0 0 44px rgba(123,63,228,.70);
+    0 0 12px rgba(210,170,255,1),
+    0 0 32px rgba(160,110,255,.95),
+    0 0 64px rgba(123,63,228,.85),
+    0 0 92px rgba(123,63,228,.55);
 
-  animation: dotPulse 700ms ease-in-out infinite alternate;
+  animation: dotPulse 650ms ease-in-out infinite alternate;
 }
-
 @keyframes dotPulse{
   0%   { opacity:.75; }
   100% { opacity:1;   }
 }
+
 
 
 /* ---------- Cards ---------- */
