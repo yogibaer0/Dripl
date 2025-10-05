@@ -67,32 +67,42 @@ if (form && urlInput && formatSelect && resultBox) {
   formatSelect.dispatchEvent(new Event('change'));
 }
 
-// === Glow dot animation (move the GROUP in SVG coords) ===
+// === Path-following dot (fixed-size HTML, perfect circle) ===
 (function(){
   const svg  = document.getElementById('glowSVG');
   const path = document.getElementById('driplGlowPath');
-  const dotG = document.getElementById('glowDot');
-  if(!svg || !path || !dotG) return;
+  const dot  = document.getElementById('glowDotFx');
+  if(!svg || !path || !dot) return;
 
   let len = path.getTotalLength();
   let t = 0, dir = 1;
 
+  function measure(){ len = path.getTotalLength(); }
+
   function tick(){
-    t += dir * 0.010;                   // speed (↑ to go faster)
-    if (t >= 1) { t = 1; dir = -1; }    // ping-pong; change to =0 for snap-back
+    // speed control
+    t += dir * 0.010;                    // ↑ for faster
+    if (t >= 1) { t = 1; dir = -1; }     // ping-pong
     if (t <= 0) { t = 0; dir =  1; }
 
     const p = path.getPointAtLength(len * t);
-    dotG.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+
+    // Map SVG viewBox (0..100, 0..24) -> screen pixels
+    const box = svg.getBoundingClientRect();
+    const x = box.left + (p.x / 100) * box.width;
+    const y = box.top  + (p.y / 24)  * box.height;
+
+    dot.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
 
     requestAnimationFrame(tick);
   }
 
-  const ro = new ResizeObserver(() => { len = path.getTotalLength(); });
+  const ro = new ResizeObserver(measure);
   ro.observe(svg);
-
+  measure();
   tick();
 })();
+
 
 
 

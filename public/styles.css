@@ -118,24 +118,32 @@ body{
   opacity:.28;
   filter: blur(7px);
 }
-/* DOT styling: crisp core + tight halo; JS handles positioning */
-#glowDot{ animation: dotBlink 650ms ease-in-out infinite alternate; }
-#glowDot .core{
-  filter: drop-shadow(0 0 2px #ffffff);
-}
-#glowDot .halo{
-  /* already has filter via SVG; no transform animations here */
+/* Fixed-size glowing dot that rides the line (JS sets transform) */
+.glow-dot-fx{
+  position: fixed;               /* use screen coords for perfect circle */
+  z-index: 3;
+  width: 14px; height: 14px;     /* true circle */
+  border-radius: 50%;
+  pointer-events: none;
+
+  /* bright white core + tight purple halo */
+  background: radial-gradient(circle at 50% 45%,
+              #ffffff 0%,
+              #efe7ff 40%,
+              rgba(255,255,255,0) 60%);
+  box-shadow:
+    0 0 10px rgba(255,255,255,.95),
+    0 0 22px rgba(186,140,255,.95),
+    0 0 44px rgba(123,63,228,.70);
+
+  animation: dotPulse 700ms ease-in-out infinite alternate;
 }
 
-@keyframes dotBlink{
-  from { opacity: .80; }
-  to   { opacity: 1;   }
+@keyframes dotPulse{
+  0%   { opacity:.75; }
+  100% { opacity:1;   }
 }
 
-@keyframes svgDotPulse{
-  0%   { opacity:.55 }
-  100% { opacity:1 }
-}
 
 /* ---------- Cards ---------- */
 .card{

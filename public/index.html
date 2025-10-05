@@ -51,16 +51,11 @@
     <path class="line"                 d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
 
     <!-- DOT = crisp white core + tight halo; JS moves the whole group -->
-    <g id="glowDot" transform="translate(0,12)">
-      <circle class="core" r="2.2" fill="#ffffff" />
-      <circle class="halo" r="6.2" fill="url(#dotHalo)" filter="url(#dotBlast)" opacity="0.85"/>
-    </g>
+    <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    <path class="line"                 d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
   </svg>
+  <div id="glowDotFx" class="glow-dot-fx" aria-hidden="true"></div>
 </div>
-
-<!-- (tiny form fix) ensure the input has id="url" -->
-<input class="input" id="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
-
 
   <!-- THREE PILLARS -->
   <main class="grid">
