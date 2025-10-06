@@ -129,51 +129,50 @@ body{
   /* dasharray/offset are set by JS each frame */
 }
 
-/* Glowing tracer cursor that rides the path (JS sets translate + rotate) */
+/* Cursor head anchored at left-center so tail extends backward */
 .sweep-cursor{
   position: fixed;
   z-index: 4;
-  width: 22px;                /* bar length */
-  height: 3px;                /* bar thickness */
-  border-radius: 2px;
-  background: rgba(255,255,255,.9);   /* bright bar core */
-  box-shadow:
-    0 0 10px rgba(255,255,255,.95),
-    0 0 24px rgba(186,140,255,.95),
-    0 0 48px rgba(123,63,228,.65);
-  mix-blend-mode: screen;
+  width: 0; height: 0;                 /* visual is in the pseudos */
+  transform-origin: 0% 50%;            /* pivot at the head */
   pointer-events: none;
-  transform-origin: 50% 50%;          /* rotate around center */
+  mix-blend-mode: screen;               /* feels like light */
 }
 
-/* tiny white hotspot on the bar center */
+/* WHITE-HOT HEAD */
 .sweep-cursor::before{
   content:"";
-  position:absolute; left:50%; top:50%;
+  position:absolute; left:0; top:50%;
   width: 12px; height: 12px; border-radius:50%;
-  transform: translate(-50%,-50%);
+  transform: translate(-50%, -50%);
   background: radial-gradient(circle at 50% 45%,
-             #ffffff 0%, rgba(255,255,255,.6) 40%, rgba(255,255,255,0) 60%);
+            #ffffff 0%,
+            rgba(255,255,255,.70) 42%,
+            rgba(255,255,255,0) 60%);
   box-shadow:
     0 0 14px rgba(255,255,255,.95),
-    0 0 36px rgba(186,140,255,.9),
-    0 0 64px rgba(123,63,228,.6);
-  pointer-events:none;
+    0 0 36px rgba(196,150,255,.95),
+    0 0 62px rgba(123,63,228,.70);
 }
 
-/* short tail that trails behind along the bar */
+/* PURPLE TAIL (short, soft, behind the head) */
 .sweep-cursor::after{
   content:"";
-  position:absolute; top:50%; left:-70px;  /* extends “backwards” */
-  width: 70px; height: 3px; transform: translateY(-50%);
+  position:absolute; top:50%; left:-84px;        /* length & direction */
+  width: 84px; height: 3px; transform: translateY(-50%);
+  border-radius: 2px;
   background: linear-gradient(90deg,
-              transparent 0%,
-              rgba(186,140,255,.25) 55%,
-              rgba(255,255,255,.8) 100%);
-  filter: blur(.3px);
-  pointer-events:none;
-  opacity:.9;
+            rgba(123,63,228,0)   0%,
+            rgba(123,63,228,.28) 38%,
+            rgba(162,120,255,.85) 86%,
+            rgba(255,255,255,.95) 100%);
+  filter: blur(.25px);
+  box-shadow:
+    0 0 16px rgba(162,120,255,.75),
+    0 0 34px rgba(123,63,228,.55);
+  opacity:.96;
 }
+
 
 @keyframes dotPulse{
   0%   { opacity:.75; }
