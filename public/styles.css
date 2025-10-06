@@ -118,6 +118,17 @@ body{
   opacity:.28;
   filter: blur(7px);
 }
+/* Light-up segment on the path (follows the head) */
+.trail{
+  stroke: #b68cff;                 /* purple glow */
+  stroke-width: 4;
+  stroke-linecap: round;           /* rounded ends = natural fade */
+  opacity: .95;
+  filter: url(#trailGlow);         /* soft bloom */
+  vector-effect: non-scaling-stroke;
+  /* dasharray/offset are set by JS each frame */
+}
+
 /* Glowing tracer cursor that rides the path (JS sets translate + rotate) */
 .sweep-cursor{
   position: fixed;
