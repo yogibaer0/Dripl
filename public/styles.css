@@ -118,27 +118,52 @@ body{
   opacity:.28;
   filter: blur(7px);
 }
-/* Fixed-size glowing dot: tiny hot core + big halo (no transform animation) */
-.glow-dot-fx{
+/* Glowing tracer cursor that rides the path (JS sets translate + rotate) */
+.sweep-cursor{
   position: fixed;
-  z-index: 3;
-  width: 14px; height: 14px;          /* stays a circle, always */
-  border-radius: 50%;
-  pointer-events: none;
-
-  /* tiny white core, mostly halo */
-  background: radial-gradient(circle at 50% 50%,
-              rgba(255,255,255,0.95) 0%,
-              rgba(255,255,255,0.95) 12%,
-              rgba(255,255,255,0) 28%);
+  z-index: 4;
+  width: 22px;                /* bar length */
+  height: 3px;                /* bar thickness */
+  border-radius: 2px;
+  background: rgba(255,255,255,.9);   /* bright bar core */
   box-shadow:
-    0 0 12px rgba(210,170,255,1),
-    0 0 32px rgba(160,110,255,.95),
-    0 0 64px rgba(123,63,228,.85),
-    0 0 92px rgba(123,63,228,.55);
-
-  animation: dotPulse 650ms ease-in-out infinite alternate;
+    0 0 10px rgba(255,255,255,.95),
+    0 0 24px rgba(186,140,255,.95),
+    0 0 48px rgba(123,63,228,.65);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transform-origin: 50% 50%;          /* rotate around center */
 }
+
+/* tiny white hotspot on the bar center */
+.sweep-cursor::before{
+  content:"";
+  position:absolute; left:50%; top:50%;
+  width: 12px; height: 12px; border-radius:50%;
+  transform: translate(-50%,-50%);
+  background: radial-gradient(circle at 50% 45%,
+             #ffffff 0%, rgba(255,255,255,.6) 40%, rgba(255,255,255,0) 60%);
+  box-shadow:
+    0 0 14px rgba(255,255,255,.95),
+    0 0 36px rgba(186,140,255,.9),
+    0 0 64px rgba(123,63,228,.6);
+  pointer-events:none;
+}
+
+/* short tail that trails behind along the bar */
+.sweep-cursor::after{
+  content:"";
+  position:absolute; top:50%; left:-70px;  /* extends “backwards” */
+  width: 70px; height: 3px; transform: translateY(-50%);
+  background: linear-gradient(90deg,
+              transparent 0%,
+              rgba(186,140,255,.25) 55%,
+              rgba(255,255,255,.8) 100%);
+  filter: blur(.3px);
+  pointer-events:none;
+  opacity:.9;
+}
+
 @keyframes dotPulse{
   0%   { opacity:.75; }
   100% { opacity:1;   }

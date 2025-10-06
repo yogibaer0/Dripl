@@ -67,43 +67,56 @@ if (form && urlInput && formatSelect && resultBox) {
   formatSelect.dispatchEvent(new Event('change'));
 }
 
-// === Path-following dot (matrix → true screen coords) ===
+// === Glowing tracer cursor (fixed-size HTML element) ===
 (function(){
+  const wrap = document.querySelector('.glow-line');
   const svg  = document.getElementById('glowSVG');
   const path = document.getElementById('driplGlowPath');
-  const dot  = document.getElementById('glowDotFx'); // the HTML dot
-  if(!svg || !path || !dot) return;
+  const cursor = document.getElementById('sweepCursor');
+  if(!wrap || !svg || !path || !cursor) return;
 
   let len = path.getTotalLength();
-  let t = 0, dir = 1;
-  const pt = svg.createSVGPoint(); // reusable point for transforms
+  let t = 0;                      // 0..1 along path
+  let dir = 1;                    // 1 = forward, -1 = backward
 
-  function toScreen(p){
-    pt.x = p.x; pt.y = p.y;
-    // transform SVG coords → screen coords using the path's current matrix
-    const m = path.getScreenCTM();
-    const s = pt.matrixTransform(m);
-    return { x: s.x, y: s.y };
-  }
+  const SPEED = 0.012;            // increase for faster sweep
+  const EPS   = 0.25;             // small step to compute tangent angle
+  const Y_NUDGE_PX = -1;          // micro vertical nudge if needed
+
+  function measure(){ len = path.getTotalLength(); }
 
   function tick(){
-    // speed control
-    t += dir * 0.010;
-    if (t >= 1) { t = 1; dir = -1; }   // ping-pong; use (t=0;dir=1) for one-way blips
+    t += dir * SPEED;
+    if (t >= 1) { t = 1; dir = -1; }        // ping-pong; for one-way EKG: set to t=0; dir=1;
     if (t <= 0) { t = 0; dir =  1; }
 
-    const p = path.getPointAtLength(len * t);
-    const s = toScreen(p);
+    const L  = len * t;
+    const p  = path.getPointAtLength(L);
+    const p2 = path.getPointAtLength(Math.min(len, L + EPS));  // ahead along path
 
-    dot.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;
+    // map SVG viewBox (0..100, 0..24) to screen
+    const wrapBox = wrap.getBoundingClientRect();
+    const w = svg.clientWidth  || wrapBox.width;
+    const h = svg.clientHeight || 28;
+    const x = wrapBox.left + (p.x  / 100) * w;
+    const y = wrapBox.top  + (p.y  / 24 ) * h + Y_NUDGE_PX;
+
+    // angle tangent to the path
+    const angle = Math.atan2(p2.y - p.y, p2.x - p.x);
+
+    cursor.style.transform =
+      `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${angle}rad)`;
+
     requestAnimationFrame(tick);
   }
 
-  const ro = new ResizeObserver(() => { len = path.getTotalLength(); });
+  const ro = new ResizeObserver(measure);
   ro.observe(svg);
 
+  measure();
   tick();
 })();
+
 
 
 
