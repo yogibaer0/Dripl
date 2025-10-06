@@ -67,60 +67,69 @@ if (form && urlInput && formatSelect && resultBox) {
   formatSelect.dispatchEvent(new Event('change'));
 }
 
-// === Glowing tracer cursor (fixed-size HTML element) ===
+// === Pixel-perfect sweep: head + fluid trail on the same SVG path ===
 (function(){
-  const wrap   = document.querySelector('.glow-line');
-  const svg    = document.getElementById('glowSVG');
-  const path   = document.getElementById('driplGlowPath');
-  const cursor = document.getElementById('sweepCursor');
-  const trail  = document.getElementById('trailPath');   // NEW
-  if(!wrap || !svg || !path || !cursor || !trail) return;
+  const svg   = document.getElementById('glowSVG');
+  const path  = document.getElementById('driplGlowPath');
+  const head  = document.getElementById('sweepHead');
+  let   trail = document.getElementById('trailPath');
+  if (!svg || !path || !head) return;
+
+  // ensure a trail exists even if markup missed it
+  if (!trail) {
+    trail = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    trail.setAttribute('id','trailPath');
+    trail.setAttribute('class','trail');
+    trail.setAttribute('fill','none');
+    trail.setAttribute('d', path.getAttribute('d'));
+    svg.appendChild(trail);
+  }
+
+  // cancel any previous sweep to avoid frozen states
+  if (window.__driplSweepCancel) window.__driplSweepCancel();
 
   let len = path.getTotalLength();
   let t = 0, dir = 1;
+  const SPEED = 0.012;         // feel
+  const TRAIL_FRAC = 0.12;     // length of lit segment (8–18% looks good)
 
-  const SPEED = 0.012;     // same as you liked
-  const EPS   = 0.25;      // tangent sample for cursor rotation
-  const Y_NUDGE_PX = -1;   // keeps head visually on the stroke
-
-  // How long the illuminated segment should be (fraction of path length)
-  const TRAIL_FRAC = 0.12; // 12% of the path; tweak 0.08..0.18 to taste
-
-  function measure(){ len = path.getTotalLength(); }
+  // prepare trail dash pattern
+  function prepareDash(){
+    len = path.getTotalLength();
+    const seg = Math.max(2, len * TRAIL_FRAC);
+    trail.setAttribute('stroke-dasharray', `${seg} ${len}`);
+  }
 
   function tick(){
     t += dir * SPEED;
-    if (t >= 1) { t = 1; dir = -1; }  // ping-pong
+    if (t >= 1) { t = 1; dir = -1; }   // ping-pong
     if (t <= 0) { t = 0; dir =  1; }
 
-    const L  = len * t;
-    const p  = path.getPointAtLength(L);
-    const p2 = path.getPointAtLength(Math.min(len, L + EPS));
+    const L = len * t;
+    const p = path.getPointAtLength(L);
 
-    // map SVG -> screen using the wrapper box (your working mapping)
-    const box = wrap.getBoundingClientRect();
-    const w = svg.clientWidth  || box.width;
-    const h = svg.clientHeight || 28;
-    const x = box.left + (p.x / 100) * w;
-    const y = box.top  + (p.y / 24 ) * h + Y_NUDGE_PX;
+    // head exactly on path pixels
+    head.setAttribute('cx', p.x);
+    head.setAttribute('cy', p.y);
 
-    const angle = Math.atan2(p2.y - p.y, p2.x - p.x);
-    cursor.style.transform = `translate(${x}px,${y}px) rotate(${angle}rad)`;
-
-    // --- NEW: draw a trailing segment behind the head on the SVG path ---
-    const seg = Math.max(2, len * TRAIL_FRAC); // minimum few units so it’s visible
-    // dasharray shows [lit-segment, remainder]; dashoffset moves it along the path
-    trail.setAttribute('stroke-dasharray', `${seg} ${len}`);
+    // fluid trail: show a window ending at the head
     trail.setAttribute('stroke-dashoffset', `${Math.max(0, len - L)}`);
-    // ---------------------------------------------------------------------
 
-    requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
   }
 
-  new ResizeObserver(measure).observe(svg);
-  measure();
-  tick();
+  // keep a handle to stop on hot reloads or reinit
+  let raf = null;
+  const ro = new ResizeObserver(()=>{ prepareDash(); });
+  ro.observe(svg);
+
+  function cancel(){ if (raf) cancelAnimationFrame(raf); ro.disconnect(); }
+  window.__driplSweepCancel = cancel;
+
+  prepareDash();
+  raf = requestAnimationFrame(tick);
 })();
+
 
 
 
