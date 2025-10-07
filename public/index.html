@@ -44,29 +44,46 @@
     </svg>
 
     <!-- Top row -->
-    <section class="blob blob--upload" id="blobUpload" aria-labelledby="tUpload">
-      <h2 id="tUpload" class="blob__title">
-        <span class="blob__icon">📤</span> Upload
-      </h2>
-      <div class="blob__body">
-        <div class="dropzone" id="dropUpload" tabindex="0">
-          Drag & drop files here
-          <input type="file" id="fileInput" class="sr-only" multiple />
-        </div>
-        <button class="btn" id="browseBtn">Browse files</button>
-        <ul class="list" id="uploadList" aria-live="polite"></ul>
-      </div>
-    </section>
+    <!-- Upload -->
+<section class="blob blob--upload collapsible" data-tab="upload" aria-labelledby="tUpload" aria-expanded="false">
+  <h2 id="tUpload" class="blob__title">
+    <button class="tab-btn" type="button">
+      <span class="blob__icon">📤</span> Upload
+    </button>
+  </h2>
+  <div class="blob__body">
+    <!-- keep your existing upload content here -->
+    <div class="dropzone" id="dropUpload" tabindex="0">Drag & drop files here</div>
+    <button class="btn" id="browseBtn">Browse files</button>
+    <ul class="list" id="uploadList" aria-live="polite"></ul>
+  </div>
+</section>
 
-    <section class="blob blob--import" id="blobImport" aria-labelledby="tImport">
-      <h2 id="tImport" class="blob__title">
-        <span class="blob__icon">🌐</span> Import
-      </h2>
-      <div class="blob__body">
-        <p class="hint">Pull from cloud later (Drive, Dropbox, etc.).</p>
-        <button class="btn btn--ghost" id="importStub">Connect</button>
-      </div>
-    </section>
+<!-- Import -->
+<section class="blob blob--import collapsible" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
+  <h2 id="tImport" class="blob__title">
+    <button class="tab-btn" type="button">
+      <span class="blob__icon">🌐</span> Import
+    </button>
+  </h2>
+  <div class="blob__body">
+    <p class="hint">Pull from cloud later (Drive, Dropbox, etc.).</p>
+    <button class="btn btn--ghost" id="importStub">Connect</button>
+  </div>
+</section>
+
+<!-- Storage -->
+<section class="blob blob--storage collapsible" data-tab="storage" aria-labelledby="tStorage" aria-expanded="false">
+  <h2 id="tStorage" class="blob__title">
+    <button class="tab-btn" type="button">
+      <span class="blob__icon">💾</span> Storage
+    </button>
+  </h2>
+  <div class="blob__body">
+    <p class="hint">Local / Cloud bucket (stub).</p>
+    <button class="btn btn--ghost" id="storageStub">Configure</button>
+  </div>
+</section>
 
     <!-- HUB (diamond) -->
     <section class="hub" id="hub" aria-label="Hub">
@@ -123,17 +140,6 @@
         </label>
       </div>
     </section>
-
-    <section class="blob blob--storage" id="blobStorage" aria-labelledby="tStorage">
-      <h2 id="tStorage" class="blob__title">
-        <span class="blob__icon">💾</span> Storage
-      </h2>
-      <div class="blob__body">
-        <p class="hint">Local / Cloud bucket (stub).</p>
-        <button class="btn btn--ghost" id="storageStub">Configure</button>
-      </div>
-    </section>
-  </main>
 
   <!-- Footer convert row (kept) -->
   <footer class="convert">
