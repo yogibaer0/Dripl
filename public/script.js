@@ -118,6 +118,53 @@ const Dripl = (() => {
 
   return { state };
 })();
+/* ---------- Tabs: Upload / Import / Storage ---------- */
+(function tabs(){
+  const groups = Array.from(document.querySelectorAll('.collapsible[data-tab]'));
+  if (!groups.length) return;
+
+  // open tab by id/name
+  function openTab(name, pushHash = true){
+    groups.forEach(sec => {
+      const isMatch = sec.dataset.tab === name;
+      sec.classList.toggle('is-open', isMatch);
+      sec.setAttribute('aria-expanded', String(isMatch));
+    });
+    if (pushHash) {
+      // update URL hash so /#upload deep-links; avoid polluting history when first loading
+      const target = name ? `#${name}` : ' ';
+      history.replaceState(null, '', target);
+    }
+  }
+
+  // click handlers
+  groups.forEach(sec => {
+    const btn = sec.querySelector('.tab-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => openTab(sec.dataset.tab));
+    // allow clicking the whole header row as a target
+    sec.querySelector('.blob__title')?.addEventListener('click', (e)=>{
+      if (e.target.closest('.tab-btn')) return; // already handled
+      openTab(sec.dataset.tab);
+    });
+  });
+
+  // open from hash on load
+  const boot = (location.hash || '').replace('#','').trim();
+  if (boot && groups.some(s => s.dataset.tab === boot)){
+    openTab(boot, false);
+  } else {
+    // default open: upload (change to whatever you want)
+    openTab('upload', false);
+  }
+
+  // allow manual hash change to switch tabs
+  window.addEventListener('hashchange', ()=>{
+    const h = (location.hash || '').replace('#','').trim();
+    if (h) openTab(h, false);
+  });
+})();
+
 
 
 
