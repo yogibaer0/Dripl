@@ -3,149 +3,153 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dripl — beta</title>
+  <title>Dripl</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <!-- tiny corner brand -->
-  <nav class="corner">
-    <img src="assets/dripl.png" alt="Dripl logo mini" class="corner__logo">
+<body class="dripl">
+
+  <!-- Corner badge (kept) -->
+  <a class="corner" href="/" aria-label="Dripl home">
+    <img class="corner__logo" src="assets/dripl/dripl.png" alt="" />
     <span class="corner__name">Dripl</span>
     <span class="badge beta">beta</span>
-  </nav>
+  </a>
 
-  <!-- HERO -->
-<header class="site">
-  <div class="brand">
-    <img class="logo" src="assets/dripl.png" alt="Dripl logo" />
-    <h1 class="title">Dripl</h1>
-  </div>
-</header>
+  <!-- Header: Logo + Source Link (from your sketch) -->
+  <header class="header">
+    <div class="brand">
+      <img class="brand__logo" src="assets/dripl/dripl.png" alt="" />
+      <h1 class="brand__title">Dripl</h1>
+    </div>
 
+    <form class="source" id="sourceForm" autocomplete="off">
+      <label class="sr-only" for="sourceUrl">Source link</label>
+      <input id="sourceUrl" class="source__input" name="url"
+             placeholder="Paste source link (YouTube, TikTok, etc.)" />
+      <button class="source__go" type="submit">Attach</button>
+    </form>
+  </header>
 
-  <!-- GLOW LINE -->
-<div class="glow-line" aria-hidden="true">
-  <svg id="glowSVG" viewBox="0 0 100 24" preserveAspectRatio="none">
-    <defs>
-      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"  stop-color="#b48bff"/>
-        <stop offset="40%" stop-color="#9a66ff"/>
-        <stop offset="100%" stop-color="#7b3fe4"/>
-      </linearGradient>
+  <!-- Canvas: top row blobs + HUB (diamond) + connectors -->
+  <main class="canvas" id="canvas">
+    <!-- Connectors SVG sits behind everything (easier to tweak later) -->
+    <svg class="wires" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+      <!-- paths get positioned by CSS grid; we’ll refine the curves later -->
+      <path id="wire-upload"   class="wire" d="M180,250 L480,350" />
+      <path id="wire-import"   class="wire" d="M820,250 L520,350" />
+      <path id="wire-hub-down" class="wire" d="M500,390 L500,470" />
+      <path id="wire-quality"  class="wire" d="M140,520 L500,470" />
+      <path id="wire-filetype" class="wire" d="M860,520 L500,470" />
+      <path id="wire-storage"  class="wire" d="M500,520 L500,590" />
+    </svg>
 
-      <!-- glow for the trail -->
-      <filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="1.3"/>
-      </filter>
-
-      <!-- hot glow for the head -->
-      <filter id="headGlow" x="-80%" y="-80%" width="260%" height="260%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="1.0" result="b1"/>
-        <feGaussianBlur in="SourceGraphic" stdDeviation="4.0" result="b2"/>
-        <feMerge>
-          <feMergeNode in="b2"/>
-          <feMergeNode in="b1"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-    </defs>
-
-    <!-- keep your slant -->
-    <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-    <path class="line"                 d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-
-    <!-- TRAIL (lit window on same path) -->
-    <path id="trailPath" class="trail" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-<path id="trailPath" class="trail" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-
-    <!-- HEAD (exactly on path) -->
-    <circle id="sweepHead" r="2.4" cx="0" cy="12"
-            fill="#fff" stroke="#fff" stroke-opacity=".65" stroke-width=".28"
-            filter="url(#headGlow)"/>
-<filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
-  <feGaussianBlur stdDeviation="1.3"/>
-</filter>
-
-  </svg>
-</div>
-
-
-  <!-- THREE PILLARS -->
-  <main class="grid">
-    <details class="card card--upload" open>
-      <summary>
-        <div class="card__icon">⬆️</div>
-        <div class="card__title">Upload</div>
-      </summary>
-      <div class="card__body">
-        <div class="stack">
-          <div class="dropzone">Drag &amp; drop files here</div>
-          <label class="btn ghost">
-            Browse files
-            <input type="file" hidden multiple />
-          </label>
+    <!-- Top row -->
+    <section class="blob blob--upload" id="blobUpload" aria-labelledby="tUpload">
+      <h2 id="tUpload" class="blob__title">
+        <span class="blob__icon">📤</span> Upload
+      </h2>
+      <div class="blob__body">
+        <div class="dropzone" id="dropUpload" tabindex="0">
+          Drag & drop files here
+          <input type="file" id="fileInput" class="sr-only" multiple />
         </div>
+        <button class="btn" id="browseBtn">Browse files</button>
+        <ul class="list" id="uploadList" aria-live="polite"></ul>
       </div>
-    </details>
+    </section>
 
-    <details class="card card--import">
-      <summary>
-        <div class="card__icon">🌐</div>
-        <div class="card__title">Import</div>
-      </summary>
-      <div class="card__body">
-        <div class="list">
-          <button class="list__item"><span>Connect YouTube</span></button>
-          <button class="list__item"><span>Connect TikTok</span></button>
-          <button class="list__item"><span>Connect Google Drive</span></button>
-          <button class="list__item"><span>Connect Dropbox</span></button>
-        </div>
+    <section class="blob blob--import" id="blobImport" aria-labelledby="tImport">
+      <h2 id="tImport" class="blob__title">
+        <span class="blob__icon">🌐</span> Import
+      </h2>
+      <div class="blob__body">
+        <p class="hint">Pull from cloud later (Drive, Dropbox, etc.).</p>
+        <button class="btn btn--ghost" id="importStub">Connect</button>
       </div>
-    </details>
+    </section>
 
-    <details class="card card--storage">
-      <summary>
-        <div class="card__icon">💾</div>
-        <div class="card__title">Storage</div>
-      </summary>
-      <div class="card__body">
-        <div class="files">
-          <div class="file">
-            <div class="thumb"></div>
-            <div class="meta">
-              <div class="name">example.mp4</div>
-              <div class="row tiny">
-                <span class="badge mp4">MP4</span>
-                <span class="muted">1080p · 42MB</span>
-              </div>
-            </div>
-            <button class="btn xs">Download</button>
-          </div>
-        </div>
+    <!-- HUB (diamond) -->
+    <section class="hub" id="hub" aria-label="Hub">
+      <div class="hub__diamond"></div>
+      <div class="hub__label">HUB</div>
+    </section>
+
+    <!-- Middle: Destination sandbox area (visual only for now) -->
+    <section class="blob blob--destination" id="blobDestination" aria-labelledby="tDest">
+      <h2 id="tDest" class="blob__title">
+        <span class="blob__icon">📍</span> Destination
+      </h2>
+      <div class="blob__body">
+        <p class="hint">Where to send results (download, cloud, etc.).</p>
       </div>
-    </details>
+    </section>
+
+    <!-- Bottom row controls -->
+    <section class="blob blob--quality" id="blobQuality" aria-labelledby="tQuality">
+      <h2 id="tQuality" class="blob__title">
+        <span class="blob__icon">🎚️</span> Quality / Bitrate
+      </h2>
+      <div class="blob__body controls">
+        <label class="control">
+          <span>Quality</span>
+          <input type="range" id="qualityRange" min="0" max="3" value="2" />
+        </label>
+        <label class="control">
+          <span>Bitrate</span>
+          <select id="bitrateSelect">
+            <option>Auto</option>
+            <option>96 kbps</option>
+            <option>128 kbps</option>
+            <option>192 kbps</option>
+            <option>256 kbps</option>
+            <option>320 kbps</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="blob blob--filetype" id="blobFiletype" aria-labelledby="tFiletype">
+      <h2 id="tFiletype" class="blob__title">
+        <span class="blob__icon">🧩</span> Filetype
+      </h2>
+      <div class="blob__body controls">
+        <label class="chip">
+          <input type="radio" name="format" value="mp4" checked />
+          <span>MP4 (video)</span>
+        </label>
+        <label class="chip chip--blue">
+          <input type="radio" name="format" value="mp3" />
+          <span>MP3 (audio)</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="blob blob--storage" id="blobStorage" aria-labelledby="tStorage">
+      <h2 id="tStorage" class="blob__title">
+        <span class="blob__icon">💾</span> Storage
+      </h2>
+      <div class="blob__body">
+        <p class="hint">Local / Cloud bucket (stub).</p>
+        <button class="btn btn--ghost" id="storageStub">Configure</button>
+      </div>
+    </section>
   </main>
 
-  <!-- CONVERT PANEL (with the IDs your JS expects) -->
-  <section class="card convert">
-    <form id="convertForm" class="row">
-      <input class="input" 
-"url" placeholder="Paste link (YouTube, TikTok, etc.)" />
-      <select id="format" class="select__native" aria-label="Format">
-        <option value="mp4" selected>MP4 (video)</option>
-        <option value="mp3">MP3 (audio)</option>
-      </select>
-      <button class="btn btn-convert" type="submit">Convert</button>
-    </form>
-    <p class="hint" id="result">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
-  </section>
+  <!-- Footer convert row (kept) -->
+  <footer class="convert">
+    <input id="convertUrl" class="convert__input" placeholder="Paste link (YouTube, TikTok, etc.)" />
+    <select id="convertFormat" class="convert__select">
+      <option value="mp4" selected>MP4 (video)</option>
+      <option value="mp3">MP3 (audio)</option>
+    </select>
+    <button id="convertBtn" class="convert__btn">Convert</button>
+    <div class="convert__tip">Pro tip: press <kbd>Enter</kbd> to convert instantly.</div>
+  </footer>
 
-  <footer class="foot">© <span id="year">2025</span> Dripl</footer>
-
-  <!-- Load front-end logic -->
-  <script src="script.js" defer></script>
+  <script src="script.js"></script>
 </body>
 </html>
+
 
 
 

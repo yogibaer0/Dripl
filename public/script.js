@@ -1,71 +1,124 @@
-/* Dripl – sweep cursor: movement only (no trail edits) */
-/* This version assumes your DOM still has:
-   - <div class="glow-line"><svg id="glowSVG"><path id="driplGlowPath" ... /></svg><div id="sweepCursor"></div></div>
-*/
+/* Dripl scaffold: simple state & wiring (no conversions yet) */
 
-(function initDriplSweep(){
-  const wrap   = document.querySelector('.glow-line');
-  const svg    = document.getElementById('glowSVG');
-  const path   = document.getElementById('driplGlowPath');
-  const cursor = document.getElementById('sweepCursor');
-  const trail  = document.getElementById('trailPath');  // NEW
+const Dripl = (() => {
+  const state = {
+    sourceUrl: '',
+    files: [],
+    format: 'mp4',
+    qualityStep: 2,    // 0..3
+    bitrate: 'Auto',
+    destination: null,
+    storage: null
+  };
 
-  if (!wrap || !svg || !path || !cursor || !trail) {
-    console.warn('[dripl] sweep init: missing el(s)');
-    return;
+  const el = (sel) => document.querySelector(sel);
+
+  // Source link form
+  const sourceForm = el('#sourceForm');
+  const sourceInput = el('#sourceUrl');
+
+  if (sourceForm){
+    sourceForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.sourceUrl = (sourceInput.value || '').trim();
+      if (!state.sourceUrl) return;
+      // Visual ping of HUB to show the source attached (placeholder)
+      pulseHub();
+    });
   }
 
-  if (window.__driplSweepCancel) window.__driplSweepCancel();
+  // Upload
+  const fileInput = el('#fileInput');
+  const browseBtn = el('#browseBtn');
+  const dropUpload = el('#dropUpload');
+  const uploadList = el('#uploadList');
 
-  let len = path.getTotalLength();
-  let t = 0, dir = 1;
-  let raf = null;
-
-  const SPEED = 0.012;
-  const EPS   = 0.25;
-  const Y_NUDGE_PX = -1;
-
-  const TRAIL_FRAC = 0.12;   // 12% of path glows; tweak 0.08..0.18 to taste
-
-  function measure(){
-    len = path.getTotalLength();
-    const seg = Math.max(2, len * TRAIL_FRAC);               // visible minimum
-    trail.setAttribute('stroke-dasharray', `${seg} ${len}`);  // prep once/resize
+  if (browseBtn && fileInput){
+    browseBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+  }
+  if (dropUpload){
+    dropUpload.addEventListener('dragover', (e)=>{ e.preventDefault(); dropUpload.classList.add('is-over'); });
+    dropUpload.addEventListener('dragleave', ()=> dropUpload.classList.remove('is-over'));
+    dropUpload.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      dropUpload.classList.remove('is-over');
+      handleFiles(e.dataTransfer.files);
+    });
   }
 
-  function tick(){
-    t += dir * SPEED;
-    if (t >= 1) { t = 1; dir = -1; }
-    if (t <= 0) { t = 0; dir =  1; }
-
-    const L  = len * t;
-    const p  = path.getPointAtLength(L);
-    const p2 = path.getPointAtLength(Math.min(len, L + EPS));
-
-    // map SVG -> screen for the HTML cursor
-    const box = wrap.getBoundingClientRect();
-    const w = svg.clientWidth  || box.width;
-    const h = svg.clientHeight || 28;
-    const x = box.left + (p.x / 100) * w;
-    const y = box.top  + (p.y / 24 ) * h + Y_NUDGE_PX;
-
-    const angle = Math.atan2(p2.y - p.y, p2.x - p.x);
-    cursor.style.transform = `translate(${x}px, ${y}px) rotate(${angle}rad)`;
-
-    // fluid on-path trail: window that ends at the head
-    trail.setAttribute('stroke-dashoffset', `${Math.max(0, len - L)}`);
-
-    raf = requestAnimationFrame(tick);
+  function handleFiles(fileList){
+    if (!fileList || !fileList.length) return;
+    state.files = [...state.files, ...Array.from(fileList)];
+    renderUploads();
+    pulseHub();
   }
 
-  const ro = new ResizeObserver(measure);
-  ro.observe(svg);
+  function renderUploads(){
+    if (!uploadList) return;
+    uploadList.innerHTML = '';
+    state.files.slice(0,6).forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
+      uploadList.appendChild(li);
+    });
+    if (state.files.length > 6){
+      const li = document.createElement('li');
+      li.textContent = `+${state.files.length - 6} more…`;
+      uploadList.appendChild(li);
+    }
+  }
 
-  window.__driplSweepCancel = () => { if (raf) cancelAnimationFrame(raf); ro.disconnect(); };
+  // Filetype + Quality
+  const formatRadios = document.querySelectorAll('input[name="format"]');
+  formatRadios.forEach(r => r.addEventListener('change', ()=> {
+    state.format = document.querySelector('input[name="format"]:checked').value;
+  }));
 
-  measure();
-  raf = requestAnimationFrame(tick);
+  const qualityRange = el('#qualityRange');
+  const bitrateSelect = el('#bitrateSelect');
+  if (qualityRange) qualityRange.addEventListener('input', ()=> state.qualityStep = +qualityRange.value);
+  if (bitrateSelect) bitrateSelect.addEventListener('change', ()=> state.bitrate = bitrateSelect.value);
+
+  // Footer convert (stub -> pipeline state)
+  const convertUrl = el('#convertUrl');
+  const convertFormat = el('#convertFormat');
+  const convertBtn = el('#convertBtn');
+
+  if (convertBtn){
+    convertBtn.addEventListener('click', ()=>{
+      const url = (convertUrl.value || state.sourceUrl || '').trim();
+      const fmt = convertFormat.value || state.format;
+      if (!url && !state.files.length){
+        alert('Add a source link or upload files first.');
+        return;
+      }
+      // In the next step we’ll call backend here.
+      console.log('[Dripl] Convert request', {
+        url, files: state.files, fmt,
+        quality: state.qualityStep, bitrate: state.bitrate
+      });
+      pulseHub();
+    });
+
+    convertUrl.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter'){ e.preventDefault(); convertBtn.click(); }
+    });
+  }
+
+  function pulseHub(){
+    const hub = document.getElementById('hub');
+    if (!hub) return;
+    hub.classList.remove('pulse');
+    // force reflow to restart animation
+    void hub.offsetWidth;
+    hub.classList.add('pulse');
+    setTimeout(()=> hub.classList.remove('pulse'), 700);
+  }
+
+  return { state };
 })();
+
 
 
 
