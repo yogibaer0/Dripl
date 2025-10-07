@@ -25,7 +25,7 @@
 
   <!-- GLOW LINE -->
 <div class="glow-line" aria-hidden="true">
-  <svg viewBox="0 0 100 24" preserveAspectRatio="none" id="glowSVG">
+  <svg id="glowSVG" viewBox="0 0 100 24" preserveAspectRatio="none">
     <defs>
       <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%"  stop-color="#b48bff"/>
@@ -33,29 +33,42 @@
         <stop offset="100%" stop-color="#7b3fe4"/>
       </linearGradient>
 
-      <!-- tight purple halo for the dot -->
-      <radialGradient id="dotHalo" cx="50%" cy="50%" r="60%">
-        <stop offset="0%"   stop-color="#caa8ff" />
-        <stop offset="55%"  stop-color="#9a66ff" />
-        <stop offset="100%" stop-color="#7b3fe4" />
-      </radialGradient>
+      <!-- glow for the trail -->
+      <filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="1.3"/>
+      </filter>
 
-      <!-- glow amplifier -->
-      <filter id="dotBlast" x="-80%" y="-80%" width="260%" height="260%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" />
+      <!-- hot glow for the head -->
+      <filter id="headGlow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.0" result="b1"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4.0" result="b2"/>
+        <feMerge>
+          <feMergeNode in="b2"/>
+          <feMergeNode in="b1"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
       </filter>
     </defs>
 
-    <!-- aura + main stroke + slash (unchanged) -->
+    <!-- keep your slant -->
     <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
     <path class="line"                 d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
 
-    <!-- DOT = crisp white core + tight halo; JS moves the whole group -->
-    <path id="driplGlowPath" class="line aura" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-    <path class="line"                 d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+    <!-- TRAIL (lit window on same path) -->
+    <path id="trailPath" class="trail" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+<path id="trailPath" class="trail" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
+
+    <!-- HEAD (exactly on path) -->
+    <circle id="sweepHead" r="2.4" cx="0" cy="12"
+            fill="#fff" stroke="#fff" stroke-opacity=".65" stroke-width=".28"
+            filter="url(#headGlow)"/>
+<filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
+  <feGaussianBlur stdDeviation="1.3"/>
+</filter>
+
   </svg>
-  <div id="sweepCursor" class="sweep-cursor" aria-hidden="true"></div>
 </div>
+
 
   <!-- THREE PILLARS -->
   <main class="grid">
