@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dripl</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- Google (only if you use Drive Picker) -->
+  <!-- Google (Drive Picker, optional) -->
   <script async defer src="https://accounts.google.com/gsi/client"></script>
   <script async defer src="https://apis.google.com/js/api.js"></script>
 </head>
@@ -24,21 +24,21 @@
       <img class="title__drop" src="assets/dripl/dripl.png" alt="" />
       <span class="title__word">Dripl</span>
     </h1>
-
-    <!-- (Keep your glow line SVG block here if you use it)
-         This stub keeps a horizontal spacer so layout doesn't jump. -->
     <div class="glow-line__spacer" aria-hidden="true"></div>
   </header>
 
-  <!-- Tabs -->
+  <!-- Panels grid -->
   <main class="tabs-grid">
 
     <!-- UPLOAD -->
     <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="true">
       <header class="tab__header">
         <button id="tUpload" class="tab__button" type="button">
-          <span class="tab__icon" aria-hidden="true">⬆️</span>
-          <span class="tab__label">Upload</span>
+          <span class="tab__left">
+            <span class="tab__icon" aria-hidden="true">⬆️</span>
+            <span class="tab__label">Upload</span>
+          </span>
+          <span class="tab__chev" aria-hidden="true">▾</span>
         </button>
       </header>
 
@@ -74,8 +74,11 @@
     <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
       <header class="tab__header">
         <button id="tImport" class="tab__button" type="button">
-          <span class="tab__icon" aria-hidden="true">🌐</span>
-          <span class="tab__label">Import</span>
+          <span class="tab__left">
+            <span class="tab__icon" aria-hidden="true">🌐</span>
+            <span class="tab__label">Import</span>
+          </span>
+          <span class="tab__chev" aria-hidden="true">▾</span>
         </button>
       </header>
 
@@ -99,6 +102,7 @@
             <button id="connectDrive" class="btn">Connect Google Drive</button>
           </fieldset>
         </div>
+
         <ul id="importLog" class="list" aria-live="polite"></ul>
       </div>
     </section>
@@ -107,8 +111,11 @@
     <section class="card tab" data-tab="storage" aria-labelledby="tStorage" aria-expanded="false">
       <header class="tab__header">
         <button id="tStorage" class="tab__button" type="button">
-          <span class="tab__icon" aria-hidden="true">💾</span>
-          <span class="tab__label">Storage</span>
+          <span class="tab__left">
+            <span class="tab__icon" aria-hidden="true">💾</span>
+            <span class="tab__label">Storage</span>
+          </span>
+          <span class="tab__chev" aria-hidden="true">▾</span>
         </button>
       </header>
 
@@ -119,7 +126,7 @@
 
   </main>
 
-  <!-- Inject env if needed -->
+  <!-- (Optional) make envs available to JS if you wire external providers -->
   <script>
     window.__ENV__ = window.__ENV__ || {
       DROPBOX_APP_KEY:        "{{ env.DROPBOX_APP_KEY }}",
@@ -131,6 +138,7 @@
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 

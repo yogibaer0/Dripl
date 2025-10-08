@@ -1,222 +1,119 @@
-/***********************
- * ENV from /env.js
- ***********************/
-const ENV = window.__ENV__ || {};
-const DROPBOX_KEY = ENV.DROPBOX_APP_KEY || '';
-const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY || '';
-const GOOGLE_OAUTH_CLIENT_ID = ENV.GOOGLE_OAUTH_CLIENT_ID || '';
+document.addEventListener('DOMContentLoaded', () => {
+  // Toggle tabs open/close with persistence
+  const SINGLE_OPEN = false; // set true for classic accordion
+  const STORE_KEY   = 'dripl.tabs.open';
+  const tabs        = Array.from(document.querySelectorAll('.tab'));
 
-/***********************
- * Tabs (open one-at-a-time)
- ***********************/
-(function tabs(){
-  const tabs = [...document.querySelectorAll('.tab')];
-  const buttons = [...document.querySelectorAll('.tab__button')];
+  let openSet = new Set(
+    JSON.parse(sessionStorage.getItem(STORE_KEY) || '["upload"]')
+  );
 
-  const open = (el) => {
-    tabs.forEach(t => t.setAttribute('aria-expanded', t === el ? 'true' : 'false'));
-  };
+  function applyOpenState(){
+    tabs.forEach(tab => {
+      const id = tab.dataset.tab;
+      const open = openSet.has(id);
+      tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+      tab.classList.toggle('is-open', open);
+    });
+  }
 
-  buttons.forEach(btn => {
+  tabs.forEach(tab => {
+    const id  = tab.dataset.tab;
+    const btn = tab.querySelector('.tab__button');
+
     btn.addEventListener('click', () => {
-      const section = btn.closest('.tab');
-      const isOpen = section.getAttribute('aria-expanded') === 'true';
-      open(isOpen ? null : section);
+      const isOpen = openSet.has(id);
+      if (SINGLE_OPEN) {
+        openSet = new Set(isOpen ? [] : [id]);
+      } else {
+        if (isOpen) openSet.delete(id);
+        else openSet.add(id);
+      }
+      sessionStorage.setItem(STORE_KEY, JSON.stringify([...openSet]));
+      applyOpenState();
+    });
+
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        btn.click();
+      }
     });
   });
 
-  // make Upload default open
-  const uploadTab = document.querySelector('.tab[data-tab="upload"]');
-  if (uploadTab) uploadTab.setAttribute('aria-expanded','true');
-})();
+  applyOpenState();
 
-/***********************
- * Glow dot follows path (unchanged)
- ***********************/
-(function glowPath(){
-  const wrap = document.querySelector('.glow-line');
-  const svg  = wrap?.querySelector('svg');
-  const path = svg?.querySelector('#driplGlowPath');
-  const dot  = document.getElementById('glowDot');
-  if (!wrap || !svg || !path || !dot) return;
+  // --- Upload interactions ---
+  const paste   = document.getElementById('pasteLink');
+  const format  = document.getElementById('formatSelect');
+  const convert = document.getElementById('convertBtn');
 
-  let len = 0, t = 0, dir = 1;
-  function measure(){ len = path.getTotalLength(); }
-
-  function tick(){
-    t += dir * 0.006;
-    if (t >= 1) { t = 1; dir = -1; }
-    if (t <= 0) { t = 0; dir =  1; }
-
-    const p = path.getPointAtLength(len * t);
-    const box = svg.getBoundingClientRect();
-    const x = box.left + (p.x/100) * box.width;
-    const y = box.top  + (p.y/24)  * box.height;
-    dot.style.left = `${x}px`;
-    dot.style.top  = `${y}px`;
-
-    requestAnimationFrame(tick);
-  }
-
-  const ro = new ResizeObserver(measure);
-  ro.observe(svg);
-  measure(); tick();
-})();
-
-/***********************
- * Upload: basics (drop & browse & paste-enter)
- ***********************/
-(function upload(){
-  const dropZone = document.getElementById('dropZone');
-  const input = document.getElementById('uploadInput');
-  const browseBtn = document.getElementById('browseBtn');
-  const urlInput = document.getElementById('urlInput');
-  const formatSelect = document.getElementById('formatSelect');
-  const convertBtn = document.getElementById('convertBtn');
-
-  browseBtn?.addEventListener('click', ()=> input?.click());
-  input?.addEventListener('change', (e)=>{
-    const files = [...(e.target.files||[])];
-    if (files.length) console.log('UPLOAD files:', files);
-  });
-
-  const stop = e => { e.preventDefault(); e.stopPropagation(); };
-  ['dragenter','dragover','dragleave','drop'].forEach(evt => {
-    dropZone?.addEventListener(evt, stop, false);
-  });
-  dropZone?.addEventListener('drop', e=>{
-    const files = [...(e.dataTransfer?.files||[])];
-    if (files.length) console.log('DROP files:', files);
-  });
-
-  function doConvert(){
-    const url = urlInput?.value?.trim();
-    const format = (formatSelect?.value||'').toLowerCase();
+  function startConvert() {
+    const url = (paste?.value || '').trim();
     if (!url) return;
-    console.log('CONVERT request:', { url, format });
-    // TODO: call your server endpoint
+    window.dispatchEvent(new CustomEvent('dripl:convert', {
+      detail: { url, format: format?.value || 'MP4 (video)' }
+    }));
   }
-  urlInput?.addEventListener('keydown', e=>{
-    if (e.key === 'Enter') doConvert();
+  paste?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); startConvert(); }
   });
-  convertBtn?.addEventListener('click', doConvert);
-})();
+  convert?.addEventListener('click', startConvert);
 
-/***********************
- * Import: local, Dropbox, Google Drive
- ***********************/
-(function setupImport(){
-  const log = (msg) => {
-    const ul = document.getElementById('importLog');
-    if (!ul) return;
+  // --- Local file/folder (Import) ---
+  const pickFiles  = document.getElementById('pickFiles');
+  const pickFolder = document.getElementById('pickFolder');
+  const importLog  = document.getElementById('importLog');
+
+  function log(msg){
+    if (!importLog) return;
     const li = document.createElement('li');
     li.textContent = msg;
-    ul.prepend(li);
-  };
+    importLog.appendChild(li);
+  }
 
-  // 1) Local device
-  const localBtn = document.getElementById('importLocalBtn');
-  const localInput = document.getElementById('importLocalInput');
-  const folderBtn = document.getElementById('importFolderBtn');
+  function handleFiles(files) {
+    const arr = Array.from(files);
+    log(`Selected ${arr.length} file(s).`);
+    window.dispatchEvent(new CustomEvent('dripl:files', { detail: { files: arr }}));
+  }
 
-  localBtn?.addEventListener('click', () => localInput?.click());
-  localInput?.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    handleImported(files);
-  });
+  if (pickFiles) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.style.display = 'none';
+    document.body.appendChild(input);
 
-  folderBtn?.addEventListener('click', async () => {
-    if (!window.showDirectoryPicker) { alert('Folder picker not supported.'); return; }
-    try {
-      const dir = await window.showDirectoryPicker();
-      const files = [];
-      for await (const entry of dir.values()){
-        if (entry.kind === 'file') files.push(await entry.getFile());
-      }
-      if (files.length) handleImported(files);
-    } catch(e){ if (e?.name!=='AbortError') console.error(e); }
-  });
+    input.addEventListener('change', () => handleFiles(input.files));
+    pickFiles.addEventListener('click', () => input.click());
+  }
 
-  // 2) Dropbox Chooser (load SDK dynamically with env key)
-  (function loadDropboxSDK(){
-    if (!DROPBOX_KEY || document.getElementById('dropboxjs')) return;
-    const s = document.createElement('script');
-    s.id = 'dropboxjs';
-    s.src = 'https://www.dropbox.com/static/api/2/dropins.js';
-    s.dataset.appKey = DROPBOX_KEY;
-    document.head.appendChild(s);
-  })();
-
-  const dropboxBtn = document.getElementById('dropboxBtn');
-  dropboxBtn?.addEventListener('click', () => {
-    if (!window.Dropbox) { alert('Dropbox SDK not loaded yet.'); return; }
-    Dropbox.choose({
-      linkType:'direct', multiselect:true,
-      extensions:['.mp4','.mp3','.mov','.m4a','.wav','.aac','.mkv'],
-      success: files => {
-        log(`Dropbox: ${files.length} selected`);
-        const virtuals = files.map(f => ({ name:f.name, size:f.bytes, _remoteUrl:f.link }));
-        handleImported(virtuals);
-      },
-      cancel: ()=> log('Dropbox chooser closed')
+  if (pickFolder && 'showDirectoryPicker' in window) {
+    pickFolder.addEventListener('click', async () => {
+      try {
+        const dir = await window.showDirectoryPicker();
+        const files = [];
+        for await (const entry of dir.values()) {
+          if (entry.kind === 'file') files.push(await entry.getFile());
+        }
+        handleFiles(files);
+      } catch (_) { /* canceled */ }
     });
+  } else if (pickFolder) {
+    pickFolder.disabled = true;
+    pickFolder.title = 'Directory picker not supported in this browser';
+  }
+
+  // --- Cloud provider stubs (wire later) ---
+  document.getElementById('connectDropbox')?.addEventListener('click', () => {
+    log('Dropbox connect clicked (wire SDK later).');
   });
-
-  // 3) Google Drive Picker
-  const gdriveBtn = document.getElementById('gdriveBtn');
-  let googleToken = null;
-
-  function onGisToken(resp){
-    googleToken = resp.access_token;
-    openPicker();
-  }
-
-  function openPicker(){
-    if (!googleToken || !window.google || !window.gapi) { alert('Google libraries not ready'); return; }
-    gapi.load('picker', () => {
-      const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-        .setIncludeFolders(true)
-        .setSelectFolderEnabled(false);
-      const picker = new google.picker.PickerBuilder()
-        .addView(view)
-        .setOAuthToken(googleToken)
-        .setDeveloperKey(GOOGLE_API_KEY)
-        .setTitle('Choose from Google Drive')
-        .setCallback(data=>{
-          if (data.action !== google.picker.Action.PICKED) return;
-          const docs = data.docs || [];
-          log(`Google Drive: ${docs.length} selected`);
-          const virtuals = docs.map(d => ({ name:d.name, id:d.id, _gdrive:true }));
-          handleImported(virtuals);
-        })
-        .build();
-      picker.setVisible(true);
-    });
-  }
-
-  gdriveBtn?.addEventListener('click', async () => {
-    if (!window.google?.accounts?.oauth2 || !window.gapi) {
-      alert('Google APIs loading… try again in a second.');
-      return;
-    }
-    try{
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_OAUTH_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
-        callback: onGisToken,
-      });
-      tokenClient.requestAccessToken({ prompt: 'consent' });
-      await new Promise(res => gapi.load('client', res));
-    }catch(e){ console.error(e); alert('Google auth failed.'); }
+  document.getElementById('connectDrive')?.addEventListener('click', () => {
+    log('Google Drive connect clicked (wire Picker later).');
   });
+});
 
-  function handleImported(items){
-    console.log('Imported items:', items);
-    log(`Imported ${items.length} item(s)`);
-    // TODO: push to your pipeline queue
-  }
-})();
 
 
 
