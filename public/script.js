@@ -1,51 +1,40 @@
-// Simple one-open-at-a-time accordion that expands a card to full width.
-// It also nudges the hub down a bit when any panel is open.
+// Accordion: one-open-at-a-time, expanded tab spans full row
 
-const panelsEl = document.getElementById('panels');
-const cards = Array.from(document.querySelectorAll('.card'));
-const heads = cards.map(c => c.querySelector('.card__head'));
+const tabs = Array.from(document.querySelectorAll('.tab'));
+const buttons = tabs.map(t => t.querySelector('.tab__button'));
+const grid = document.querySelector('.tabs-grid');
 
-function setExpanded(card, on) {
-  // aria + class sync
-  const head = card.querySelector('.card__head');
-  head.setAttribute('aria-expanded', String(on));
-  card.classList.toggle('open', on);
-  card.querySelector('.card__body').style.display = on ? 'block' : 'none';
+function setExpanded(tab, on) {
+  tab.setAttribute('aria-expanded', String(on));
+  tab.classList.toggle('expanded', on);
 }
 
 function closeAll() {
-  cards.forEach(c => setExpanded(c, false));
-  panelsEl.classList.remove('expanded');
+  tabs.forEach(t => setExpanded(t, false));
+  grid?.classList.remove('has-open');
   document.documentElement.style.setProperty('--hub-shift', '0px');
 }
 
-function openOnly(card) {
-  cards.forEach(c => setExpanded(c, c === card));
-  panelsEl.classList.add('expanded');
+function openOnly(tab) {
+  tabs.forEach(t => setExpanded(t, t === tab));
+  grid?.classList.add('has-open');
   document.documentElement.style.setProperty('--hub-shift', '28px');
 }
 
-heads.forEach(head => {
-  head.addEventListener('click', () => {
-    const card = head.closest('.card');
-    const isOpen = card.classList.contains('open');
-    if (isOpen) {
-      closeAll();
-    } else {
-      openOnly(card);
-      // Optional: scroll into view on small screens
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.closest('.tab');
+    const isOpen = tab.getAttribute('aria-expanded') === 'true';
+    isOpen ? closeAll() : (openOnly(tab), tab.scrollIntoView({behavior:'smooth', block:'start'}));
   });
 });
 
-// Optional: ESC closes expanded panel
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeAll();
-});
+// ESC closes
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
 
-// Start closed (compact)
+// start closed
 closeAll();
+
 
 
 
