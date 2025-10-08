@@ -56,6 +56,11 @@
     if (!files.length) return;
     handleImportedFiles(files);
   });
+const ENV = window.__ENV__ || {};
+const DROPBOX_KEY = ENV.DROPBOX_APP_KEY;
+const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY;
+const GOOGLE_OAUTH_CLIENT_ID = ENV.GOOGLE_OAUTH_CLIENT_ID;
+
 
   // Optional: File System Access API (Chrome/Edge)
   folderBtn?.addEventListener('click', async () => {
@@ -77,6 +82,15 @@
       if (err?.name !== 'AbortError') console.error(err);
     }
   });
+
+(function loadDropboxSDK(){
+  if (!DROPBOX_KEY || document.getElementById('dropboxjs')) return;
+  const s = document.createElement('script');
+  s.id = 'dropboxjs';
+  s.src = 'https://www.dropbox.com/static/api/2/dropins.js';
+  s.dataset.appKey = DROPBOX_KEY;  // <- injects your real app key
+  document.head.appendChild(s);
+})();
 
   // 2) Dropbox (Chooser)
   const dropboxBtn = document.getElementById('dropboxBtn');
@@ -104,10 +118,10 @@
   // 3) Google Drive (Picker)
   const gdriveBtn = document.getElementById('gdriveBtn');
   const CONFIG = {
-    gapiKey: 'YOUR_GOOGLE_API_KEY',               // TODO: replace
-    clientId: 'YOUR_GOOGLE_OAUTH_CLIENT_ID',      // TODO: replace
-    scope: 'https://www.googleapis.com/auth/drive.readonly'
-  };
+  gapiKey: GOOGLE_API_KEY,
+  clientId: GOOGLE_OAUTH_CLIENT_ID,
+  scope: 'https://www.googleapis.com/auth/drive.readonly'
+};
 
   let googleToken = null;
 

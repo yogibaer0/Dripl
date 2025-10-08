@@ -223,6 +223,18 @@ app.get("/debug/cookies", (_req, res) => {
     youtube: { path: YT_COOKIE_PATH, bytes: yt }
   });
 });
+// Public env for client-side SDKs (safe, public keys only)
+app.get('/env.js', (req, res) => {
+  const env = {
+    DROPBOX_APP_KEY: process.env.DROPBOX_APP_KEY || '',
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || '',
+    GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID || ''
+  };
+  res.type('application/javascript').send(
+    `window.__ENV__ = ${JSON.stringify(env)};`
+  );
+});
+
 
 // Manual refresh (secure with ADMIN_TOKEN if provided)
 app.post("/admin/refresh", async (req, res) => {
