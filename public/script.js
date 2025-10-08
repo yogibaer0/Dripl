@@ -1,11 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Toggle tabs open/close with persistence
-  const SINGLE_OPEN = false; // set true for classic accordion
+  // Collapsible modules with persistent open state
+  const SINGLE_OPEN = false;             // set true for classic accordion
   const STORE_KEY   = 'dripl.tabs.open';
   const tabs        = Array.from(document.querySelectorAll('.tab'));
 
+  // Start with NO tabs open by default (empty set), unless sessionStorage has a value
   let openSet = new Set(
-    JSON.parse(sessionStorage.getItem(STORE_KEY) || '["upload"]')
+    JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]')
   );
 
   function applyOpenState(){
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
       applyOpenState();
     });
 
+    // Accessible toggle via keyboard
     btn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -43,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyOpenState();
 
-  // --- Upload interactions ---
+  // --- Upload actions (stubs) ---
   const paste   = document.getElementById('pasteLink');
   const format  = document.getElementById('formatSelect');
   const convert = document.getElementById('convertBtn');
@@ -55,12 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
       detail: { url, format: format?.value || 'MP4 (video)' }
     }));
   }
-  paste?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); startConvert(); }
-  });
+  paste?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); startConvert(); }});
   convert?.addEventListener('click', startConvert);
 
-  // --- Local file/folder (Import) ---
+  // --- Import local (stubs) ---
   const pickFiles  = document.getElementById('pickFiles');
   const pickFolder = document.getElementById('pickFolder');
   const importLog  = document.getElementById('importLog');
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pickFolder.title = 'Directory picker not supported in this browser';
   }
 
-  // --- Cloud provider stubs (wire later) ---
+  // --- Cloud provider stubs (hook later) ---
   document.getElementById('connectDropbox')?.addEventListener('click', () => {
     log('Dropbox connect clicked (wire SDK later).');
   });
@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     log('Google Drive connect clicked (wire Picker later).');
   });
 });
+
 
 
 

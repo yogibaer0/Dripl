@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dripl</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- Google (Drive Picker, optional) -->
-  <script async defer src="https://accounts.google.com/gsi/client"></script>
-  <script async defer src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
 
@@ -27,11 +24,11 @@
     <div class="glow-line__spacer" aria-hidden="true"></div>
   </header>
 
-  <!-- Panels grid -->
+  <!-- 3-column modules -->
   <main class="tabs-grid">
 
-    <!-- UPLOAD -->
-    <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="true">
+    <!-- UPLOAD (closed by default) -->
+    <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="false">
       <header class="tab__header">
         <button id="tUpload" class="tab__button" type="button">
           <span class="tab__left">
@@ -70,7 +67,7 @@
       </div>
     </section>
 
-    <!-- IMPORT -->
+    <!-- IMPORT (closed by default) -->
     <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
       <header class="tab__header">
         <button id="tImport" class="tab__button" type="button">
@@ -107,7 +104,7 @@
       </div>
     </section>
 
-    <!-- STORAGE -->
+    <!-- STORAGE (closed by default) -->
     <section class="card tab" data-tab="storage" aria-labelledby="tStorage" aria-expanded="false">
       <header class="tab__header">
         <button id="tStorage" class="tab__button" type="button">
@@ -126,18 +123,10 @@
 
   </main>
 
-  <!-- (Optional) make envs available to JS if you wire external providers -->
-  <script>
-    window.__ENV__ = window.__ENV__ || {
-      DROPBOX_APP_KEY:        "{{ env.DROPBOX_APP_KEY }}",
-      GOOGLE_API_KEY:         "{{ env.GOOGLE_API_KEY }}",
-      GOOGLE_OAUTH_CLIENT_ID: "{{ env.GOOGLE_OAUTH_CLIENT_ID }}"
-    };
-  </script>
-
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
