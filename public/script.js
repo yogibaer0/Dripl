@@ -1,25 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Always start CLOSED (no persistence)
   const tabs = Array.from(document.querySelectorAll('.tab'));
 
-  function setOpen(tab, open){
-    tab.setAttribute('aria-expanded', open ? 'true' : 'false');
-  }
+  // Start CLOSED
+  tabs.forEach(t => t.setAttribute('aria-expanded','false'));
 
-  tabs.forEach(tab => setOpen(tab, false)); // force closed
+  function openOnly(targetTab){
+    tabs.forEach(tab => {
+      const open = (tab === targetTab) && (tab.getAttribute('aria-expanded') !== 'true');
+      // close all
+      tab.setAttribute('aria-expanded', 'false');
+      tab.classList.remove('expanded');
+      // then open target
+      if (open){
+        tab.setAttribute('aria-expanded', 'true');
+        tab.classList.add('expanded');
+      }
+    });
+  }
 
   tabs.forEach(tab => {
     const btn = tab.querySelector('.tab__button');
     btn.addEventListener('click', () => {
       const isOpen = tab.getAttribute('aria-expanded') === 'true';
-      setOpen(tab, !isOpen);
+      if (isOpen){
+        // close back to normal
+        tab.setAttribute('aria-expanded','false');
+        tab.classList.remove('expanded');
+      }else{
+        // open only this one (accordion)
+        openOnly(tab);
+      }
     });
+
+    // keyboard
     btn.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
     });
   });
 
-  // Upload actions (stubs)
+  /* --- Existing upload stubs --- */
   const paste   = document.getElementById('pasteLink');
   const format  = document.getElementById('formatSelect');
   const convert = document.getElementById('convertBtn');
@@ -34,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   paste?.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); startConvert(); }});
   convert?.addEventListener('click', startConvert);
 
-  // Import local (stubs)
+  /* --- Import stubs --- */
   const pickFiles  = document.getElementById('pickFiles');
   const pickFolder = document.getElementById('pickFolder');
   const importLog  = document.getElementById('importLog');
@@ -78,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('connectDropbox')?.addEventListener('click', () => log('Dropbox connect clicked.'));
   document.getElementById('connectDrive')?.addEventListener('click',   () => log('Google Drive connect clicked.'));
 });
+
 
 
 

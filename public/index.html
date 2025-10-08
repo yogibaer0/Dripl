@@ -7,12 +7,14 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- corner brand -->
   <a class="corner" href="/" aria-label="Dripl home">
     <img class="corner__logo" src="assets/dripl/dripl.png" alt="" />
     <span class="corner__name">Dripl</span>
     <span class="badge beta">beta</span>
   </a>
 
+  <!-- hero -->
   <header class="hero">
     <h1 class="title">
       <img class="title__drop" src="assets/dripl/dripl.png" alt="" />
@@ -21,21 +23,24 @@
     <div class="glow-line__spacer" aria-hidden="true"></div>
   </header>
 
-  <main class="tabs-grid">
-    <!-- Upload -->
+  <!-- TABS GRID -->
+  <main class="tabs-grid" id="tabsGrid">
+    <!-- UPLOAD -->
     <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="false">
       <header class="tab__header">
         <button id="tUpload" class="tab__button" type="button">
           <span class="tab__left"><span class="tab__icon">⬆️</span><span class="tab__label">Upload</span></span>
-          <span class="tab__chev">▾</span>
+          <span class="tab__chev" aria-hidden="true">▾</span>
         </button>
       </header>
+
       <div id="pUpload" class="tab__panel" role="region" aria-labelledby="tUpload">
         <div class="upload-grid">
           <div class="upload__bin">
             <div class="dropzone"><p>Drag &amp; drop files here</p></div>
             <div class="upload__actions"><button class="btn">Browse files</button></div>
           </div>
+
           <div class="upload__link">
             <label class="field">
               <input id="pasteLink" class="input" type="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
@@ -53,14 +58,15 @@
       </div>
     </section>
 
-    <!-- Import -->
+    <!-- IMPORT -->
     <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
       <header class="tab__header">
         <button id="tImport" class="tab__button" type="button">
           <span class="tab__left"><span class="tab__icon">🌐</span><span class="tab__label">Import</span></span>
-          <span class="tab__chev">▾</span>
+          <span class="tab__chev" aria-hidden="true">▾</span>
         </button>
       </header>
+
       <div id="pImport" class="tab__panel" role="region" aria-labelledby="tImport">
         <div class="import-grid">
           <fieldset class="block">
@@ -83,14 +89,15 @@
       </div>
     </section>
 
-    <!-- Storage -->
+    <!-- STORAGE -->
     <section class="card tab" data-tab="storage" aria-labelledby="tStorage" aria-expanded="false">
       <header class="tab__header">
         <button id="tStorage" class="tab__button" type="button">
           <span class="tab__left"><span class="tab__icon">💾</span><span class="tab__label">Storage</span></span>
-          <span class="tab__chev">▾</span>
+          <span class="tab__chev" aria-hidden="true">▾</span>
         </button>
       </header>
+
       <div id="pStorage" class="tab__panel" role="region" aria-labelledby="tStorage">
         <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
       </div>
@@ -100,6 +107,7 @@
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
