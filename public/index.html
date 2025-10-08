@@ -5,145 +5,133 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dripl</title>
   <link rel="stylesheet" href="styles.css" />
+  <!-- Google (only if you use Drive Picker) -->
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
+  <script async defer src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
+
   <!-- Corner brand -->
   <a class="corner" href="/" aria-label="Dripl home">
-    <img class="corner__logo" src="assets/dripl/dripl.png" alt="Dripl logo" />
+    <img class="corner__logo" src="assets/dripl/dripl.png" alt="" />
     <span class="corner__name">Dripl</span>
     <span class="badge beta">beta</span>
   </a>
 
-  <!-- Centered hero -->
-  <header class="site">
+  <!-- Hero -->
+  <header class="hero">
     <h1 class="title">
       <img class="title__drop" src="assets/dripl/dripl.png" alt="" />
-      Dripl
+      <span class="title__word">Dripl</span>
     </h1>
 
-    <!-- Glow line under hero (unchanged path) -->
-    <div class="glow-line">
-      <svg viewBox="0 0 100 24" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#4b48ff"/>
-            <stop offset="40%" stop-color="#9a66ff"/>
-            <stop offset="100%" stop-color="#7b3fe4"/>
-          </linearGradient>
-        </defs>
-        <!-- big aura under -->
-        <path id="driplGlowPath" class="line aura"
-              d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-        <!-- main stroke -->
-        <path class="line" d="M0,12 L77,12 L83,7 L100,12" fill="none"/>
-      </svg>
-      <div id="glowDot"></div>
-    </div>
+    <!-- (Keep your glow line SVG block here if you use it)
+         This stub keeps a horizontal spacer so layout doesn't jump. -->
+    <div class="glow-line__spacer" aria-hidden="true"></div>
   </header>
 
-  <!-- Tabs grid -->
+  <!-- Tabs -->
   <main class="tabs-grid">
 
-    <!-- 1) UPLOAD (LEFT) -->
+    <!-- UPLOAD -->
     <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="true">
       <header class="tab__header">
         <button id="tUpload" class="tab__button" type="button">
-          <span class="tab__icon">⬆️</span>
+          <span class="tab__icon" aria-hidden="true">⬆️</span>
           <span class="tab__label">Upload</span>
         </button>
       </header>
 
       <div id="pUpload" class="tab__panel" role="region" aria-labelledby="tUpload">
-        <div id="dropZone" class="drop">
-          <span>Drag &amp; drop files here</span>
-        </div>
+        <div class="upload-grid">
+          <div class="upload__bin">
+            <div class="dropzone" role="group" aria-label="Drag & drop">
+              <p>Drag &amp; drop files here</p>
+            </div>
+            <div class="upload__actions">
+              <button class="btn">Browse files</button>
+            </div>
+          </div>
 
-        <div class="row gap">
-          <input id="uploadInput" type="file" hidden multiple />
-          <button class="btn" id="browseBtn">Browse files</button>
+          <div class="upload__link">
+            <label class="field">
+              <input id="pasteLink" class="input" type="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
+            </label>
+            <div class="row">
+              <select id="formatSelect" class="select">
+                <option>MP4 (video)</option>
+                <option>MP3 (audio)</option>
+              </select>
+              <button id="convertBtn" class="btn primary">Convert</button>
+            </div>
+            <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+          </div>
         </div>
-
-        <div class="convert-row">
-          <input class="input" id="urlInput" placeholder="Paste link (YouTube, TikTok, etc.)" />
-          <select class="select" id="formatSelect" aria-label="Format">
-            <option>MP4 (video)</option>
-            <option>MP3 (audio)</option>
-          </select>
-          <button class="btn primary" id="convertBtn">Convert</button>
-        </div>
-
-        <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
       </div>
     </section>
 
-    <!-- 2) IMPORT (MIDDLE) -->
+    <!-- IMPORT -->
     <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
       <header class="tab__header">
         <button id="tImport" class="tab__button" type="button">
-          <span class="tab__icon">🌐</span>
+          <span class="tab__icon" aria-hidden="true">🌐</span>
           <span class="tab__label">Import</span>
         </button>
       </header>
 
       <div id="pImport" class="tab__panel" role="region" aria-labelledby="tImport">
         <div class="import-grid">
-          <!-- Device -->
-          <div class="import-card">
-            <h3 class="import-title">This device</h3>
-            <p class="hint">Pick file(s) from your computer.</p>
+          <fieldset class="block">
+            <legend>This device</legend>
             <div class="row gap">
-              <input id="importLocalInput" type="file" hidden multiple />
-              <button class="btn" id="importLocalBtn">Choose files</button>
-              <button class="btn btn--ghost" id="importFolderBtn">Choose folder</button>
+              <button id="pickFiles" class="btn">Choose files</button>
+              <button id="pickFolder" class="btn">Choose folder</button>
             </div>
-          </div>
+          </fieldset>
 
-          <!-- Dropbox -->
-          <div class="import-card">
-            <h3 class="import-title">Dropbox</h3>
-            <p class="hint">Select from your Dropbox.</p>
-            <button class="btn" id="dropboxBtn">Connect Dropbox</button>
-          </div>
+          <fieldset class="block">
+            <legend>Dropbox</legend>
+            <button id="connectDropbox" class="btn">Connect Dropbox</button>
+          </fieldset>
 
-          <!-- Google Drive -->
-          <div class="import-card">
-            <h3 class="import-title">Google Drive</h3>
-            <p class="hint">Use Google Drive Picker.</p>
-            <button class="btn" id="gdriveBtn">Connect Google Drive</button>
-          </div>
+          <fieldset class="block">
+            <legend>Google Drive</legend>
+            <button id="connectDrive" class="btn">Connect Google Drive</button>
+          </fieldset>
         </div>
-
-        <ul class="list" id="importLog" aria-live="polite"></ul>
+        <ul id="importLog" class="list" aria-live="polite"></ul>
       </div>
     </section>
 
-    <!-- 3) STORAGE (RIGHT) -->
+    <!-- STORAGE -->
     <section class="card tab" data-tab="storage" aria-labelledby="tStorage" aria-expanded="false">
       <header class="tab__header">
         <button id="tStorage" class="tab__button" type="button">
-          <span class="tab__icon">💾</span>
+          <span class="tab__icon" aria-hidden="true">💾</span>
           <span class="tab__label">Storage</span>
         </button>
       </header>
 
       <div id="pStorage" class="tab__panel" role="region" aria-labelledby="tStorage">
         <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
-        <button class="btn">Configure</button>
       </div>
     </section>
 
   </main>
 
-  <!-- Inject public env keys -->
-  <script src="/env.js"></script>
-
-  <!-- Provider SDKs -->
-  <script async defer src="https://apis.google.com/js/api.js"></script>
-  <script async defer src="https://accounts.google.com/gsi/client"></script>
+  <!-- Inject env if needed -->
+  <script>
+    window.__ENV__ = window.__ENV__ || {
+      DROPBOX_APP_KEY:        "{{ env.DROPBOX_APP_KEY }}",
+      GOOGLE_API_KEY:         "{{ env.GOOGLE_API_KEY }}",
+      GOOGLE_OAUTH_CLIENT_ID: "{{ env.GOOGLE_OAUTH_CLIENT_ID }}"
+    };
+  </script>
 
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
