@@ -1,41 +1,110 @@
-/* --- Tabs controller (Upload, Import, Storage) --- */
+/***********************
+ * ENV from /env.js
+ ***********************/
+const ENV = window.__ENV__ || {};
+const DROPBOX_KEY = ENV.DROPBOX_APP_KEY || '';
+const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY || '';
+const GOOGLE_OAUTH_CLIENT_ID = ENV.GOOGLE_OAUTH_CLIENT_ID || '';
+
+/***********************
+ * Tabs (open one-at-a-time)
+ ***********************/
 (function tabs(){
-  const tabs = Array.from(document.querySelectorAll('.tab[data-tab]'));
-  if (!tabs.length) return;
+  const tabs = [...document.querySelectorAll('.tab')];
+  const buttons = [...document.querySelectorAll('.tab__button')];
 
-  function setOpen(name, pushHash = true){
-    tabs.forEach(sec => {
-      const on = sec.dataset.tab === name;
-      sec.setAttribute('aria-expanded', String(on));
+  const open = (el) => {
+    tabs.forEach(t => t.setAttribute('aria-expanded', t === el ? 'true' : 'false'));
+  };
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.tab');
+      const isOpen = section.getAttribute('aria-expanded') === 'true';
+      open(isOpen ? null : section);
     });
-    if (pushHash) history.replaceState(null, '', name ? `#${name}` : ' ');
-  }
-
-  // attach button clicks
-  tabs.forEach(sec => {
-    const btn = sec.querySelector('.tab__button');
-    if (!btn) return;
-    btn.addEventListener('click', () => setOpen(sec.dataset.tab));
   });
 
-  // open from hash or default none-open
-  const fromHash = (location.hash || '').replace('#','').trim();
-  if (fromHash && tabs.some(t => t.dataset.tab === fromHash)){
-    setOpen(fromHash, false);
-  } else {
-    // start with all closed to keep equal size
-    setOpen('', false);
-  }
-
-  // allow manual hash changing
-  window.addEventListener('hashchange', ()=>{
-    const h = (location.hash || '').replace('#','').trim();
-    setOpen(h || '', false);
-  });
+  // make Upload default open
+  const uploadTab = document.querySelector('.tab[data-tab="upload"]');
+  if (uploadTab) uploadTab.setAttribute('aria-expanded','true');
 })();
-/* ============================
-   IMPORT: Local, Dropbox, GDrive
-   ============================ */
+
+/***********************
+ * Glow dot follows path (unchanged)
+ ***********************/
+(function glowPath(){
+  const wrap = document.querySelector('.glow-line');
+  const svg  = wrap?.querySelector('svg');
+  const path = svg?.querySelector('#driplGlowPath');
+  const dot  = document.getElementById('glowDot');
+  if (!wrap || !svg || !path || !dot) return;
+
+  let len = 0, t = 0, dir = 1;
+  function measure(){ len = path.getTotalLength(); }
+
+  function tick(){
+    t += dir * 0.006;
+    if (t >= 1) { t = 1; dir = -1; }
+    if (t <= 0) { t = 0; dir =  1; }
+
+    const p = path.getPointAtLength(len * t);
+    const box = svg.getBoundingClientRect();
+    const x = box.left + (p.x/100) * box.width;
+    const y = box.top  + (p.y/24)  * box.height;
+    dot.style.left = `${x}px`;
+    dot.style.top  = `${y}px`;
+
+    requestAnimationFrame(tick);
+  }
+
+  const ro = new ResizeObserver(measure);
+  ro.observe(svg);
+  measure(); tick();
+})();
+
+/***********************
+ * Upload: basics (drop & browse & paste-enter)
+ ***********************/
+(function upload(){
+  const dropZone = document.getElementById('dropZone');
+  const input = document.getElementById('uploadInput');
+  const browseBtn = document.getElementById('browseBtn');
+  const urlInput = document.getElementById('urlInput');
+  const formatSelect = document.getElementById('formatSelect');
+  const convertBtn = document.getElementById('convertBtn');
+
+  browseBtn?.addEventListener('click', ()=> input?.click());
+  input?.addEventListener('change', (e)=>{
+    const files = [...(e.target.files||[])];
+    if (files.length) console.log('UPLOAD files:', files);
+  });
+
+  const stop = e => { e.preventDefault(); e.stopPropagation(); };
+  ['dragenter','dragover','dragleave','drop'].forEach(evt => {
+    dropZone?.addEventListener(evt, stop, false);
+  });
+  dropZone?.addEventListener('drop', e=>{
+    const files = [...(e.dataTransfer?.files||[])];
+    if (files.length) console.log('DROP files:', files);
+  });
+
+  function doConvert(){
+    const url = urlInput?.value?.trim();
+    const format = (formatSelect?.value||'').toLowerCase();
+    if (!url) return;
+    console.log('CONVERT request:', { url, format });
+    // TODO: call your server endpoint
+  }
+  urlInput?.addEventListener('keydown', e=>{
+    if (e.key === 'Enter') doConvert();
+  });
+  convertBtn?.addEventListener('click', doConvert);
+})();
+
+/***********************
+ * Import: local, Dropbox, Google Drive
+ ***********************/
 (function setupImport(){
   const log = (msg) => {
     const ul = document.getElementById('importLog');
@@ -45,7 +114,7 @@
     ul.prepend(li);
   };
 
-  // 1) This device (files + folder)
+  // 1) Local device
   const localBtn = document.getElementById('importLocalBtn');
   const localInput = document.getElementById('importLocalInput');
   const folderBtn = document.getElementById('importFolderBtn');
@@ -54,87 +123,57 @@
   localInput?.addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    handleImportedFiles(files);
+    handleImported(files);
   });
-const ENV = window.__ENV__ || {};
-const DROPBOX_KEY = ENV.DROPBOX_APP_KEY;
-const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY;
-const GOOGLE_OAUTH_CLIENT_ID = ENV.GOOGLE_OAUTH_CLIENT_ID;
 
-
-  // Optional: File System Access API (Chrome/Edge)
   folderBtn?.addEventListener('click', async () => {
-    if (!window.showDirectoryPicker) {
-      alert('Folder picker not supported in this browser.');
-      return;
-    }
+    if (!window.showDirectoryPicker) { alert('Folder picker not supported.'); return; }
     try {
-      const dirHandle = await window.showDirectoryPicker();
+      const dir = await window.showDirectoryPicker();
       const files = [];
-      for await (const entry of dirHandle.values()) {
-        if (entry.kind === 'file') {
-          const f = await entry.getFile();
-          files.push(f);
-        }
+      for await (const entry of dir.values()){
+        if (entry.kind === 'file') files.push(await entry.getFile());
       }
-      if (files.length) handleImportedFiles(files);
-    } catch (err) {
-      if (err?.name !== 'AbortError') console.error(err);
-    }
+      if (files.length) handleImported(files);
+    } catch(e){ if (e?.name!=='AbortError') console.error(e); }
   });
 
-(function loadDropboxSDK(){
-  if (!DROPBOX_KEY || document.getElementById('dropboxjs')) return;
-  const s = document.createElement('script');
-  s.id = 'dropboxjs';
-  s.src = 'https://www.dropbox.com/static/api/2/dropins.js';
-  s.dataset.appKey = DROPBOX_KEY;  // <- injects your real app key
-  document.head.appendChild(s);
-})();
+  // 2) Dropbox Chooser (load SDK dynamically with env key)
+  (function loadDropboxSDK(){
+    if (!DROPBOX_KEY || document.getElementById('dropboxjs')) return;
+    const s = document.createElement('script');
+    s.id = 'dropboxjs';
+    s.src = 'https://www.dropbox.com/static/api/2/dropins.js';
+    s.dataset.appKey = DROPBOX_KEY;
+    document.head.appendChild(s);
+  })();
 
-  // 2) Dropbox (Chooser)
   const dropboxBtn = document.getElementById('dropboxBtn');
   dropboxBtn?.addEventListener('click', () => {
-    if (!window.Dropbox) {
-      alert('Dropbox SDK not loaded.');
-      return;
-    }
+    if (!window.Dropbox) { alert('Dropbox SDK not loaded yet.'); return; }
     Dropbox.choose({
-      linkType: 'direct',          // direct URL for download
-      multiselect: true,
-      extensions: ['.mp4', '.mp3', '.mov', '.m4a', '.wav', '.aac', '.mkv'],
-      success: (files) => {
-        // files: [{link, name, bytes, ...}]
-        // You can fetch these links server-side or client-side (CORS permitting)
-        log(`Dropbox: selected ${files.length} file(s)`);
-        // Example: turn into "virtual" File-like objects with only URL/name
-        const virtuals = files.map(f => ({ name: f.name, size: f.bytes, _remoteUrl: f.link }));
-        handleImportedFiles(virtuals);
+      linkType:'direct', multiselect:true,
+      extensions:['.mp4','.mp3','.mov','.m4a','.wav','.aac','.mkv'],
+      success: files => {
+        log(`Dropbox: ${files.length} selected`);
+        const virtuals = files.map(f => ({ name:f.name, size:f.bytes, _remoteUrl:f.link }));
+        handleImported(virtuals);
       },
-      cancel: () => log('Dropbox: chooser closed'),
+      cancel: ()=> log('Dropbox chooser closed')
     });
   });
 
-  // 3) Google Drive (Picker)
+  // 3) Google Drive Picker
   const gdriveBtn = document.getElementById('gdriveBtn');
-  const CONFIG = {
-  gapiKey: GOOGLE_API_KEY,
-  clientId: GOOGLE_OAUTH_CLIENT_ID,
-  scope: 'https://www.googleapis.com/auth/drive.readonly'
-};
-
   let googleToken = null;
 
-  function onGisToken(response){
-    googleToken = response.access_token;
-    openGDrivePicker();
+  function onGisToken(resp){
+    googleToken = resp.access_token;
+    openPicker();
   }
 
-  function openGDrivePicker(){
-    if (!googleToken || !window.google || !window.gapi) {
-      alert('Google libraries not ready.');
-      return;
-    }
+  function openPicker(){
+    if (!googleToken || !window.google || !window.gapi) { alert('Google libraries not ready'); return; }
     gapi.load('picker', () => {
       const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
         .setIncludeFolders(true)
@@ -142,76 +181,43 @@ const GOOGLE_OAUTH_CLIENT_ID = ENV.GOOGLE_OAUTH_CLIENT_ID;
       const picker = new google.picker.PickerBuilder()
         .addView(view)
         .setOAuthToken(googleToken)
-        .setDeveloperKey(CONFIG.gapiKey)
-        .setCallback(googlePickerCallback)
+        .setDeveloperKey(GOOGLE_API_KEY)
         .setTitle('Choose from Google Drive')
+        .setCallback(data=>{
+          if (data.action !== google.picker.Action.PICKED) return;
+          const docs = data.docs || [];
+          log(`Google Drive: ${docs.length} selected`);
+          const virtuals = docs.map(d => ({ name:d.name, id:d.id, _gdrive:true }));
+          handleImported(virtuals);
+        })
         .build();
       picker.setVisible(true);
     });
   }
 
-  function googlePickerCallback(data){
-    if (data.action !== google.picker.Action.PICKED) return;
-    const docs = data.docs || [];
-    log(`Google Drive: selected ${docs.length} item(s)`);
-    // Each doc has id/name/url; to download, call Drive API (needs server or CORS-enabled file export).
-    // For now we just log names and pass lightweight objects:
-    const virtuals = docs.map(d => ({ name: d.name, id: d.id, _gdrive: true }));
-    handleImportedFiles(virtuals);
-  }
-
   gdriveBtn?.addEventListener('click', async () => {
-    if (!window.google || !window.google.accounts || !window.gapi) {
-      alert('Google APIs not loaded yet. Try again in a second.');
+    if (!window.google?.accounts?.oauth2 || !window.gapi) {
+      alert('Google APIs loading… try again in a second.');
       return;
     }
-    try {
-      // Initialize token client for OAuth
+    try{
       const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CONFIG.clientId,
-        scope: CONFIG.scope,
+        client_id: GOOGLE_OAUTH_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
         callback: onGisToken,
       });
-      // Kick off OAuth popup
       tokenClient.requestAccessToken({ prompt: 'consent' });
-      // Load gapi client for picker
       await new Promise(res => gapi.load('client', res));
-    } catch (err) {
-      console.error(err);
-      alert('Google auth failed. Check console.');
-    }
+    }catch(e){ console.error(e); alert('Google auth failed.'); }
   });
 
-  // Your app’s canonical handler for imported items
-  function handleImportedFiles(files){
-    // files = array of File objects or "virtual" {name, _remoteUrl} objects
-    log(`Imported ${files.length} item(s)`);
-    // TODO: enqueue into your pipeline, or show a confirmation list
-    console.log('Imported items:', files);
+  function handleImported(items){
+    console.log('Imported items:', items);
+    log(`Imported ${items.length} item(s)`);
+    // TODO: push to your pipeline queue
   }
 })();
 
-
-/* --- Simple stubs so existing IDs continue to work --- */
-document.getElementById('convertBtn')?.addEventListener('click', () => {
-  const url = document.getElementById('convertUrl')?.value?.trim();
-  const fmt = document.getElementById('convertFormat')?.value || 'mp4';
-  if (!url) return;
-  console.log('Convert requested:', { url, fmt });
-  // hook your existing conversion fetch here
-});
-
-document.getElementById('convertUrl')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('convertBtn')?.click();
-});
-
-document.getElementById('browseBtn')?.addEventListener('click', () => {
-  // wire to your hidden <input type="file"> if you have one
-  alert('Browse files (stub)');
-});
-
-document.getElementById('importStub')?.addEventListener('click', () => alert('Connect (stub)'));
-document.getElementById('storageStub')?.addEventListener('click', () => alert('Configure (stub)'));
 
 
 
