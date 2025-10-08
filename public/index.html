@@ -28,33 +28,45 @@
   <!-- Top row tabs -->
   <main class="grid">
     <!-- Upload (default closed; content shows on click) -->
-    <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="false">
-      <header class="tab__header">
-        <button id="tUpload" class="tab__button" type="button">
-          <span class="tab__icon">📤</span>
-          <span class="tab__label">Upload</span>
-        </button>
-      </header>
+    <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
+  <header class="tab__header">
+    <button id="tImport" class="tab__button" type="button">
+      <span class="tab__icon">🌐</span>
+      <span class="tab__label">Import</span>
+    </button>
+  </header>
 
-      <div id="pUpload" class="tab__panel" role="region" aria-labelledby="tUpload">
-        <div class="dropzone" id="dropUpload" tabindex="0">Drag &amp; drop files here</div>
+  <div id="pImport" class="tab__panel" role="region" aria-labelledby="tImport">
+    <div class="import-grid">
+      <!-- From this device -->
+      <div class="import-card">
+        <h3 class="import-title">This device</h3>
+        <p class="hint">Pick file(s) from your computer.</p>
         <div class="row gap">
-          <button class="btn" id="browseBtn">Browse files</button>
+          <input id="importLocalInput" type="file" hidden multiple />
+          <button class="btn" id="importLocalBtn">Choose files</button>
+          <button class="btn btn--ghost" id="importFolderBtn" title="Pick a folder (Chrome/Edge)">Choose folder</button>
         </div>
-
-        <div class="upload-link">
-          <input id="convertUrl" class="convert__input" placeholder="Paste link (YouTube, TikTok, etc.)" />
-          <select id="convertFormat" class="convert__select">
-            <option value="mp4" selected>MP4 (video)</option>
-            <option value="mp3">MP3 (audio)</option>
-          </select>
-          <button id="convertBtn" class="convert__btn">Convert</button>
-        </div>
-        <div class="convert__tip">Pro tip: press <kbd>Enter</kbd> to convert instantly.</div>
-
-        <ul class="list" id="uploadList" aria-live="polite"></ul>
       </div>
-    </section>
+
+      <!-- Dropbox -->
+      <div class="import-card">
+        <h3 class="import-title">Dropbox</h3>
+        <p class="hint">Select from your Dropbox.</p>
+        <button class="btn" id="dropboxBtn">Connect Dropbox</button>
+      </div>
+
+      <!-- Google Drive -->
+      <div class="import-card">
+        <h3 class="import-title">Google Drive</h3>
+        <p class="hint">Use Google Drive Picker.</p>
+        <button class="btn" id="gdriveBtn">Connect Google Drive</button>
+      </div>
+    </div>
+
+    <ul class="list" id="importLog" aria-live="polite"></ul>
+  </div>
+</section>
 
     <!-- Import -->
     <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
