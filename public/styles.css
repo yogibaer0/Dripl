@@ -27,33 +27,46 @@ body{ margin:0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inte
 .badge{ display:inline-flex; align-items:center; gap:.25rem; padding:.25rem .55rem; border-radius:999px; font-size:.75rem; color:#cfd1ff; background:linear-gradient(90deg, #2e2950, #332a66); border:1px solid rgba(255,255,255,.06); }
 .beta::before{ content:" "; width:.5rem; height:.5rem; border-radius:999px; background:#b48bff; box-shadow:0 0 12px #b48bff; }
 
-/* Header */
-.header{ max-width:1100px; margin:70px auto 16px; padding:0 16px; }
+/* Center the hero brand */
+.header{ max-width:1100px; margin:70px auto 16px; padding:0 16px; text-align:center; }
 .brand{ display:flex; align-items:center; gap:.8rem; }
-.brand__logo{ width:32px; height:32px; object-fit:contain; filter: drop-shadow(0 12px 30px rgba(154,102,255,.6)); }
+.brand--center{ justify-content:center; }
+.brand__logo{ width:40px; height:40px; object-fit:contain; filter: drop-shadow(0 12px 30px rgba(154,102,255,.6)); }
 .brand__title{ font-size:64px; margin:0; line-height:1; letter-spacing:.5px; }
 
-.source{ margin-top:14px; display:flex; gap:10px; }
-.source__input{ flex:1; background: #131125; color:var(--ink); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; }
-.source__go{ padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg,#6d4cff,#713aff); color:white; box-shadow: 0 8px 22px rgba(123,63,228,.35); }
-
-/* Canvas layout (roughly matches the sketch) */
-.canvas{ position:relative; max-width:1100px; margin:16px auto 40px; padding:0 16px 24px; }
-.wires{ position:absolute; inset:0; z-index:0; }
-.wire{ fill:none; stroke: #6f53d9; stroke-opacity:.35; stroke-width:4; }
-
-/* --- Tab/collapsible behavior --- */
-.collapsible .blob__body{
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height .28s ease, opacity .28s ease;
+/* Converter row INSIDE the upload card */
+.upload-link{
+  display:grid;
+  grid-template-columns: 1fr auto auto;
+  gap:10px;
+  margin-top:14px;
 }
-
-.collapsible.is-open .blob__body{
-  max-height: 600px;      /* enough to show current content; adjust later */
-  opacity: 1;
+.convert__input{
+  background:#0f0d22;
+  color:var(--ink);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:12px 14px;
 }
+.convert__select{
+  background:#0f0d22;
+  color:var(--ink);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:12px;
+}
+.convert__btn{
+  background:linear-gradient(180deg,#6d4cff,#713aff);
+  color:#fff;
+  border:0;
+  border-radius:12px;
+  padding:12px 16px;
+}
+.convert__tip{ color:#a7a2cf; margin-top:6px; font-size:.9rem; }
+
+/* Make Upload the default open tab (visual cue) */
+.collapsible.is-open{ box-shadow: 0 12px 34px rgba(10, 0, 30, .45), 0 0 0 1px rgba(255,255,255,.06) inset; }
+
 
 .tab-btn{
   appearance: none;

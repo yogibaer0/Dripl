@@ -45,19 +45,31 @@
 
     <!-- Top row -->
     <!-- Upload -->
-<section class="blob blob--upload collapsible" data-tab="upload" aria-labelledby="tUpload" aria-expanded="false">
+<section class="blob blob--upload collapsible is-open" data-tab="upload" aria-labelledby="tUpload" aria-expanded="true">
   <h2 id="tUpload" class="blob__title">
     <button class="tab-btn" type="button">
       <span class="blob__icon">📤</span> Upload
     </button>
   </h2>
+
   <div class="blob__body">
-    <!-- keep your existing upload content here -->
     <div class="dropzone" id="dropUpload" tabindex="0">Drag & drop files here</div>
     <button class="btn" id="browseBtn">Browse files</button>
     <ul class="list" id="uploadList" aria-live="polite"></ul>
+
+    <!-- Moved converter IN HERE -->
+    <div class="upload-link">
+      <input id="convertUrl" class="convert__input" placeholder="Paste link (YouTube, TikTok, etc.)" />
+      <select id="convertFormat" class="convert__select">
+        <option value="mp4" selected>MP4 (video)</option>
+        <option value="mp3">MP3 (audio)</option>
+      </select>
+      <button id="convertBtn" class="convert__btn">Convert</button>
+    </div>
+    <div class="convert__tip">Pro tip: press <kbd>Enter</kbd> to convert instantly.</div>
   </div>
 </section>
+
 
 <!-- Import -->
 <section class="blob blob--import collapsible" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
