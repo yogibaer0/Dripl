@@ -43,11 +43,52 @@ body{
 
 /* upload */
 .upload-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:18px}
-.dropzone{border:1px dashed rgba(255,255,255,.12);border-radius:14px;display:grid;place-items:center;min-height:170px;color:#cfd2ff;background:rgba(255,255,255,.03)}
-.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.input,.select{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);padding:.8rem .9rem;border-radius:12px;outline:none;min-width:220px}
-.btn{border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);border-radius:12px;padding:.7rem 1rem;cursor:pointer}
-.btn.primary{background:linear-gradient(180deg,#b089ff,#8b62ff);border-color:rgba(255,255,255,.15);box-shadow:0 10px 28px rgba(138,98,255,.35)}
+
+/* ---- Drag & Drop ---- */
+.dropzone{
+  position: relative;
+  border: 2px dashed rgba(180,170,255,.25);
+  border-radius: 16px;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,.02);
+  transition: border-color .2s, box-shadow .2s, background .2s, transform .2s;
+}
+.dropzone__hint{ text-align:center; color:rgba(220,220,255,.8); line-height:1.4 }
+.dropzone.is-dragover{
+  border-color: #a78bfa; /* purple-ish */
+  box-shadow: 0 0 0 8px rgba(167,139,250,.08), 0 0 40px rgba(167,139,250,.28) inset;
+  background: rgba(167,139,250,.05);
+  transform: translateY(-1px);
+}
+
+/* Queue list */
+.queue{ margin:14px 0 0; padding:0; list-style:none; }
+.queue li{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; margin-top:8px;
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(180,170,255,.14);
+  border-radius:12px; font-size:.95rem; color:#e9e7ff;
+}
+.queue .badge{
+  font-size:.75rem; padding:2px 8px; border-radius:999px;
+  background: rgba(167,139,250,.2); border:1px solid rgba(167,139,250,.35);
+}
+
+/* Small bits if you need them */
+.btn{ padding:.55rem .9rem; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:#fff; }
+.btn:hover{ background:rgba(255,255,255,.09) }
+.btn--primary{ background: linear-gradient(170deg,#8b5cf6,#a78bfa); border:none; }
+.btn--primary:hover{ filter:brightness(1.05) }
+.convert__row{ display:flex; gap:10px; margin-top:12px }
+.convert__row input, .convert__row select{
+  flex:1; min-width:200px; padding:.6rem .8rem; border-radius:10px; border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05); color:#fff;
+}
+.tip{ margin-top:10px; color:rgba(220,220,255,.6) }
+
 
 /* import */
 .import-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}

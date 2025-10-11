@@ -2,50 +2,118 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
 
-// ========= upload: native pickers & DnD =========
-const dropzone = $('#dropzone');
-const fileInput = $('#fileInput');
-const dirInput  = $('#dirInput');
-const chooseFilesBtn  = $('#chooseFilesBtn');
-const chooseFolderBtn = $('#chooseFolderBtn');
+// ===== Upload: Drag & Drop + Files + URLs =====
+const dropzone     = document.getElementById('dropzone');
+const fileInput    = document.getElementById('fileInput');
+const browseBtn    = document.getElementById('browseBtn');
+const queueEl      = document.getElementById('uploadQueue');
+const pasteInput   = document.getElementById('pasteInput');
+const formatSelect = document.getElementById('formatSelect');
+const convertBtn   = document.getElementById('convertBtn');
 
-on(chooseFilesBtn, 'click', () => fileInput.click());
-on(chooseFolderBtn, 'click', () => dirInput.click());
-on($('#importChooseFiles'),  'click', () => fileInput.click());
-on($('#importChooseFolder'), 'click', () => dirInput.click());
+const uploadQueue = []; // { type: 'file'|'url', name?:string, file?:File, url?:string }
 
-on(fileInput, 'change', () => handleFiles(fileInput.files, 'files'));
-on(dirInput,  'change', () => handleFiles(dirInput.files, 'folder'));
-
-function handleFiles(fileList, source){
-  if (!fileList || !fileList.length) return;
-  console.log(`[${source}] selected`, Array.from(fileList).map(f => f.name));
-  // TODO: push into your app state / preview queue
+function isProbablyUrl(text){
+  try {
+    const u = new URL(text);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch { return false; }
 }
 
-// Basic DnD
-['dragenter','dragover'].forEach(evt => on(dropzone, evt, e => {e.preventDefault(); dropzone.style.opacity = .8;}));
-['dragleave','drop'].forEach(evt => on(dropzone, evt, e => {e.preventDefault(); dropzone.style.opacity = 1;}));
-on(dropzone, 'drop', e => {
-  const files = e.dataTransfer?.files;
-  if (files?.length) handleFiles(files, 'drag-drop');
+function renderQueue(){
+  queueEl.innerHTML = '';
+  uploadQueue.forEach((item, i) => {
+    const li = document.createElement('li');
+    const kind = document.createElement('span');
+    kind.className = 'badge';
+    kind.textContent = item.type.toUpperCase();
+
+    const label = document.createElement('span');
+    label.textContent = item.type === 'file' ? item.name : item.url;
+
+    const rm = document.createElement('button');
+    rm.className = 'btn'; rm.style.marginLeft = 'auto';
+    rm.textContent = 'Remove';
+    rm.onclick = () => { uploadQueue.splice(i,1); renderQueue(); };
+
+    li.append(kind, label, rm);
+    queueEl.appendChild(li);
+  });
+}
+
+function enqueueFile(file){
+  uploadQueue.push({ type:'file', name:file.name, file });
+  renderQueue();
+}
+function enqueueUrl(url){
+  uploadQueue.push({ type:'url', url });
+  renderQueue();
+}
+
+// --- Drag events
+['dragenter','dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.add('is-dragover');
+  });
+});
+['dragleave','drop'].forEach(evt => {
+  dropzone.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.remove('is-dragover');
+  });
 });
 
-// ========= format + convert =========
-const formatSelect = $('#formatSelect');
-const pasteLink = $('#pasteLink');
-const convertBtn = $('#convertBtn');
+dropzone.addEventListener('drop', async (e) => {
+  const dt = e.dataTransfer;
 
-on(convertBtn, 'click', convertNow);
-on(pasteLink, 'keydown', e => { if (e.key === 'Enter') convertNow(); });
+  // Files
+  if (dt.files && dt.files.length){
+    [...dt.files].forEach(enqueueFile);
+  }
 
-function convertNow(){
-  const fmt = formatSelect.value;
-  const url = pasteLink.value.trim();
-  console.log('Convert requested', { fmt, url });
-  // TODO: call your backend /api/convert with { url, fmt }
-  alert(`(demo) Would convert ${url || '[local files]'} ➜ ${fmt.toUpperCase()}`);
-}
+  // URLs / text
+  if (dt.items){
+    for (const item of dt.items){
+      if (item.kind === 'string'){
+        // Prefer uri-list for links
+        if (item.type === 'text/uri-list' || item.type === 'text/plain'){
+          const text = await new Promise(res => item.getAsString(res));
+          if (text && isProbablyUrl(text.trim())) enqueueUrl(text.trim());
+        }
+      }
+    }
+  }
+});
+
+// Optional “Browse files” still available
+browseBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  [...fileInput.files].forEach(enqueueFile);
+  fileInput.value = ''; // reset
+});
+
+// Paste link input -> enqueue on Enter
+pasteInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    const val = pasteInput.value.trim();
+    if (isProbablyUrl(val)){
+      enqueueUrl(val);
+      pasteInput.value = '';
+    }
+  }
+});
+
+// Convert button (stub – wire to your backend flow)
+convertBtn.addEventListener('click', async () => {
+  if (!uploadQueue.length) return alert('Add files or links first.');
+  const fmt = formatSelect.value; // 'mp4' or 'mp3'
+
+  // TODO: send to your API; below is just a visualization
+  console.log('Submitting queue:', uploadQueue, 'format:', fmt);
+  alert(`Submitting ${uploadQueue.length} item(s) as ${fmt.toUpperCase()}`);
+});
+
 
 // ========= Dropbox & Google Drive (guarded stubs) =========
 on($('#connectDropbox'), 'click', async () => {
