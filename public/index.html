@@ -38,36 +38,48 @@
 
   <!-- panels: always visible -->
   <main class="panels" aria-label="Workbench">
-    <!-- Upload -->
-    <section class="card" aria-labelledby="upload_t">
-      <div class="card__head">
-        <img class="card__icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23cfd2ff'><path d='M8 1l3 3H9v5H7V4H5l3-3zM3 10h10v2H3v-2z'/></svg>" alt="">
-        <h2 id="upload_t" class="card__title">Upload</h2>
-      </div>
-      <div class="card__body">
-        <div class="upload-grid">
-          <div class="dropzone" id="dropzone">
-            <div>Drag &amp; drop files here</div>
-          </div>
+  <!-- Upload -->
+<section class="card" id="uploadCard">
+  <header class="card__head">
+    <img src="./assets/dripl/dripl.png" alt="" class="card__icon" width="18" height="18">
+    <div class="card__title">Upload</div>
+  </header>
 
-          <div class="actions">
-            <button id="chooseFilesBtn" class="btn">Choose files</button>
-            <button id="chooseFolderBtn" class="btn">Choose folder</button>
-            <input id="pasteLink" class="input" placeholder="Paste link (YouTube, TikTok, etc.)" />
-            <select id="formatSelect" class="select" aria-label="Output format">
-              <option value="mp4">MP4 (video)</option>
-              <option value="mp3">MP3 (audio)</option>
-            </select>
-            <button id="convertBtn" class="btn primary">Convert</button>
-          </div>
-          <p class="muted">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+  <div class="card__body">
+    <div class="upload-grid">
+      <!-- Dropzone + Queue -->
+      <div>
+        <!-- Hidden input is what actually opens the OS file picker -->
+        <input id="fileInput" type="file" multiple style="display:none" />
 
-          <!-- hidden native inputs -->
-          <input id="fileInput" type="file" multiple hidden />
-          <input id="dirInput" type="file" webkitdirectory directory hidden />
+        <div id="dropzone" class="dropzone" tabindex="0" aria-label="Drop files or click to choose">
+          <div class="dropzone__hint">
+            <strong>Drag &amp; drop files here</strong><br/>
+            — or —<br/>
+            <button id="browseBtn" type="button" class="btn btn--primary" data-browse>Choose files</button>
+          </div>
         </div>
+
+        <ul id="uploadQueue" class="queue" aria-live="polite"></ul>
       </div>
-    </section>
+
+      <!-- Paste + format -->
+      <div>
+        <div class="convert__row">
+          <input id="pasteInput" placeholder="Paste link (YouTube, TikTok, etc.)" />
+        </div>
+        <div class="convert__row">
+          <select id="formatSelect" aria-label="Output format">
+            <option value="mp4">MP4 (video)</option>
+            <option value="mp3">MP3 (audio)</option>
+          </select>
+          <button id="convertBtn" type="button" class="btn btn--primary">Convert</button>
+        </div>
+        <p class="tip">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
     <!-- Import -->
     <section class="card" aria-labelledby="import_t">
