@@ -2,120 +2,126 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dripl</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <!-- Corner badge -->
+
+  <!-- corner brand -->
   <a class="corner" href="/" aria-label="Dripl home">
     <img class="corner__logo" src="/assets/dripl/dripl.png" alt="" />
-    <span class="corner__name">Dripl</span><span class="badge">beta</span>
+    <span class="corner__name">Dripl</span>
+    <span class="badge">beta</span>
   </a>
 
-  <!-- Hero -->
-  <header class="hero">
+  <!-- hero -->
+  <header class="hero" role="banner">
     <img class="hero__logo" src="/assets/dripl/dripl.png" alt="" />
     <h1 class="hero__title">Dripl</h1>
-
-    <!-- glow line (kept simple for now) -->
     <div class="glow-line">
-      <svg viewBox="0 0 100 6" preserveAspectRatio="none">
+      <svg viewBox="0 0 100 12" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="hl" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"  stop-color="#5a2cff"/>
-            <stop offset="50%" stop-color="#a27bff"/>
-            <stop offset="100%" stop-color="#5a2cff"/>
+          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#4b48ff"/>
+            <stop offset="40%" stop-color="#9a66ff"/>
+            <stop offset="100%" stop-color="#7b3fe4"/>
           </linearGradient>
         </defs>
-        <path d="M0,3 L68,3 72,2 100,2" stroke="url(#hl)" stroke-width="0.6" fill="none" />
+        <path d="M0,8 L70,8 76,7 100,8" fill="none" stroke="url(#lineGrad)" stroke-width="2.2" />
       </svg>
     </div>
   </header>
 
-  <!-- Decorative hub (will shift when a card expands) -->
+  <!-- hub (kept) -->
   <div class="hub" aria-hidden="true"></div>
 
-  <!-- Panels -->
-  <main class="panels" id="panels">
-    <!-- Hidden pickers -->
-<input id="pickFiles" type="file" multiple hidden />
-<input id="pickFolder" type="file" webkitdirectory directory hidden />
+  <!-- panels: always visible -->
+  <main class="panels" aria-label="Workbench">
+    <!-- Upload -->
+    <section class="card" aria-labelledby="upload_t">
+      <div class="card__head">
+        <img class="card__icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23cfd2ff'><path d='M8 1l3 3H9v5H7V4H5l3-3zM3 10h10v2H3v-2z'/></svg>" alt="">
+        <h2 id="upload_t" class="card__title">Upload</h2>
+      </div>
+      <div class="card__body">
+        <div class="upload-grid">
+          <div class="dropzone" id="dropzone">
+            <div>Drag &amp; drop files here</div>
+          </div>
 
-<!-- Upload -->
-<section class="panel" id="panel-upload" data-panel="upload">
-  <header class="panel__head" data-toggle="panel-upload">
-    <span class="ico">📤</span>
-    <h3 class="panel__title">Upload</h3>
-    <span class="chev">▸</span>
-  </header>
-  <div class="panel__body">
-    <div class="dropzone">Drag &amp; drop files here</div>
-    <div class="row gap">
-      <button class="btn" id="btnBrowse">Browse files</button>
-      <input class="url" id="pasteUrl" placeholder="Paste link (YouTube, TikTok, etc.)" />
-      <select id="fmtSelect">
-        <option>MP4 (video)</option>
-        <option>MP3 (audio)</option>
-      </select>
-      <button class="btn btn--primary" id="btnConvert">Convert</button>
-    </div>
-    <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
-  </div>
-</section>
+          <div class="actions">
+            <button id="chooseFilesBtn" class="btn">Choose files</button>
+            <button id="chooseFolderBtn" class="btn">Choose folder</button>
+            <input id="pasteLink" class="input" placeholder="Paste link (YouTube, TikTok, etc.)" />
+            <select id="formatSelect" class="select" aria-label="Output format">
+              <option value="mp4">MP4 (video)</option>
+              <option value="mp3">MP3 (audio)</option>
+            </select>
+            <button id="convertBtn" class="btn primary">Convert</button>
+          </div>
+          <p class="muted">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
 
-<!-- Import -->
-<section class="panel" id="panel-import" data-panel="import">
-  <header class="panel__head" data-toggle="panel-import">
-    <span class="ico">🌐</span>
-    <h3 class="panel__title">Import</h3>
-    <span class="chev">▸</span>
-  </header>
-  <div class="panel__body">
-    <div class="import-grid">
-      <div class="import-card">
-        <h4>This device</h4>
-        <div class="row gap">
-          <button class="btn" id="btnChooseFiles">Choose files</button>
-          <button class="btn" id="btnChooseFolder">Choose folder</button>
+          <!-- hidden native inputs -->
+          <input id="fileInput" type="file" multiple hidden />
+          <input id="dirInput" type="file" webkitdirectory directory hidden />
         </div>
       </div>
+    </section>
 
-      <div class="import-card">
-        <h4>Dropbox</h4>
-        <button class="btn" id="btnDropbox">Connect Dropbox</button>
-        <div class="meta">Direct links, multi-select</div>
+    <!-- Import -->
+    <section class="card" aria-labelledby="import_t">
+      <div class="card__head">
+        <img class="card__icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23cfd2ff'><path d='M8 1a7 7 0 100 14A7 7 0 008 1zm1 5h3v4H4V6h3V5H5V4h6v1H9v1z'/></svg>" alt="">
+        <h2 id="import_t" class="card__title">Import</h2>
       </div>
+      <div class="card__body">
+        <div class="import-grid">
+          <div class="import-box">
+            <h4>This device</h4>
+            <div class="row">
+              <button id="importChooseFiles" class="btn">Choose files</button>
+              <button id="importChooseFolder" class="btn">Choose folder</button>
+            </div>
+          </div>
 
-      <div class="import-card">
-        <h4>Google Drive</h4>
-        <button class="btn" id="btnDrive">Connect Google Drive</button>
-        <div class="meta">Picker with OAuth</div>
+          <div class="import-box">
+            <h4>Dropbox</h4>
+            <div class="row">
+              <button id="connectDropbox" class="btn">Connect Dropbox</button>
+              <p class="muted">Direct links, multi-select</p>
+            </div>
+          </div>
+
+          <div class="import-box">
+            <h4>Google Drive</h4>
+            <div class="row">
+              <button id="connectDrive" class="btn">Connect Google Drive</button>
+              <p class="muted">Picker with OAuth</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- Storage -->
-<section class="panel" id="panel-storage" data-panel="storage">
-  <header class="panel__head" data-toggle="panel-storage">
-    <span class="ico">💾</span>
-    <h3 class="panel__title">Storage</h3>
-    <span class="chev">▸</span>
-  </header>
-  <div class="panel__body">
-    <p>Local / Cloud bucket (stub). Configure later.</p>
-  </div>
-</section>
-
+    <!-- Storage -->
+    <section class="card" aria-labelledby="storage_t">
+      <div class="card__head">
+        <img class="card__icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23cfd2ff'><path d='M2 4h12v8H2V4zm1 1v6h10V5H3zM5 2h6v2H5V2z'/></svg>" alt="">
+        <h2 id="storage_t" class="card__title">Storage</h2>
+      </div>
+      <div class="card__body">
+        <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
+      </div>
+    </section>
   </main>
 
-<script src="./env.js"></script>
-<script src="./script.js" defer></script>
-
-  <script src="script.js"></script>
+  <!-- env first, then app -->
+  <script src="./env.js"></script>
+  <script src="./script.js"></script>
 </body>
 </html>
+
 
 
 

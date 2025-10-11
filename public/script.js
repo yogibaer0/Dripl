@@ -1,143 +1,114 @@
-// ---------- Accordion: one panel open at a time ----------
-const panels = document.querySelectorAll('.panel');
-const toggles = document.querySelectorAll('[data-toggle]');
+// ========= helpers =========
+const $ = (sel, root = document) => root.querySelector(sel);
+const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
 
-function openPanel(panelId) {
-  panels.forEach(p => p.classList.remove('is-open'));
-  const panel = document.getElementById(panelId);
-  if (panel) panel.classList.add('is-open');
+// ========= upload: native pickers & DnD =========
+const dropzone = $('#dropzone');
+const fileInput = $('#fileInput');
+const dirInput  = $('#dirInput');
+const chooseFilesBtn  = $('#chooseFilesBtn');
+const chooseFolderBtn = $('#chooseFolderBtn');
+
+on(chooseFilesBtn, 'click', () => fileInput.click());
+on(chooseFolderBtn, 'click', () => dirInput.click());
+on($('#importChooseFiles'),  'click', () => fileInput.click());
+on($('#importChooseFolder'), 'click', () => dirInput.click());
+
+on(fileInput, 'change', () => handleFiles(fileInput.files, 'files'));
+on(dirInput,  'change', () => handleFiles(dirInput.files, 'folder'));
+
+function handleFiles(fileList, source){
+  if (!fileList || !fileList.length) return;
+  console.log(`[${source}] selected`, Array.from(fileList).map(f => f.name));
+  // TODO: push into your app state / preview queue
 }
 
-toggles.forEach(t => {
-  t.addEventListener('click', () => {
-    const id = t.getAttribute('data-toggle');
-    // toggle if already open
-    const target = document.getElementById(id);
-    if (target.classList.contains('is-open')) {
-      target.classList.remove('is-open');
-    } else {
-      openPanel(id);
+// Basic DnD
+['dragenter','dragover'].forEach(evt => on(dropzone, evt, e => {e.preventDefault(); dropzone.style.opacity = .8;}));
+['dragleave','drop'].forEach(evt => on(dropzone, evt, e => {e.preventDefault(); dropzone.style.opacity = 1;}));
+on(dropzone, 'drop', e => {
+  const files = e.dataTransfer?.files;
+  if (files?.length) handleFiles(files, 'drag-drop');
+});
+
+// ========= format + convert =========
+const formatSelect = $('#formatSelect');
+const pasteLink = $('#pasteLink');
+const convertBtn = $('#convertBtn');
+
+on(convertBtn, 'click', convertNow);
+on(pasteLink, 'keydown', e => { if (e.key === 'Enter') convertNow(); });
+
+function convertNow(){
+  const fmt = formatSelect.value;
+  const url = pasteLink.value.trim();
+  console.log('Convert requested', { fmt, url });
+  // TODO: call your backend /api/convert with { url, fmt }
+  alert(`(demo) Would convert ${url || '[local files]'} ➜ ${fmt.toUpperCase()}`);
+}
+
+// ========= Dropbox & Google Drive (guarded stubs) =========
+on($('#connectDropbox'), 'click', async () => {
+  const key = window.ENV?.DROPBOX_APP_KEY;
+  if (!key || key.includes('YOUR_DROPBOX_APP_KEY')){
+    alert('Set DROPBOX_APP_KEY in env.js (and Render env vars) to enable Dropbox.');
+    return;
+  }
+  // Lazy-load Dropbox Chooser
+  await loadScript('https://www.dropbox.com/static/api/2/dropins.js', { id: 'dropboxjs', 'data-app-key': key });
+  if (!window.Dropbox){ alert('Dropbox SDK failed to load.'); return; }
+  window.Dropbox.choose({
+    linkType: 'direct', multiselect: true, extensions: ['.mp4','.mov','.mp3','.wav','.m4a','.mkv'],
+    success: files => {
+      console.log('Dropbox selected:', files);
+      alert(`(demo) Dropbox picked ${files.length} item(s). See console.`);
     }
   });
 });
 
-// Default: keep all closed until user clicks
-panels.forEach(p => p.classList.remove('is-open'));
-
-// ---------- Local file/folder pickers ----------
-const pickFiles  = document.getElementById('pickFiles');
-const pickFolder = document.getElementById('pickFolder');
-
-const btnChooseFiles  = document.getElementById('btnChooseFiles');
-const btnChooseFolder = document.getElementById('btnChooseFolder');
-
-// Ensure they exist on page (Import panel)
-if (btnChooseFiles && pickFiles) {
-  btnChooseFiles.addEventListener('click', () => {
-    pickFiles.value = ''; // reset so selecting same files triggers change
-    pickFiles.click();
-  });
-}
-if (btnChooseFolder && pickFolder) {
-  btnChooseFolder.addEventListener('click', () => {
-    pickFolder.value = '';
-    pickFolder.click();
-  });
-}
-
-// Useful for debugging / integrating next stage
-function logFiles(list) {
-  const arr = Array.from(list).map(f => `${f.name} (${f.size} bytes)`);
-  console.log('Selected:', arr);
-}
-
-pickFiles?.addEventListener('change', (e) => {
-  if (e.target.files?.length) logFiles(e.target.files);
-});
-
-pickFolder?.addEventListener('change', (e) => {
-  if (e.target.files?.length) logFiles(e.target.files);
-});
-
-/* ========= Dropbox Chooser ========= */
-async function chooseFromDropbox() {
-  const key = window.ENV?.DROPBOX_APP_KEY;
-  if (!key) { alert('Missing DROPBOX_APP_KEY'); return null; }
-  await loadScript('https://www.dropbox.com/static/api/2/dropins.js', { id:'dropboxjs', 'data-app-key': key });
-  return new Promise((resolve) => {
-    window.Dropbox.choose({
-      multiselect: true,
-      linkType: 'direct',
-      success: files => resolve(files),
-      cancel: () => resolve(null),
-    });
-  });
-}
-document.getElementById('connectDropbox')?.addEventListener('click', async () => {
-  setStatus('Opening Dropbox Chooser…');
-  try {
-    const files = await chooseFromDropbox();
-    if (!files) return setStatus('Dropbox: cancelled');
-    setStatus(`Dropbox: selected ${files.length} item(s)`);
-    // TODO: hand off list of {link,name,bytes,...}
-  } catch (e) {
-    console.error(e);
-    setStatus('Dropbox: error');
+on($('#connectDrive'), 'click', async () => {
+  const apiKey = window.ENV?.GOOGLE_API_KEY;
+  const clientId = window.ENV?.GOOGLE_CLIENT_ID;
+  if (!apiKey || apiKey.includes('YOUR_GOOGLE_API_KEY') || !clientId || clientId.includes('YOUR_GOOGLE_OAUTH_CLIENT_ID')){
+    alert('Set GOOGLE_API_KEY and GOOGLE_CLIENT_ID in env.js (and Render env vars) to enable Google Drive.');
+    return;
   }
-});
 
-/* ========= Google Drive Picker ========= */
-let gPickerReady = false;
-async function initGPicker(){
-  if (gPickerReady) return;
-  const API_KEY  = window.ENV?.GOOGLE_API_KEY;
-  const CLIENT_ID= window.ENV?.GOOGLE_CLIENT_ID;
-  if (!API_KEY || !CLIENT_ID){ alert('Missing GOOGLE_API_KEY / GOOGLE_CLIENT_ID'); return; }
+  // Load Google APIs platform script on demand
   await loadScript('https://apis.google.com/js/api.js');
-  await loadScript('https://accounts.google.com/gsi/client');
-  await new Promise(res => gapi.load('client:picker', res));
-  await gapi.client.init({ apiKey: API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-  gPickerReady = true;
-}
-async function openDrivePicker(){
-  const API_KEY  = window.ENV?.GOOGLE_API_KEY;
-  const CLIENT_ID= window.ENV?.GOOGLE_CLIENT_ID;
-  await initGPicker();
-  if (!gPickerReady) return null;
+  await new Promise(res => gapi.load('client:picker:auth2', res));
 
-  const token = await new Promise((resolve, reject) => {
-    google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.readonly',
-      callback: (resp) => resp && resp.access_token ? resolve(resp.access_token) : reject(new Error('No token')),
-    }).requestAccessToken();
-  });
+  await gapi.client.init({ apiKey, clientId, scope: 'https://www.googleapis.com/auth/drive.readonly' });
+  const auth = gapi.auth2.getAuthInstance();
+  if (!auth.isSignedIn.get()) await auth.signIn();
 
-  return new Promise((resolve) => {
-    const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-      .setIncludeFolders(true).setSelectFolderEnabled(true);
-    const picker = new google.picker.PickerBuilder()
-      .setDeveloperKey(API_KEY).setAppId(CLIENT_ID).setOAuthToken(token)
-      .addView(view).setMaxItems(50)
-      .setCallback(data => {
-        if (data.action === google.picker.Action.PICKED) resolve(data.docs || []);
-        else if (data.action === google.picker.Action.CANCEL) resolve(null);
-      }).build();
-    picker.setVisible(true);
-  });
-}
-document.getElementById('connectGDrive')?.addEventListener('click', async () => {
-  setStatus('Opening Google Drive Picker…');
-  try {
-    const docs = await openDrivePicker();
-    if (!docs) return setStatus('Drive: cancelled');
-    setStatus(`Drive: selected ${docs.length} item(s)`);
-    // TODO: hand off list of {id,name,mimeType,sizeBytes,url,...}
-  } catch (e) {
-    console.error(e);
-    setStatus('Drive: error');
-  }
+  const oauthToken = gapi.auth.getToken().access_token;
+  await loadScript('https://apis.google.com/js/api.js?onload=__noop'); // ensure picker module
+  const view = new google.picker.DocsView(google.picker.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(true);
+  const picker = new google.picker.PickerBuilder()
+    .setOAuthToken(oauthToken)
+    .setDeveloperKey(apiKey)
+    .addView(view)
+    .setCallback(data => {
+      if (data.action === google.picker.Action.PICKED){
+        console.log('Drive picked:', data.docs);
+        alert(`(demo) Google Drive picked ${data.docs.length} item(s). See console.`);
+      }
+    }).build();
+  picker.setVisible(true);
 });
+
+// ========= utils =========
+function loadScript(src, attrs = {}){
+  return new Promise((resolve, reject) => {
+    if (attrs.id && document.getElementById(attrs.id)) return resolve();
+    const s = document.createElement('script');
+    s.src = src; Object.entries(attrs).forEach(([k,v]) => s.setAttribute(k, v));
+    s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+  });
+}
+window.__noop = () => {};
+
 
 
 
