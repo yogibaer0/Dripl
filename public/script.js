@@ -1,48 +1,62 @@
-/* ========= Accordion: one-open-at-a-time ========= */
-const tabs = Array.from(document.querySelectorAll('.tab'));
-const btns = tabs.map(t => t.querySelector('.tab__button'));
-function setOpen(tab, on){ tab.setAttribute('aria-expanded', String(on)); tab.classList.toggle('open', on); }
-function closeAll(){ tabs.forEach(t => setOpen(t,false)); document.querySelector('.panels')?.classList.remove('expanded'); }
-function openOnly(tab){ tabs.forEach(t => setOpen(t, t===tab)); document.querySelector('.panels')?.classList.add('expanded'); }
-btns.forEach(b => b.addEventListener('click', () => {
-  const tab = b.closest('.tab');
-  const isOpen = tab.getAttribute('aria-expanded') === 'true';
-  isOpen ? closeAll() : (openOnly(tab), tab.scrollIntoView({behavior:'smooth', block:'start'}));
-}));
-window.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-closeAll(); // start collapsed
+// ---------- Accordion: one panel open at a time ----------
+const panels = document.querySelectorAll('.panel');
+const toggles = document.querySelectorAll('[data-toggle]');
 
-/* ========= Small util helpers ========= */
-const setStatus = (msg) => { const el = document.getElementById('importStatus'); if (el) el.textContent = msg || ""; };
-function loadScript(src, attrs = {}) {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) return resolve();
-    const s = document.createElement('script');
-    s.src = src;
-    Object.entries(attrs).forEach(([k, v]) => s.setAttribute(k, v));
-    s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
+function openPanel(panelId) {
+  panels.forEach(p => p.classList.remove('is-open'));
+  const panel = document.getElementById(panelId);
+  if (panel) panel.classList.add('is-open');
+}
+
+toggles.forEach(t => {
+  t.addEventListener('click', () => {
+    const id = t.getAttribute('data-toggle');
+    // toggle if already open
+    const target = document.getElementById(id);
+    if (target.classList.contains('is-open')) {
+      target.classList.remove('is-open');
+    } else {
+      openPanel(id);
+    }
+  });
+});
+
+// Default: keep all closed until user clicks
+panels.forEach(p => p.classList.remove('is-open'));
+
+// ---------- Local file/folder pickers ----------
+const pickFiles  = document.getElementById('pickFiles');
+const pickFolder = document.getElementById('pickFolder');
+
+const btnChooseFiles  = document.getElementById('btnChooseFiles');
+const btnChooseFolder = document.getElementById('btnChooseFolder');
+
+// Ensure they exist on page (Import panel)
+if (btnChooseFiles && pickFiles) {
+  btnChooseFiles.addEventListener('click', () => {
+    pickFiles.value = ''; // reset so selecting same files triggers change
+    pickFiles.click();
+  });
+}
+if (btnChooseFolder && pickFolder) {
+  btnChooseFolder.addEventListener('click', () => {
+    pickFolder.value = '';
+    pickFolder.click();
   });
 }
 
-/* ========= Local pickers ========= */
-const pickFiles   = document.getElementById('pickFiles');
-const pickFolder  = document.getElementById('pickFolder');
+// Useful for debugging / integrating next stage
+function logFiles(list) {
+  const arr = Array.from(list).map(f => `${f.name} (${f.size} bytes)`);
+  console.log('Selected:', arr);
+}
 
-document.getElementById('pickFilesBtn')?.addEventListener('click', () => pickFiles?.click());
-pickFiles?.addEventListener('change', () => {
-  if (pickFiles.files?.length) {
-    setStatus(`Selected ${pickFiles.files.length} file(s)`);
-    // TODO: hand off to your pipeline
-  }
+pickFiles?.addEventListener('change', (e) => {
+  if (e.target.files?.length) logFiles(e.target.files);
 });
 
-document.getElementById('pickFolderBtn')?.addEventListener('click', () => pickFolder?.click());
-pickFolder?.addEventListener('change', () => {
-  if (pickFolder.files?.length) {
-    setStatus(`Selected folder with ${pickFolder.files.length} item(s)`);
-    // TODO: hand off to your pipeline
-  }
+pickFolder?.addEventListener('change', (e) => {
+  if (e.target.files?.length) logFiles(e.target.files);
 });
 
 /* ========= Dropbox Chooser ========= */

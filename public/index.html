@@ -38,85 +38,76 @@
 
   <!-- Panels -->
   <main class="panels" id="panels">
-    <!-- Upload -->
-    <section class="card" id="card-upload" data-card="upload">
-      <button class="card__head" type="button" aria-expanded="false">
-        <span class="card__icon">📤</span>
-        <span class="card__title">Upload</span>
-        <span class="chev" aria-hidden="true"></span>
-      </button>
-      <div class="card__body">
-        <div class="upload-grid">
-          <div class="dropzone">
-            <p>Drag &amp; drop files here</p>
-          </div>
+    <!-- Hidden pickers -->
+<input id="pickFiles" type="file" multiple hidden />
+<input id="pickFolder" type="file" webkitdirectory directory hidden />
 
-          <div class="actions">
-            <button class="btn ghost">Browse files</button>
-          </div>
-
-          <div class="linker">
-            <input class="input" type="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
-            <select class="select">
-              <option>MP4 (video)</option>
-              <option>MP3 (audio)</option>
-            </select>
-            <button class="btn primary">Convert</button>
-            <p class="muted">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Import -->
-<section class="panel" data-panel="import">
-  <button class="panel__head" data-accordion>
-    <span class="ico">🌐</span><span>Import</span><span class="chev">▸</span>
-  </button>
+<!-- Upload -->
+<section class="panel" id="panel-upload" data-panel="upload">
+  <header class="panel__head" data-toggle="panel-upload">
+    <span class="ico">📤</span>
+    <h3 class="panel__title">Upload</h3>
+    <span class="chev">▸</span>
+  </header>
   <div class="panel__body">
-    <div class="importers">
-      <div class="importers__col">
-        <h4>This device</h4>
-        <div class="stack">
-          <input id="pickLocal" type="file" multiple hidden />
-          <input id="pickFolder" type="file" webkitdirectory directory hidden />
-          <button id="pickLocalBtn" class="btn" title="Pick file(s)">Choose files</button>
-          <button id="pickFolderBtn" class="btn" title="Pick a folder">Choose folder</button>
-        </div>
-      </div>
-
-      <div class="importers__col">
-        <h4>Dropbox</h4>
-        <div class="stack">
-          <button id="connectDropbox" class="btn ghost" title="Dropbox Chooser">Connect Dropbox</button>
-          <small class="muted">Direct links, multi-select</small>
-        </div>
-      </div>
-
-      <div class="importers__col">
-        <h4>Google Drive</h4>
-        <div class="stack">
-          <button id="connectGDrive" class="btn ghost" title="Google Drive Picker">Connect Google Drive</button>
-          <small class="muted">Picker with OAuth</small>
-        </div>
-      </div>
+    <div class="dropzone">Drag &amp; drop files here</div>
+    <div class="row gap">
+      <button class="btn" id="btnBrowse">Browse files</button>
+      <input class="url" id="pasteUrl" placeholder="Paste link (YouTube, TikTok, etc.)" />
+      <select id="fmtSelect">
+        <option>MP4 (video)</option>
+        <option>MP3 (audio)</option>
+      </select>
+      <button class="btn btn--primary" id="btnConvert">Convert</button>
     </div>
-
-    <div id="importStatus" class="muted" style="margin-top:10px"></div>
+    <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
   </div>
 </section>
 
-    <!-- Storage -->
-    <section class="card" id="card-storage" data-card="storage">
-      <button class="card__head" type="button" aria-expanded="false">
-        <span class="card__icon">💾</span>
-        <span class="card__title">Storage</span>
-        <span class="chev" aria-hidden="true"></span>
-      </button>
-      <div class="card__body">
-        <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
+<!-- Import -->
+<section class="panel" id="panel-import" data-panel="import">
+  <header class="panel__head" data-toggle="panel-import">
+    <span class="ico">🌐</span>
+    <h3 class="panel__title">Import</h3>
+    <span class="chev">▸</span>
+  </header>
+  <div class="panel__body">
+    <div class="import-grid">
+      <div class="import-card">
+        <h4>This device</h4>
+        <div class="row gap">
+          <button class="btn" id="btnChooseFiles">Choose files</button>
+          <button class="btn" id="btnChooseFolder">Choose folder</button>
+        </div>
       </div>
-    </section>
+
+      <div class="import-card">
+        <h4>Dropbox</h4>
+        <button class="btn" id="btnDropbox">Connect Dropbox</button>
+        <div class="meta">Direct links, multi-select</div>
+      </div>
+
+      <div class="import-card">
+        <h4>Google Drive</h4>
+        <button class="btn" id="btnDrive">Connect Google Drive</button>
+        <div class="meta">Picker with OAuth</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Storage -->
+<section class="panel" id="panel-storage" data-panel="storage">
+  <header class="panel__head" data-toggle="panel-storage">
+    <span class="ico">💾</span>
+    <h3 class="panel__title">Storage</h3>
+    <span class="chev">▸</span>
+  </header>
+  <div class="panel__body">
+    <p>Local / Cloud bucket (stub). Configure later.</p>
+  </div>
+</section>
+
   </main>
 
 <script src="./env.js"></script>
