@@ -2,111 +2,130 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dripl</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- corner brand -->
+  <!-- Corner badge -->
   <a class="corner" href="/" aria-label="Dripl home">
-    <img class="corner__logo" src="assets/dripl/dripl.png" alt="" />
-    <span class="corner__name">Dripl</span>
-    <span class="badge beta">beta</span>
+    <img class="corner__logo" src="/assets/dripl/dripl.png" alt="" />
+    <span class="corner__name">Dripl</span><span class="badge">beta</span>
   </a>
 
-  <!-- hero -->
+  <!-- Hero -->
   <header class="hero">
-    <h1 class="title">
-      <img class="title__drop" src="assets/dripl/dripl.png" alt="" />
-      <span class="title__word">Dripl</span>
-    </h1>
-    <div class="glow-line__spacer" aria-hidden="true"></div>
+    <img class="hero__logo" src="/assets/dripl/dripl.png" alt="" />
+    <h1 class="hero__title">Dripl</h1>
+
+    <!-- glow line (kept simple for now) -->
+    <div class="glow-line">
+      <svg viewBox="0 0 100 6" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="hl" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stop-color="#5a2cff"/>
+            <stop offset="50%" stop-color="#a27bff"/>
+            <stop offset="100%" stop-color="#5a2cff"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,3 L68,3 72,2 100,2" stroke="url(#hl)" stroke-width="0.6" fill="none" />
+      </svg>
+    </div>
   </header>
 
-  <!-- TABS GRID -->
-  <main class="tabs-grid" id="tabsGrid">
-    <!-- UPLOAD -->
-    <section class="card tab" data-tab="upload" aria-labelledby="tUpload" aria-expanded="false">
-      <header class="tab__header">
-        <button id="tUpload" class="tab__button" type="button">
-          <span class="tab__left"><span class="tab__icon">⬆️</span><span class="tab__label">Upload</span></span>
-          <span class="tab__chev" aria-hidden="true">▾</span>
-        </button>
-      </header>
+  <!-- Decorative hub (will shift when a card expands) -->
+  <div class="hub" aria-hidden="true"></div>
 
-      <div id="pUpload" class="tab__panel" role="region" aria-labelledby="tUpload">
+  <!-- Panels -->
+  <main class="panels" id="panels">
+    <!-- Upload -->
+    <section class="card" id="card-upload" data-card="upload">
+      <button class="card__head" type="button" aria-expanded="false">
+        <span class="card__icon">📤</span>
+        <span class="card__title">Upload</span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="card__body">
         <div class="upload-grid">
-          <div class="upload__bin">
-            <div class="dropzone"><p>Drag &amp; drop files here</p></div>
-            <div class="upload__actions"><button class="btn">Browse files</button></div>
+          <div class="dropzone">
+            <p>Drag &amp; drop files here</p>
           </div>
 
-          <div class="upload__link">
-            <label class="field">
-              <input id="pasteLink" class="input" type="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
-            </label>
-            <div class="row">
-              <select id="formatSelect" class="select">
-                <option>MP4 (video)</option>
-                <option>MP3 (audio)</option>
-              </select>
-              <button id="convertBtn" class="btn primary">Convert</button>
-            </div>
-            <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+          <div class="actions">
+            <button class="btn ghost">Browse files</button>
+          </div>
+
+          <div class="linker">
+            <input class="input" type="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
+            <select class="select">
+              <option>MP4 (video)</option>
+              <option>MP3 (audio)</option>
+            </select>
+            <button class="btn primary">Convert</button>
+            <p class="muted">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- IMPORT -->
-    <section class="card tab" data-tab="import" aria-labelledby="tImport" aria-expanded="false">
-      <header class="tab__header">
-        <button id="tImport" class="tab__button" type="button">
-          <span class="tab__left"><span class="tab__icon">🌐</span><span class="tab__label">Import</span></span>
-          <span class="tab__chev" aria-hidden="true">▾</span>
-        </button>
-      </header>
-
-      <div id="pImport" class="tab__panel" role="region" aria-labelledby="tImport">
-        <div class="import-grid">
-          <fieldset class="block">
-            <legend>This device</legend>
-            <div class="row gap">
-              <button id="pickFiles" class="btn">Choose files</button>
-              <button id="pickFolder" class="btn">Choose folder</button>
-            </div>
-          </fieldset>
-          <fieldset class="block">
-            <legend>Dropbox</legend>
-            <button id="connectDropbox" class="btn">Connect Dropbox</button>
-          </fieldset>
-          <fieldset class="block">
-            <legend>Google Drive</legend>
-            <button id="connectDrive" class="btn">Connect Google Drive</button>
-          </fieldset>
+    <!-- Import -->
+<section class="panel" data-panel="import">
+  <button class="panel__head" data-accordion>
+    <span class="ico">🌐</span><span>Import</span><span class="chev">▸</span>
+  </button>
+  <div class="panel__body">
+    <div class="importers">
+      <div class="importers__col">
+        <h4>This device</h4>
+        <div class="stack">
+          <input id="pickLocal" type="file" multiple hidden />
+          <input id="pickFolder" type="file" webkitdirectory directory hidden />
+          <button id="pickLocalBtn" class="btn" title="Pick file(s)">Choose files</button>
+          <button id="pickFolderBtn" class="btn" title="Pick a folder">Choose folder</button>
         </div>
-        <ul id="importLog" class="list" aria-live="polite"></ul>
       </div>
-    </section>
 
-    <!-- STORAGE -->
-    <section class="card tab" data-tab="storage" aria-labelledby="tStorage" aria-expanded="false">
-      <header class="tab__header">
-        <button id="tStorage" class="tab__button" type="button">
-          <span class="tab__left"><span class="tab__icon">💾</span><span class="tab__label">Storage</span></span>
-          <span class="tab__chev" aria-hidden="true">▾</span>
-        </button>
-      </header>
+      <div class="importers__col">
+        <h4>Dropbox</h4>
+        <div class="stack">
+          <button id="connectDropbox" class="btn ghost" title="Dropbox Chooser">Connect Dropbox</button>
+          <small class="muted">Direct links, multi-select</small>
+        </div>
+      </div>
 
-      <div id="pStorage" class="tab__panel" role="region" aria-labelledby="tStorage">
+      <div class="importers__col">
+        <h4>Google Drive</h4>
+        <div class="stack">
+          <button id="connectGDrive" class="btn ghost" title="Google Drive Picker">Connect Google Drive</button>
+          <small class="muted">Picker with OAuth</small>
+        </div>
+      </div>
+    </div>
+
+    <div id="importStatus" class="muted" style="margin-top:10px"></div>
+  </div>
+</section>
+
+    <!-- Storage -->
+    <section class="card" id="card-storage" data-card="storage">
+      <button class="card__head" type="button" aria-expanded="false">
+        <span class="card__icon">💾</span>
+        <span class="card__title">Storage</span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="card__body">
         <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
       </div>
     </section>
   </main>
 
+<script src="./env.js"></script>
+<script src="./script.js" defer></script>
+
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
