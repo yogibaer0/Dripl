@@ -1,149 +1,95 @@
-/* ===== simple shared state ===== */
-const queue = []; // minimal visible queue for demo
+/* ========= helpers ========= */
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
 
-/* ===== utilities ===== */
-function addToQueue(items) {
-  const ul = document.getElementById('uploadList');
-  items.forEach(item => {
-    queue.push(item);
-    const li = document.createElement('li');
-    li.className = 'queued__item';
-    li.textContent = typeof item === 'string' ? item : item.name;
-    ul.appendChild(li);
-  });
-}
-
-function handleIncoming(files, maybeText) {
-  const batch = [];
-
-  // Files
-  if (files && files.length) {
-    for (const f of files) batch.push(f);
-  }
-
-  // Dropped text/URL
-  if (maybeText && maybeText.trim()) {
-    batch.push(maybeText.trim());
-  }
-
-  if (!batch.length) return;
-  addToQueue(batch);
-}
-
-/* ===== DRAG & DROP (Upload panel only) ===== */
+/* ========= drag & drop (Upload) ========= */
 (function initDropzone(){
-  const dz = document.getElementById('uploadDropzone');
-  if (!dz) return;
+  const dz = $('#dropzone');
+  const linkInput = $('#pasteLink');
 
-  const on = (el, ev, fn) => el.addEventListener(ev, fn);
+  const addHover = () => dz.classList.add('dropzone--hover');
+  const rmHover  = () => dz.classList.remove('dropzone--hover');
 
-  const kill = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
+  dz.addEventListener('dragenter', e => { e.preventDefault(); addHover(); });
+  dz.addEventListener('dragover',  e => { e.preventDefault(); addHover(); });
+  dz.addEventListener('dragleave', e => { e.preventDefault(); rmHover(); });
 
-  ['dragenter','dragover'].forEach(ev => on(dz, ev, (e)=>{
-    kill(e);
-    dz.classList.add('dropzone--hover');
-  }));
-
-  ['dragleave','dragend','drop'].forEach(ev => on(dz, ev, (e)=>{
-    kill(e);
-    if (ev !== 'drop') dz.classList.remove('dropzone--hover');
-  }));
-
-  on(dz, 'drop', (e)=>{
-    dz.classList.remove('dropzone--hover');
+  dz.addEventListener('drop', async e => {
+    e.preventDefault(); rmHover();
 
     const dt = e.dataTransfer;
-    const files = dt?.files ?? [];
+    const items = dt && dt.items ? Array.from(dt.items) : [];
+    let handled = false;
 
-    // text/URL if any
-    let droppedText = '';
-    try {
-      droppedText =
-        dt.getData('text/uri-list') ||
-        dt.getData('text/plain') ||
-        '';
-    } catch(_){ /* ignore */ }
+    // 1) Files
+    if (dt && dt.files && dt.files.length){
+      handleFiles(dt.files);
+      handled = true;
+    }
 
-    handleIncoming(files, droppedText);
-  });
-
-  // Optional keyboard paste onto dropzone
-  on(dz, 'keydown', (e)=>{
-    if (e.key === 'Enter' || e.key === ' ') {
-      // no-op by design; upload zone is drag-drop only
-      e.preventDefault();
+    // 2) Text / URL
+    if (!handled && items.length){
+      for (const it of items){
+        if (it.kind === 'string'){
+          it.getAsString(str => {
+            const val = (str || '').trim();
+            if (val){
+              linkInput.value = val;
+            }
+          });
+          handled = true;
+          break;
+        }
+      }
     }
   });
-})();
 
-/* ===== IMPORT: single working "Choose files" button ===== */
-(function initImportPicker(){
-  const input = document.getElementById('importFileInput');
-  const btn   = document.getElementById('importChooseBtn');
-  if (!input || !btn) return;
-
-  btn.addEventListener('click', ()=> input.click());
-
-  input.addEventListener('change', ()=>{
-    handleIncoming(input.files);
-    // reset so selecting the same file later still fires change
-    input.value = '';
-  });
-})();
-
-/* ===== (Optional) link paste convert stays yours ===== */
-(function wireConvert(){
-  const convert = document.getElementById('convertBtn');
-  const paste   = document.getElementById('pasteInput');
-  if (!convert || !paste) return;
-
-  const go = () => {
-    const v = paste.value.trim();
-    if (v) {
-      handleIncoming([], v);
-      paste.value = '';
-    }
-  };
-  convert.addEventListener('click', go);
-  paste.addEventListener('keydown', (e)=> {
-    if (e.key === 'Enter') go();
-  });
-})();
-
-/* ===== Tiny hero dot runner (unchanged logic you had) ===== */
-(function animateDot(){
-  const wrap = document.querySelector('.glow-line');
-  const svg  = wrap?.querySelector('svg');
-  const path = svg?.querySelector('#driplGlowPath');
-  const dot  = document.getElementById('glowDot');
-  if (!wrap || !svg || !path || !dot) return;
-
-  let len = 0, t = 0, dir = 1;
-
-  function measure(){ len = path.getTotalLength(); }
-
-  function tick(){
-    t += dir * 0.0065;
-    if (t >= 1) { t = 1; dir = -1; }
-    if (t <= 0) { t = 0; dir =  1; }
-
-    const p = path.getPointAtLength(len * t);
-    const box = svg.getBoundingClientRect();
-    const x = box.left + (p.x / 100) * box.width;
-    const y = box.top  + (p.y / 24)  * box.height;
-
-    dot.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-
-    requestAnimationFrame(tick);
+  function handleFiles(fileList){
+    const files = Array.from(fileList);
+    // For now just log the files; wire into your pipeline/queue here.
+    console.log('Dropped files:', files.map(f => `${f.name} (${f.type||'type/unknown'})`));
   }
-
-  const ro = new ResizeObserver(measure);
-  ro.observe(svg);
-  measure(); tick();
 })();
+
+/* ========= Import (This device) ========= */
+(function initImportChooseFiles(){
+  const trigger = $('#chooseFilesBtn');
+  const input   = $('#hiddenFileInput');
+
+  trigger.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    console.log('Chosen files:', files.map(f => f.name));
+    // Pipe into the same place as Upload's files if desired.
+  });
+})();
+
+/* ========= Import (Dropbox / Drive stubs) ========= */
+$('#connectDropbox').addEventListener('click', () => {
+  alert('Dropbox integration is not configured yet. Add your SDK key and wire the picker here.');
+});
+$('#connectDrive').addEventListener('click', () => {
+  alert('Google Drive integration is not configured yet. Add your OAuth client + Picker here.');
+});
+
+/* ========= Convert quick action ========= */
+$('#convertBtn').addEventListener('click', () => quickConvert());
+$('#pasteLink').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') quickConvert();
+});
+
+function quickConvert(){
+  const link = $('#pasteLink').value.trim();
+  const fmt  = $('#formatSelect').value;
+  if (!link){
+    alert('Paste a link or drop files first 🙂');
+    return;
+  }
+  console.log('Convert request:', { link, format: fmt });
+  // TODO: call your /api/convert endpoint here.
+}
+
 
 
 
