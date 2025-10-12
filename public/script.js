@@ -51,6 +51,60 @@ const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
   }
 })();
 
+// === Paste-link Convert wired to /api/download ===
+const pasteInput   = document.getElementById('pasteInput');
+const formatSelect = document.getElementById('formatSelect');
+const convertBtn   = document.getElementById('convertBtn');
+
+async function convertNow() {
+  const url = (pasteInput?.value || '').trim();
+  const fmt = (formatSelect?.value || 'mp4').toLowerCase();
+  if (!url) { alert('Paste a link first 🙂'); return; }
+
+  // Optional: a small inline status; remove if you don’t want it
+  convertBtn.disabled = true;
+  const original = convertBtn.textContent;
+  convertBtn.textContent = 'Converting…';
+
+  try {
+    const body = { url, audioOnly: fmt === 'mp3' };
+    const res = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      let msg = 'Unknown server error';
+      try { msg = (JSON.parse(text).error || JSON.parse(text).message || msg); } catch {}
+      throw new Error(msg);
+    }
+
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    const ext = fmt === 'mp3' ? 'm4a' : 'mp4';
+    a.href = URL.createObjectURL(blob);
+    a.download = `dripl-${Date.now()}.${ext}`;
+    a.click();
+
+    // clear the input on success
+    if (pasteInput) pasteInput.value = '';
+  } catch (err) {
+    alert(`❌ ${err.message || err}`);
+    console.error('[dripl] convert error:', err);
+  } finally {
+    convertBtn.disabled = false;
+    convertBtn.textContent = original;
+  }
+}
+
+if (convertBtn) convertBtn.addEventListener('click', convertNow);
+if (pasteInput) pasteInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') convertNow();
+});
+
+
 /* ========= Import (This device) ========= */
 (function initImportChooseFiles(){
   const trigger = $('#chooseFilesBtn');
