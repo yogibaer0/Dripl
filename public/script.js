@@ -1,175 +1,150 @@
-/* =========================================================
-   DRIPL — Upload: reliable picker + drag&drop + URL queue
-   Drop this in: public/script.js
-========================================================= */
+/* ===== simple shared state ===== */
+const queue = []; // minimal visible queue for demo
 
-/* ---------- tiny helpers ---------- */
-const $  = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
+/* ===== utilities ===== */
+function addToQueue(items) {
+  const ul = document.getElementById('uploadList');
+  items.forEach(item => {
+    queue.push(item);
+    const li = document.createElement('li');
+    li.className = 'queued__item';
+    li.textContent = typeof item === 'string' ? item : item.name;
+    ul.appendChild(li);
+  });
+}
 
-/* ---------- elements (optional if absent) ---------- */
-const dropzone     = $('#dropzone');
-const fileInput    = $('#fileInput');          // <input type="file" multiple hidden>
-const browseBtn    = $('#browseBtn');          // has [data-browse] but we bind both
-const queueEl      = $('#uploadQueue');        // <ul>
-const pasteInput   = $('#pasteInput');         // <input type="url">
-const formatSelect = $('#formatSelect');       // <select>
-const convertBtn   = $('#convertBtn');         // <button>
+function handleIncoming(files, maybeText) {
+  const batch = [];
 
-/* ---------- state ---------- */
-const uploadQueue = []; // items: { type:'file'|'url', name?:string, file?:File, url?:string }
-
-/* ---------- utils ---------- */
-function isProbablyUrl(text) {
-  if (!text || typeof text !== 'string') return false;
-  try {
-    const url = new URL(text.trim());
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
+  // Files
+  if (files && files.length) {
+    for (const f of files) batch.push(f);
   }
+
+  // Dropped text/URL
+  if (maybeText && maybeText.trim()) {
+    batch.push(maybeText.trim());
+  }
+
+  if (!batch.length) return;
+  addToQueue(batch);
 }
 
-function renderQueue() {
-  if (!queueEl) return;
-  queueEl.innerHTML = '';
-  uploadQueue.forEach((item, i) => {
-    const li    = document.createElement('li');
-    const kind  = document.createElement('span');
-    const label = document.createElement('span');
-    const rm    = document.createElement('button');
+/* ===== DRAG & DROP (Upload panel only) ===== */
+(function initDropzone(){
+  const dz = document.getElementById('uploadDropzone');
+  if (!dz) return;
 
-    kind.className  = 'badge';
-    kind.textContent = item.type.toUpperCase();
+  const on = (el, ev, fn) => el.addEventListener(ev, fn);
 
-    label.textContent = item.type === 'file' ? item.name : item.url;
+  const kill = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
-    rm.className = 'btn';
-    rm.style.marginLeft = 'auto';
-    rm.textContent = 'Remove';
-    rm.onclick = () => { uploadQueue.splice(i, 1); renderQueue(); };
+  ['dragenter','dragover'].forEach(ev => on(dz, ev, (e)=>{
+    kill(e);
+    dz.classList.add('dropzone--hover');
+  }));
 
-    li.append(kind, label, rm);
-    queueEl.appendChild(li);
-  });
-}
+  ['dragleave','dragend','drop'].forEach(ev => on(dz, ev, (e)=>{
+    kill(e);
+    if (ev !== 'drop') dz.classList.remove('dropzone--hover');
+  }));
 
-function enqueueFile(file) {
-  uploadQueue.push({ type: 'file', name: file.name, file });
-  renderQueue();
-}
+  on(dz, 'drop', (e)=>{
+    dz.classList.remove('dropzone--hover');
 
-function enqueueUrl(url) {
-  uploadQueue.push({ type: 'url', url });
-  renderQueue();
-}
-
-/* ---------- file picker: reliable open + reset ---------- */
-function openFilePicker() {
-  if (!fileInput) return;
-  // Reset so choosing the same file again still fires 'change'
-  fileInput.value = '';
-  fileInput.click();
-}
-
-on(fileInput, 'change', () => {
-  if (!fileInput.files || !fileInput.files.length) return;
-  [...fileInput.files].forEach(enqueueFile);
-  // reset again to allow re-choosing same file later
-  fileInput.value = '';
-});
-
-/* Bind any element with [data-browse], plus our explicit button */
-document.addEventListener('click', (e) => {
-  if (e.target.closest('[data-browse]')) openFilePicker();
-});
-on(browseBtn, 'click', openFilePicker);
-
-/* ---------- dropzone: click + keyboard + drag&drop ---------- */
-if (dropzone) {
-  // Clicking dropzone opens picker
-  on(dropzone, 'click', openFilePicker);
-
-  // Keyboard accessibility (Enter/Space)
-  on(dropzone, 'keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openFilePicker();
-    }
-  });
-
-  // Prevent default browser behavior on document to allow drops anywhere over DZ
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
-    on(document, evt, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-  });
-
-  // Visual feedback when dragging over the dropzone
-  ['dragenter', 'dragover'].forEach(evt => {
-    on(dropzone, evt, () => dropzone.classList.add('is-dragover'));
-  });
-  ['dragleave', 'drop'].forEach(evt => {
-    on(dropzone, evt, () => dropzone.classList.remove('is-dragover'));
-  });
-
-  // Handle actual drop (files + links/text)
-  on(dropzone, 'drop', async (e) => {
     const dt = e.dataTransfer;
+    const files = dt?.files ?? [];
 
-    // Files
-    if (dt?.files && dt.files.length) {
-      [...dt.files].forEach(enqueueFile);
-    }
+    // text/URL if any
+    let droppedText = '';
+    try {
+      droppedText =
+        dt.getData('text/uri-list') ||
+        dt.getData('text/plain') ||
+        '';
+    } catch(_){ /* ignore */ }
 
-    // URLs / text (uri-list preferred; fallback to plain)
-    if (dt?.items) {
-      for (const item of dt.items) {
-        if (item.kind === 'string' && (item.type === 'text/uri-list' || item.type === 'text/plain')) {
-          const text = await new Promise(res => item.getAsString(res));
-          const maybe = text?.trim();
-          if (isProbablyUrl(maybe)) enqueueUrl(maybe);
-        }
-      }
+    handleIncoming(files, droppedText);
+  });
+
+  // Optional keyboard paste onto dropzone
+  on(dz, 'keydown', (e)=>{
+    if (e.key === 'Enter' || e.key === ' ') {
+      // no-op by design; upload zone is drag-drop only
+      e.preventDefault();
     }
   });
-}
+})();
 
-/* ---------- paste box: Enter to enqueue URL ---------- */
-if (pasteInput) {
-  on(pasteInput, 'keydown', (e) => {
-    if (e.key === 'Enter') {
-      const val = pasteInput.value.trim();
-      if (isProbablyUrl(val)) {
-        enqueueUrl(val);
-        pasteInput.value = '';
-      } else if (val) {
-        // Optional: gentle feedback for non-URL text
-        // alert('Please paste a valid http(s) link.');
-      }
-    }
+/* ===== IMPORT: single working "Choose files" button ===== */
+(function initImportPicker(){
+  const input = document.getElementById('importFileInput');
+  const btn   = document.getElementById('importChooseBtn');
+  if (!input || !btn) return;
+
+  btn.addEventListener('click', ()=> input.click());
+
+  input.addEventListener('change', ()=>{
+    handleIncoming(input.files);
+    // reset so selecting the same file later still fires change
+    input.value = '';
   });
-}
+})();
 
-/* ---------- convert button (stub) ---------- */
-on(convertBtn, 'click', () => {
-  if (!uploadQueue.length) {
-    alert('Add files or links first.');
-    return;
+/* ===== (Optional) link paste convert stays yours ===== */
+(function wireConvert(){
+  const convert = document.getElementById('convertBtn');
+  const paste   = document.getElementById('pasteInput');
+  if (!convert || !paste) return;
+
+  const go = () => {
+    const v = paste.value.trim();
+    if (v) {
+      handleIncoming([], v);
+      paste.value = '';
+    }
+  };
+  convert.addEventListener('click', go);
+  paste.addEventListener('keydown', (e)=> {
+    if (e.key === 'Enter') go();
+  });
+})();
+
+/* ===== Tiny hero dot runner (unchanged logic you had) ===== */
+(function animateDot(){
+  const wrap = document.querySelector('.glow-line');
+  const svg  = wrap?.querySelector('svg');
+  const path = svg?.querySelector('#driplGlowPath');
+  const dot  = document.getElementById('glowDot');
+  if (!wrap || !svg || !path || !dot) return;
+
+  let len = 0, t = 0, dir = 1;
+
+  function measure(){ len = path.getTotalLength(); }
+
+  function tick(){
+    t += dir * 0.0065;
+    if (t >= 1) { t = 1; dir = -1; }
+    if (t <= 0) { t = 0; dir =  1; }
+
+    const p = path.getPointAtLength(len * t);
+    const box = svg.getBoundingClientRect();
+    const x = box.left + (p.x / 100) * box.width;
+    const y = box.top  + (p.y / 24)  * box.height;
+
+    dot.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+
+    requestAnimationFrame(tick);
   }
-  const fmt = (formatSelect?.value || 'mp4').toLowerCase();
-  // TODO: Replace with your backend call (e.g., /api/convert)
-  console.log('[DRIPL] Submitting queue:', uploadQueue, 'format:', fmt);
-  alert(`(demo) Submitting ${uploadQueue.length} item(s) as ${fmt.toUpperCase()}. Check console.`);
-});
 
-/* ---------- optional: expose queue for debugging ---------- */
-window.__dripl = Object.assign(window.__dripl || {}, {
-  getQueue: () => uploadQueue.slice(),
-  clearQueue: () => { uploadQueue.length = 0; renderQueue(); },
-});
+  const ro = new ResizeObserver(measure);
+  ro.observe(svg);
+  measure(); tick();
+})();
+
 
 
 

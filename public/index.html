@@ -7,132 +7,108 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <header class="site">
+    <div class="brand">
+      <img class="logo" src="./assets/dripl/dripl.png" alt="Dripl" />
+      <h1 class="title">Dripl</h1>
+    </div>
 
-  <!-- corner brand -->
-  <a class="corner" href="/" aria-label="Dripl home">
-    <img class="corner__logo" src="/assets/dripl/dripl.png" alt="" />
-    <span class="corner__name">Dripl</span>
-    <span class="badge">beta</span>
-  </a>
-
-  <!-- hero -->
-  <header class="hero" role="banner">
-    <img class="hero__logo" src="/assets/dripl/dripl.png" alt="" />
-    <h1 class="hero__title">Dripl</h1>
+    <!-- Hero sweep line + glow dot stays as you had it -->
     <div class="glow-line">
-      <svg viewBox="0 0 100 12" preserveAspectRatio="none">
+      <svg viewBox="0 0 100 24" preserveAspectRatio="none">
         <defs>
           <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#4b48ff"/>
-            <stop offset="40%" stop-color="#9a66ff"/>
-            <stop offset="100%" stop-color="#7b3fe4"/>
+            <stop offset="0%" stop-color="#cba6ff"/>
+            <stop offset="100%" stop-color="#7c3aed"/>
           </linearGradient>
         </defs>
-        <path d="M0,8 L70,8 76,7 100,8" fill="none" stroke="url(#lineGrad)" stroke-width="2.2" />
+        <path id="driplGlowPath"
+              d="M2,12 L18,12 25,11 34,12 98,12"
+              fill="none" stroke="url(#lineGrad)" stroke-width="0.6"
+              vector-effect="non-scaling-stroke" />
       </svg>
+      <div id="glowDot" class="dot" aria-hidden="true"></div>
     </div>
   </header>
 
-  <!-- hub (kept) -->
-  <div class="hub" aria-hidden="true"></div>
-
-  <!-- panels: always visible -->
-  <main class="panels" aria-label="Workbench">
-  <!-- Upload -->
-<section class="card" id="uploadCard">
-  <header class="card__head">
-    <img src="./assets/dripl/dripl.png" alt="" class="card__icon" width="18" height="18">
-    <div class="card__title">Upload</div>
-  </header>
-
-  <div class="card__body">
-    <div class="upload-grid">
-      <!-- Dropzone + Queue -->
-      <div>
-        <!-- Hidden input is what actually opens the OS file picker -->
-        <input id="fileInput" type="file" multiple style="display:none" />
-
-        <div id="dropzone" class="dropzone" tabindex="0" aria-label="Drop files or click to choose">
-          <div class="dropzone__hint">
-            <strong>Drag &amp; drop files here</strong><br/>
-            — or —<br/>
-            <button id="browseBtn" type="button" class="btn btn--primary" data-browse>Choose files</button>
-          </div>
-        </div>
-
-        <ul id="uploadQueue" class="queue" aria-live="polite"></ul>
+  <main class="grid">
+    <!-- Upload (drag & drop ONLY) -->
+    <section class="card" id="uploadPanel" aria-labelledby="uploadTitle">
+      <div class="card__head">
+        <span class="card__icon">💧</span>
+        <h2 class="card__title" id="uploadTitle">Upload</h2>
       </div>
 
-      <!-- Paste + format -->
-      <div>
-        <div class="convert__row">
-          <input id="pasteInput" placeholder="Paste link (YouTube, TikTok, etc.)" />
+      <!-- Dropzone only; no choose button here -->
+      <div id="uploadDropzone" class="dropzone" role="button" tabindex="0"
+           aria-label="Drag & drop files or links here">
+        <div class="dropzone__hint">
+          <strong>Drag & drop files here</strong>
+          <span>…or drop a link / text</span>
         </div>
-        <div class="convert__row">
-          <select id="formatSelect" aria-label="Output format">
-            <option value="mp4">MP4 (video)</option>
-            <option value="mp3">MP3 (audio)</option>
-          </select>
-          <button id="convertBtn" type="button" class="btn btn--primary">Convert</button>
-        </div>
-        <p class="tip">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
       </div>
-    </div>
-  </div>
-</section>
+
+      <!-- (Optional) list to show what's been queued -->
+      <ul id="uploadList" class="queued"></ul>
+
+      <!-- Your converter controls stay as-is -->
+      <div class="row row--gap">
+        <input id="pasteInput" class="input" placeholder="Paste link (YouTube, TikTok, etc.)" />
+        <select id="formatSelect" class="select">
+          <option selected>MP4 (video)</option>
+          <option>MP3 (audio)</option>
+        </select>
+        <button id="convertBtn" class="btn btn--primary">Convert</button>
+      </div>
+      <p class="muted">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
+    </section>
 
     <!-- Import -->
-    <section class="card" aria-labelledby="import_t">
+    <section class="card" id="importPanel" aria-labelledby="importTitle">
       <div class="card__head">
-        <img class="card__icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23cfd2ff'><path d='M8 1a7 7 0 100 14A7 7 0 008 1zm1 5h3v4H4V6h3V5H5V4h6v1H9v1z'/></svg>" alt="">
-        <h2 id="import_t" class="card__title">Import</h2>
+        <span class="card__icon">🌐</span>
+        <h2 class="card__title" id="importTitle">Import</h2>
       </div>
-      <div class="card__body">
-        <div class="import-grid">
-          <div class="import-box">
-            <h4>This device</h4>
-            <div class="row">
-              <button id="importChooseFiles" class="btn">Choose files</button>
-              <button id="importChooseFolder" class="btn">Choose folder</button>
-            </div>
-          </div>
 
-          <div class="import-box">
-            <h4>Dropbox</h4>
-            <div class="row">
-              <button id="connectDropbox" class="btn">Connect Dropbox</button>
-              <p class="muted">Direct links, multi-select</p>
-            </div>
-          </div>
+      <div class="row row--cols">
+        <!-- This device -->
+        <div class="cluster">
+          <h3 class="cluster__title">This device</h3>
+          <button id="importChooseBtn" class="btn">Choose files</button>
+          <!-- Hidden input lives in IMPORT (not Upload) -->
+          <input id="importFileInput" type="file" hidden multiple />
+        </div>
 
-          <div class="import-box">
-            <h4>Google Drive</h4>
-            <div class="row">
-              <button id="connectDrive" class="btn">Connect Google Drive</button>
-              <p class="muted">Picker with OAuth</p>
-            </div>
-          </div>
+        <!-- Dropbox (stubbed button) -->
+        <div class="cluster">
+          <h3 class="cluster__title">Dropbox</h3>
+          <button id="dropboxBtn" class="btn">Connect Dropbox</button>
+          <p class="muted">Direct links, multi-select</p>
+        </div>
+
+        <!-- Google Drive (stubbed button) -->
+        <div class="cluster">
+          <h3 class="cluster__title">Google Drive</h3>
+          <button id="gdriveBtn" class="btn">Connect Google Drive</button>
+          <p class="muted">Picker with OAuth</p>
         </div>
       </div>
     </section>
 
-    <!-- Storage -->
-    <section class="card" aria-labelledby="storage_t">
+    <!-- Storage (unchanged stub) -->
+    <section class="card" id="storagePanel" aria-labelledby="storageTitle">
       <div class="card__head">
-        <img class="card__icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23cfd2ff'><path d='M2 4h12v8H2V4zm1 1v6h10V5H3zM5 2h6v2H5V2z'/></svg>" alt="">
-        <h2 id="storage_t" class="card__title">Storage</h2>
+        <span class="card__icon">💾</span>
+        <h2 class="card__title" id="storageTitle">Storage</h2>
       </div>
-      <div class="card__body">
-        <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
-      </div>
+      <p class="muted">Local / Cloud bucket (stub). Configure later.</p>
     </section>
   </main>
 
-  <!-- env first, then app -->
-  <script src="./env.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>
+
 
 
 
