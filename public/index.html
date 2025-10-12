@@ -100,16 +100,103 @@
       </div>
     </section>
 
-    <!-- Storage -->
-    <section class="card" id="storage">
-      <header class="card__head">
-        <span class="card__icon">💾</span>
-        <h2 class="card__title">Storage</h2>
-      </header>
-      <div class="card__body">
-        <p>Local / Cloud bucket (stub). Configure later.</p>
+    <!-- STORAGE / LIBRARY -->
+<section id="dripl-storage" class="dripl-storage" aria-label="Storage library">
+  <header class="ds-head">
+    <div class="ds-left">
+      <h2 class="ds-title">Storage</h2>
+      <div class="ds-search">
+        <input id="ds-search" type="search" placeholder="Search by file name, tags, notes, or source…" autocomplete="off" />
+        <button id="ds-clear" class="ds-icon" aria-label="Clear search">×</button>
       </div>
+    </div>
+
+    <div class="ds-tools">
+      <button id="ds-add-folder" class="ds-btn">+ Folder</button>
+
+      <div class="ds-menu">
+        <button id="ds-filter-btn" class="ds-btn">Filters ▾</button>
+        <div id="ds-filter-pop" class="ds-pop">
+          <label><input type="checkbox" data-filter="type:video" checked> Video</label>
+          <label><input type="checkbox" data-filter="type:audio" checked> Audio</label>
+          <label><input type="checkbox" data-filter="source:youtube"> YouTube</label>
+          <label><input type="checkbox" data-filter="source:tiktok"> TikTok</label>
+          <label><input type="checkbox" data-filter="quality:hd"> HD+</label>
+          <label><input type="checkbox" data-filter="format:mp4"> MP4</label>
+          <label><input type="checkbox" data-filter="format:mp3"> MP3</label>
+        </div>
+      </div>
+
+      <div class="ds-menu">
+        <button id="ds-presets-btn" class="ds-btn">Presets ▾</button>
+        <div id="ds-presets-pop" class="ds-pop">
+          <button class="ds-pop-item" data-preset="tiktok-1080">TikTok 1080p</button>
+          <button class="ds-pop-item" data-preset="yt-mp3">YouTube → MP3</button>
+          <button class="ds-pop-item" data-preset="yt-mp4">YouTube → MP4 1080p</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="ds-tabs" role="tablist" aria-label="Storage sections">
+    <button class="ds-tab is-active" data-tab="recent"  role="tab" aria-selected="true">Recent</button>
+    <button class="ds-tab"          data-tab="saved"   role="tab">Saved ★</button>
+    <button class="ds-tab"          data-tab="queue"   role="tab">In progress</button>
+    <button class="ds-tab"          data-tab="shared"  role="tab">Shared with me</button>
+    <button class="ds-tab"          data-tab="trash"   role="tab">Trash</button>
+  </nav>
+
+  <div class="ds-panels">
+    <!-- Recent -->
+    <section class="ds-panel is-active" data-panel="recent">
+      <ul id="ds-recent" class="ds-list"></ul>
     </section>
+
+    <!-- Saved / Favorites -->
+    <section class="ds-panel" data-panel="saved">
+      <ul id="ds-saved" class="ds-list"></ul>
+    </section>
+
+    <!-- Queue / In Progress -->
+    <section class="ds-panel" data-panel="queue">
+      <ul id="ds-queue" class="ds-list"></ul>
+    </section>
+
+    <!-- Shared (placeholder) -->
+    <section class="ds-panel" data-panel="shared">
+      <div class="ds-empty">Nothing shared yet.</div>
+    </section>
+
+    <!-- Trash -->
+    <section class="ds-panel" data-panel="trash">
+      <div class="ds-trashbar">
+        <span>Items stay here for 30 days.</span>
+        <button id="ds-empty-trash" class="ds-btn ds-btn--danger">Empty trash</button>
+      </div>
+      <ul id="ds-trash" class="ds-list"></ul>
+    </section>
+  </div>
+
+  <!-- Template for item -->
+  <template id="ds-item-tpl">
+    <li class="ds-item">
+      <div class="ds-item-main">
+        <div class="ds-name"></div>
+        <div class="ds-meta"></div>
+      </div>
+      <div class="ds-actions">
+        <button data-action="play"       title="Play"      class="ds-icon">▶</button>
+        <button data-action="locate"     title="Locate"    class="ds-icon">📂</button>
+        <button data-action="reconvert"  title="Re-convert" class="ds-icon">⟳</button>
+        <button data-action="favorite"   title="Favorite"  class="ds-icon">☆</button>
+        <button data-action="pin"        title="Pin"       class="ds-icon">📌</button>
+        <button data-action="trash"      title="Move to trash" class="ds-icon">🗑</button>
+      </div>
+      <div class="ds-progress"><span class="ds-progress-bar"></span></div>
+      <div class="ds-row ds-tags"></div>
+    </li>
+  </template>
+</section>
 
   </main>
 

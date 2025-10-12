@@ -146,6 +146,64 @@ body{
 .import-box__title{margin:0 0 10px; font-size:14px; color:var(--muted)}
 .import-box__note{margin:8px 0 0; font-size:12px; color:var(--muted)}
 
+/* === Dripl Storage (scoped) ===================================== */
+.dripl-storage { --ds-bg: rgba(255,255,255,.03); --ds-br: 12px; --ds-border: rgba(255,255,255,.06); --ds-fg:#ddd; --ds-muted:#9aa; --ds-accent:#b98cff; --ds-good:#7dd3fc; --ds-danger:#ff7d7d; }
+
+.dripl-storage { background: var(--ds-bg); border:1px solid var(--ds-border); border-radius: var(--ds-br); padding: 16px; }
+.dripl-storage * { box-sizing: border-box; color:var(--ds-fg); }
+
+.dripl-storage .ds-head { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:12px; }
+.dripl-storage .ds-left { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.dripl-storage .ds-title { margin:0; font-size:22px; font-weight:800; letter-spacing:.3px; }
+
+.dripl-storage .ds-search { position:relative; }
+.dripl-storage .ds-search input { width: min(52vw, 520px); background: transparent; border:1px solid var(--ds-border); padding:10px 36px 10px 12px; border-radius:10px; outline:none; }
+.dripl-storage .ds-search input::placeholder{ color:var(--ds-muted); }
+.dripl-storage .ds-search .ds-icon { position:absolute; right:6px; top:6px; width:28px; height:28px; border-radius:8px; background:transparent; border:1px solid transparent; color:var(--ds-muted); }
+.dripl-storage .ds-search .ds-icon:hover{ border-color:var(--ds-border); }
+
+.dripl-storage .ds-tools { display:flex; gap:8px; align-items:center; }
+.dripl-storage .ds-btn { background: rgba(255,255,255,.04); border:1px solid var(--ds-border); padding:8px 10px; border-radius:10px; font-weight:600; }
+.dripl-storage .ds-btn:hover { border-color: var(--ds-accent); }
+
+.dripl-storage .ds-menu { position:relative; }
+.dripl-storage .ds-pop { display:none; position:absolute; right:0; top:calc(100% + 6px); min-width:220px; background:#101018; border:1px solid var(--ds-border); border-radius:12px; padding:10px; box-shadow:0 12px 40px rgba(0,0,0,.45); z-index:4; }
+.dripl-storage .ds-menu.is-open .ds-pop{ display:block; }
+.dripl-storage .ds-pop label { display:flex; gap:8px; align-items:center; padding:6px 4px; color:var(--ds-muted); }
+.dripl-storage .ds-pop .ds-pop-item{ display:block; width:100%; text-align:left; padding:8px 10px; border-radius:8px; }
+.dripl-storage .ds-pop .ds-pop-item:hover{ background: rgba(255,255,255,.04); }
+
+.dripl-storage .ds-tabs { display:flex; gap:8px; border-top:1px solid var(--ds-border); margin-top:10px; padding-top:10px; }
+.dripl-storage .ds-tab { background:transparent; border:1px solid var(--ds-border); padding:8px 12px; border-radius:10px; color:var(--ds-muted); }
+.dripl-storage .ds-tab.is-active { color:#fff; border-color: var(--ds-accent); }
+
+.dripl-storage .ds-panels { margin-top:12px; }
+.dripl-storage .ds-panel { display:none; }
+.dripl-storage .ds-panel.is-active { display:block; }
+
+.dripl-storage .ds-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns: repeat(2, minmax(300px, 1fr)); gap:10px; }
+@media (max-width: 980px){ .dripl-storage .ds-list { grid-template-columns: 1fr; } }
+
+.dripl-storage .ds-item { border:1px solid var(--ds-border); border-radius:12px; padding:12px; background:rgba(255,255,255,.02); display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;}
+.dripl-storage .ds-item .ds-name { font-weight:700; }
+.dripl-storage .ds-item .ds-meta { font-size:12px; color:var(--ds-muted); margin-top:2px; }
+.dripl-storage .ds-item .ds-actions { display:flex; gap:6px; }
+.dripl-storage .ds-item .ds-icon { width:28px; height:28px; border-radius:8px; border:1px solid var(--ds-border); background:transparent; color:var(--ds-muted); }
+.dripl-storage .ds-item .ds-icon:hover{ border-color: var(--ds-accent); color:#fff; }
+
+.dripl-storage .ds-progress { grid-column:1 / -1; height:4px; background:rgba(255,255,255,.06); border-radius:999px; overflow:hidden; display:none; }
+.dripl-storage .ds-progress .ds-progress-bar { display:block; height:100%; width:0%; background:linear-gradient(90deg, #7dd3fc, #b98cff); }
+
+.dripl-storage .ds-item.is-progress .ds-progress { display:block; }
+.dripl-storage .ds-item.is-pinned { outline:1px dashed var(--ds-accent); }
+.dripl-storage .ds-item.is-fav .ds-name::after { content:" ★"; color:gold; }
+
+.dripl-storage .ds-empty { color:var(--ds-muted); padding:12px; }
+.dripl-storage .ds-trashbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.dripl-storage .ds-btn--danger { border-color:var(--ds-danger); color:var(--ds-danger); }
+.dripl-storage .ds-btn--danger:hover{ background:rgba(255,125,125,.05); }
+
+
 
 
 
