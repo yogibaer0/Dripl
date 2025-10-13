@@ -79,10 +79,17 @@
 
       <div class="import">
         <div class="import__col">
-          <h3>This device</h3>
-          <button id="chooseFilesBtn" class="btn">Choose files</button>
-          <input id="importFileInput" type="file" hidden multiple />
-        </div>
+  <h3>This device</h3>
+
+  <!-- One button the user clicks -->
+  <button id="importChooseBtn" class="btn" data-action="choose-files" type="button">
+    Choose files
+  </button>
+
+  <!-- The real file input lives offscreen -->
+  <input id="importFileInput" type="file" multiple
+         style="position:absolute; left:-9999px; width:1px; height:1px;" />
+</div>
 
         <div class="import__col">
           <h3>Dropbox</h3>
