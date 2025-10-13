@@ -10,6 +10,63 @@ const APP = {
 document.getElementById('appName')?.replaceChildren(APP.name);
 document.getElementById('heroTitle')?.replaceChildren(APP.name);
 
+// ======== FFmpeg (wasm) bootstrap ========
+let ffmpegInstance = null;
+let ffmpegLoading = null;
+
+async function getFFmpeg() {
+  if (ffmpegInstance) return ffmpegInstance;
+  if (!ffmpegLoading) {
+    ffmpegLoading = (async () => {
+      const { FFmpeg, fetchFile } = window.__FFMPEG__;
+      const ffmpeg = new FFmpeg();
+      ffmpeg.on('log', ({ message }) => console.log('[ffmpeg]', message));
+      ffmpeg.on('progress', (p) => {
+        // p.ratio is 0..1
+        document.dispatchEvent(new CustomEvent('ameba:transcode-progress', { detail: p }));
+      });
+      await ffmpeg.load();
+      ffmpeg.__fetchFile = fetchFile; // stash helper
+      return ffmpeg;
+    })();
+  }
+  ffmpegInstance = await ffmpegLoading;
+  return ffmpegInstance;
+}
+// Infer a basic target by select value ("mp4" or "mp3")
+function normalizeTarget(targetLabel) {
+  const s = (targetLabel || '').toLowerCase();
+  if (s.includes('mp3')) return 'mp3';
+  return 'mp4';
+}
+
+// Convert a single File to the target format and return { blob, filename }
+async function transcodeFileToTarget(file, target = 'mp4') {
+  const ffmpeg = await getFFmpeg();
+
+  const inputName = `input_${Date.now()}.${(file.name.split('.').pop() || 'dat')}`;
+  const outputName = target === 'mp3' ? 'out.mp3' : 'out.mp4';
+
+  await ffmpeg.writeFile(inputName, await ffmpeg.__fetchFile(file));
+
+  // Very light defaults for MVP. We can expose presets later.
+  const args =
+    target === 'mp3'
+      ? ['-i', inputName, '-vn', '-acodec', 'libmp3lame', '-q:a', '4', outputName]
+      : ['-i', inputName, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', outputName];
+
+  await ffmpeg.exec(args);
+
+  const data = await ffmpeg.readFile(outputName);
+  const blob = new Blob([data], { type: target === 'mp3' ? 'audio/mpeg' : 'video/mp4' });
+  return { blob, filename: safeOutputName(file.name, target) };
+}
+
+function safeOutputName(original, target) {
+  const base = original.replace(/\.[^.]+$/, '');
+  return `${base}.${target}`;
+}
+
 /* =========================================================================
    Small utils
    ========================================================================= */
@@ -71,6 +128,48 @@ function nowISO(){ return new Date().toISOString(); }
       }
     }
   });
+
+async function handleDroppedFiles(filesList) {
+  const target = normalizeTarget(document.querySelector('#formatSelect')?.value || 'mp4');
+
+  for (const file of filesList) {
+    // 1) Create "In progress" storage entry
+    const item = {
+      id: crypto.randomUUID(),
+      name: file.name,
+      type: target === 'mp3' ? 'audio' : 'video',
+      format: target,
+      size: file.size,
+      source: 'local',
+      addedAt: Date.now(),
+      status: 'inprogress'
+    };
+    addToStorage(item);
+    renderStorage(); // if you have a renderer
+
+    try {
+      // 2) Transcode
+      const { blob, filename } = await transcodeFileToTarget(file, target);
+      const url = URL.createObjectURL(blob);
+
+      // 3) Update storage entry to "done" + give download URL
+      updateStorageItem(item.id, {
+        status: 'done',
+        name: filename,
+        downloadUrl: url
+      });
+
+    } catch (err) {
+      console.error('[ameba] transcode error:', err);
+      updateStorageItem(item.id, {
+        status: 'error',
+        error: String(err?.message || err)
+      });
+    } finally {
+      renderStorage();
+    }
+  }
+}
 
   async function convertNow(){
     const url = pasteInput.value.trim();
@@ -240,6 +339,11 @@ const DriplStorage = (()=>{
       render();
     });
   });
+	// ==progress bar==
+document.addEventListener('ameba:transcode-progress', (e) => {
+  const ratio = Math.round((e.detail.ratio || 0) * 100);
+  // Update the active card’s progress bar UI…
+});
 
   // ——— toolbar popovers ———
   hookToolbar();
