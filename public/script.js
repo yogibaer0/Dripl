@@ -91,7 +91,7 @@ const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
 
 
 // === Paste-link Convert wired to /api/download ===
-const pasteInput   = document.getElementById('pasteInput');
+const pasteInput   = document.getElementById('pasteLink');
 const formatSelect = document.getElementById('formatSelect');
 const convertBtn   = document.getElementById('convertBtn');
 
@@ -100,68 +100,57 @@ async function convertNow() {
   const fmt = (formatSelect?.value || 'mp4').toLowerCase();
   if (!url) { alert('Paste a link first 🙂'); return; }
 
-async function convertLink(url, format) {
+  // (optional) emit “start” so Storage shows it immediately
   const id = crypto.randomUUID();
   window.dispatchEvent(new CustomEvent('dripl:convert:start', {
-    detail: { id, name: url, source: inferSource(url), type: 'video', format }
+    detail: { id, name: url, source: inferSource(url), type: 'video', format: fmt }
   }));
 
-  const meta = await callConverterAPI(url, format); // your existing fetch call
-
-  window.dispatchEvent(new CustomEvent('dripl:converted', {
-    detail: {
-      id,
-      name: meta.title || url,
-      format,
-      quality: meta.quality || 'auto',
-      source: inferSource(url),
-      type: meta.type || 'video',
-      size: meta.size || 0,
-      outUrl: meta.outputUrl
-    }
-  }));
-}
-
-  // Optional: a small inline status; remove if you don’t want it
   convertBtn.disabled = true;
   const original = convertBtn.textContent;
   convertBtn.textContent = 'Converting…';
 
   try {
-    const body = { url, audioOnly: fmt === 'mp3' };
     const res = await fetch('/api/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ url, audioOnly: fmt === 'mp3' })
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      let msg = 'Unknown server error';
-      try { msg = (JSON.parse(text).error || JSON.parse(text).message || msg); } catch {}
-      throw new Error(msg);
-    }
+    if (!res.ok) throw new Error((await res.json()).error || 'Server error');
 
     const blob = await res.blob();
-    const a = document.createElement('a');
     const ext = fmt === 'mp3' ? 'm4a' : 'mp4';
-    a.href = URL.createObjectURL(blob);
-    a.download = `dripl-${Date.now()}.${ext}`;
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `dripl-${Date.now()}.${ext}`
+    });
     a.click();
 
-    // clear the input on success
-    if (pasteInput) pasteInput.value = '';
+    // (optional) emit “converted” so Storage gets final metadata
+    window.dispatchEvent(new CustomEvent('dripl:converted', {
+      detail: { id, name: url, source: inferSource(url), type: 'video', format: fmt, outUrl: a.href }
+    }));
+
+    pasteInput.value = '';
   } catch (err) {
     alert(`❌ ${err.message || err}`);
-    console.error('[dripl] convert error:', err);
   } finally {
     convertBtn.disabled = false;
     convertBtn.textContent = original;
   }
 }
 
-if (convertBtn) convertBtn.addEventListener('click', convertNow);
-if (pasteInput) pasteInput.addEventListener('keydown', (e) => {
+// single set of listeners
+convertBtn?.addEventListener('click', convertNow);
+pasteInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') convertNow(); });
+
+// helper used above
+function inferSource(u=''){
+  if (u.includes('youtube') || u.includes('youtu.be')) return 'YouTube';
+  if (u.includes('tiktok')) return 'TikTok';
+  if (u.includes('twitter') || u.includes('x.com')) return 'Twitter';
+  return 'Link';
+}
   if (e.key === 'Enter') convertNow();
 });
 
@@ -466,6 +455,273 @@ window.addEventListener('dripl:convert:progress', (e) => {
 });
 
 })();
+
+/* =========================================================
+   STORAGE TOOLBAR MODULES
+   - One shared store
+   - Filters (open/apply/clear)
+   - Presets (save/load/delete)
+   - Folders (create)
+   ========================================================= */
+
+(function storageModules() {
+  // ---------- Shared in-memory store ----------
+  const Store = {
+    items: window.__storageItems || [], // <-- your list renderer reads this
+    filters: {
+      type: new Set(),    // 'video' | 'audio' | 'image'
+      format: '',         // e.g. 'mp4'
+      minSize: null,      // MB
+      maxSize: null,      // MB
+      quality: new Set(), // 'low'|'med'|'high'|'lossless'
+      source: '',         // 'youtube','tiktok','local'...
+      meta: ''            // any text
+    },
+    folders: JSON.parse(localStorage.getItem('dripl.folders') || '[]'),
+    presets: JSON.parse(localStorage.getItem('dripl.presets') || '{}')
+  };
+
+  // Broadcast a “render me” so your existing renderer updates.
+  const rerender = () => {
+    const ev = new CustomEvent('storage:refresh', { detail: { items: applyFilters(Store.items) } });
+    window.dispatchEvent(ev);
+  };
+
+  // ---------- Filter application ----------
+  function applyFilters(items) {
+    const f = Store.filters;
+    return items.filter((it) => {
+      // safe guards
+      const sizeMb = Number((it.sizeMb ?? it.size ?? 0));
+      const fmt = (it.format ?? '').toLowerCase();
+      const typ = (it.type ?? '').toLowerCase();
+      const q   = (it.quality ?? '').toLowerCase();
+      const src = (it.source ?? '').toLowerCase();
+      const mt  = ((it.tags ?? []).join(' ') + ' ' + (it.notes ?? '') + ' ' + (it.author ?? '')).toLowerCase();
+
+      if (f.type.size && !f.type.has(typ)) return false;
+      if (f.quality.size && !f.quality.has(q)) return false;
+
+      if (f.format && !fmt.includes(f.format.toLowerCase())) return false;
+      if (f.source && !src.includes(f.source.toLowerCase())) return false;
+      if (f.meta && !mt.includes(f.meta.toLowerCase())) return false;
+
+      if (f.minSize != null && sizeMb < f.minSize) return false;
+      if (f.maxSize != null && sizeMb > f.maxSize) return false;
+
+      return true;
+    });
+  }
+
+  // ---------- Small helpers ----------
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const toggleHidden = (el, show) => (show ? el.removeAttribute('hidden') : el.setAttribute('hidden',''));
+  const placeUnder = (btnEl, panelEl) => {
+    const rect = btnEl.getBoundingClientRect();
+    panelEl.style.left = `${rect.left}px`;
+    panelEl.style.top  = `${rect.bottom + 8 + window.scrollY}px`;
+  };
+
+  // Close any popover when clicking elsewhere
+  document.addEventListener('click', (e) => {
+    const anyOpen = $$('.popover:not([hidden])');
+    if (anyOpen.length === 0) return;
+    const inside = e.target.closest('.popover') || e.target.closest('#btnFilters, #btnPresets, #btnAddFolder');
+    if (!inside) anyOpen.forEach(p => p.setAttribute('hidden',''));
+  });
+
+  // =========================================================
+  // ===============  FILTERS ================================
+  // =========================================================
+  (function filtersModule(){
+    const btn = $('#btnFilters');
+    const panel = $('#filterPanel');
+    const form = $('#filterForm');
+    const btnClear = $('#filterClear');
+
+    if (!btn || !panel || !form) return;
+
+    // open/close
+    btn.addEventListener('click', () => {
+      placeUnder(btn, panel);
+      toggleHidden(panel, panel.hasAttribute('hidden'));
+      hydrateFormFromFilters();
+    });
+
+    // chip toggles
+    panel.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chipgroup button');
+      if (!chip) return;
+      chip.classList.toggle('active');
+    });
+
+    // clear
+    btnClear.addEventListener('click', () => {
+      Store.filters = {
+        type: new Set(),
+        format: '',
+        minSize: null,
+        maxSize: null,
+        quality: new Set(),
+        source: '',
+        meta: ''
+      };
+      $$('.chipgroup button', panel).forEach(b => b.classList.remove('active'));
+      form.reset();
+      rerender();
+    });
+
+    // apply
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+
+      // build new filters
+      const nf = {
+        type: new Set(), quality: new Set(),
+        format: (fd.get('format') || '').trim(),
+        minSize: fd.get('minSize') ? Number(fd.get('minSize')) : null,
+        maxSize: fd.get('maxSize') ? Number(fd.get('maxSize')) : null,
+        source: (fd.get('source') || '').trim(),
+        meta: (fd.get('meta') || '').trim()
+      };
+
+      $$('.chipgroup[data-key="type"] button.active', panel).forEach(b => nf.type.add(b.dataset.value));
+      $$('.chipgroup[data-key="quality"] button.active', panel).forEach(b => nf.quality.add(b.dataset.value));
+
+      Store.filters = nf;
+      toggleHidden(panel, false);
+      rerender();
+    });
+
+    // Fill form from Store.filters when opening
+    function hydrateFormFromFilters(){
+      const f = Store.filters;
+      form.reset();
+      // chips
+      $$('.chipgroup[data-key="type"] button', panel).forEach(b => b.classList.toggle('active', f.type.has(b.dataset.value)));
+      $$('.chipgroup[data-key="quality"] button', panel).forEach(b => b.classList.toggle('active', f.quality.has(b.dataset.value)));
+      // fields
+      form.format.value = f.format || '';
+      form.minSize.value = f.minSize ?? '';
+      form.maxSize.value = f.maxSize ?? '';
+      form.source.value = f.source || '';
+      form.meta.value = f.meta || '';
+    }
+
+    // When new items are added (e.g., conversion done), re-apply filters
+    window.addEventListener('storage:itemAdded', (e) => {
+      Store.items.unshift(e.detail); // adopt your event payload shape
+      rerender();
+    });
+  })();
+
+  // =========================================================
+  // ===============  PRESETS ================================
+  // =========================================================
+  (function presetsModule(){
+    const btn = $('#btnPresets');
+    const panel = $('#presetPanel');
+    const list = $('#presetList');
+    const input = $('#presetName');
+    const saveBtn = $('#presetSave');
+
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', () => {
+      placeUnder(btn, panel);
+      toggleHidden(panel, panel.hasAttribute('hidden'));
+      renderList();
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const name = (input.value || '').trim();
+      if (!name) return;
+      // Serialize sets to arrays
+      const f = Store.filters;
+      const snapshot = {
+        ...f,
+        type: Array.from(f.type),
+        quality: Array.from(f.quality)
+      };
+      Store.presets[name] = snapshot;
+      localStorage.setItem('dripl.presets', JSON.stringify(Store.presets));
+      input.value = '';
+      renderList();
+    });
+
+    function renderList(){
+      list.innerHTML = '';
+      const names = Object.keys(Store.presets);
+      if (names.length === 0){
+        list.innerHTML = `<li><em>No presets yet</em></li>`;
+        return;
+      }
+      names.forEach((name) => {
+        const li = document.createElement('li');
+        const apply = document.createElement('button');
+        const del = document.createElement('button');
+        li.textContent = name;
+        apply.textContent = 'Apply';
+        del.textContent = 'Delete';
+        apply.addEventListener('click', () => {
+          const p = Store.presets[name];
+          Store.filters = {
+            ...p,
+            type: new Set(p.type || []),
+            quality: new Set(p.quality || [])
+          };
+          toggleHidden(panel, false);
+          rerender();
+        });
+        del.addEventListener('click', () => {
+          delete Store.presets[name];
+          localStorage.setItem('dripl.presets', JSON.stringify(Store.presets));
+          renderList();
+        });
+        const box = document.createElement('div');
+        box.append(apply);
+        box.append(del);
+        li.append(box);
+        list.append(li);
+      });
+    }
+  })();
+
+  // =========================================================
+  // ===============  FOLDERS ================================
+  // =========================================================
+  (function foldersModule(){
+    const btn = $('#btnAddFolder');
+    const panel = $('#folderPanel');
+    const inp = $('#folderName');
+    const createBtn = $('#folderCreate');
+
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', () => {
+      placeUnder(btn, panel);
+      toggleHidden(panel, panel.hasAttribute('hidden'));
+      inp.value = '';
+      inp.focus();
+    });
+
+    createBtn.addEventListener('click', () => {
+      const name = (inp.value || '').trim();
+      if (!name) return;
+      if (!Store.folders.includes(name)){
+        Store.folders.push(name);
+        localStorage.setItem('dripl.folders', JSON.stringify(Store.folders));
+      }
+      // Optionally tag selected items to folder here (future)
+      toggleHidden(panel, false);
+      // Inform any folder UI
+      window.dispatchEvent(new CustomEvent('storage:foldersChanged', { detail: { folders: Store.folders }}));
+    });
+  })();
+})();
+
 
 
 
