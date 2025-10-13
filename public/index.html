@@ -135,6 +135,7 @@
       </div>
 
       <div id="storageList" class="grid"></div>
+<a class="btn btn--ghost" href="{{downloadUrl}}" download="{{name}}">Download</a>
     </section>
 
   </main>
@@ -191,6 +192,50 @@
       <button id="folderCreate" class="btn btn--primary">Create</button>
     </div>
   </section>
+
+<!-- FFmpeg (wasm) ESM build -->
+<script type="module">
+  import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js';
+  import { fetchFile } from 'https://unpkg.com/@ffmpeg/util@0.12.2/dist/esm/index.js';
+  window.__FFMPEG__ = { FFmpeg, fetchFile };
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  window.supabase = supabase.createClient(
+    'https://ujchypvlqzermgpfzaqo.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+  );
+
+  // Track session → token for server calls
+  supabase.auth.onAuthStateChange((event, session) => {
+    window.authToken = session?.access_token || null;
+    window.currentUser = session?.user || null;
+    console.log('auth', event, window.currentUser?.email);
+  });
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  window.authToken = session?.access_token || null;
+  window.currentUser = session?.user || null;
+  if (session) loadAssetsFromServer?.(); // optional
+});
+
+
+// Load user's files from backend when logged in
+    if (session) {
+      loadAssetsFromServer();
+    }
+  });
+
+  // Optional: call once on page load (to resume session if already signed in)
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      window.authToken = data.session.access_token;
+      window.currentUser = data.session.user;
+      loadAssetsFromServer();
+    }
+  });
+</script>
+
 
   <script src="script.js" defer></script>
 </body>

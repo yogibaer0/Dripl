@@ -2,54 +2,65 @@
    App constants (rename-ready)
    ========================================================================= */
 const APP = {
-  name: 'Dripl',     // later: 'Ameba'
-  ns:   'dripl'      // later: 'ameba'  (used in localStorage keys + events)
+  name: 'Dripl',   // soon: 'Ameba'
+  ns:   'dripl'    // soon: 'ameba' (used for events/localStorage keys)
 };
-
-// reflect brand in UI (safe if HTML shows old name)
 document.getElementById('appName')?.replaceChildren(APP.name);
 document.getElementById('heroTitle')?.replaceChildren(APP.name);
 
-// ======== FFmpeg (wasm) bootstrap ========
-let ffmpegInstance = null;
-let ffmpegLoading = null;
+/* =========================================================================
+   FFmpeg (wasm) bootstrap
+   - We try to use window.__FFMPEG__ = { FFmpeg, fetchFile }
+   - If it's not present, we gracefully fall back (still adds to Storage).
+   ========================================================================= */
+let _ffmpeg = null, _ffmpegLoad = null;
 
 async function getFFmpeg() {
-  if (ffmpegInstance) return ffmpegInstance;
-  if (!ffmpegLoading) {
-    ffmpegLoading = (async () => {
+  if (_ffmpeg) return _ffmpeg;
+  if (!_ffmpegLoad) {
+    _ffmpegLoad = (async () => {
+      if (!window.__FFMPEG__?.FFmpeg || !window.__FFMPEG__?.fetchFile) {
+        console.warn('[dripl] FFmpeg wasm not present; falling back to metadata-only.');
+        return null; // soft fallback: no crash, no transcode
+      }
       const { FFmpeg, fetchFile } = window.__FFMPEG__;
-      const ffmpeg = new FFmpeg();
-      ffmpeg.on('log', ({ message }) => console.log('[ffmpeg]', message));
-      ffmpeg.on('progress', (p) => {
-        // p.ratio is 0..1
-        document.dispatchEvent(new CustomEvent('ameba:transcode-progress', { detail: p }));
+      const ff = new FFmpeg();
+      ff.on('log', ({ message }) => console.log('[ffmpeg]', message));
+      ff.on('progress', (p) => {
+        document.dispatchEvent(new CustomEvent('dripl:transcode-progress', { detail: p }));
       });
-      await ffmpeg.load();
-      ffmpeg.__fetchFile = fetchFile; // stash helper
-      return ffmpeg;
+      await ff.load();
+      ff.__fetchFile = fetchFile; // stash helper
+      return ff;
     })();
   }
-  ffmpegInstance = await ffmpegLoading;
-  return ffmpegInstance;
+  _ffmpeg = await _ffmpegLoad;
+  return _ffmpeg;
 }
-// Infer a basic target by select value ("mp4" or "mp3")
-function normalizeTarget(targetLabel) {
-  const s = (targetLabel || '').toLowerCase();
+
+function normalizeTarget(label) {
+  const s = (label || '').toLowerCase();
   if (s.includes('mp3')) return 'mp3';
   return 'mp4';
 }
 
-// Convert a single File to the target format and return { blob, filename }
+function safeOutputName(original, target) {
+  const base = original.replace(/\.[^.]+$/, '');
+  return `${base}.${target}`;
+}
+
 async function transcodeFileToTarget(file, target = 'mp4') {
   const ffmpeg = await getFFmpeg();
+  if (!ffmpeg) {
+    // Fallback: behave as if “converted” without actual transcode.
+    return { blob: file, filename: safeOutputName(file.name, target), fallback: true };
+  }
 
-  const inputName = `input_${Date.now()}.${(file.name.split('.').pop() || 'dat')}`;
+  const inputName  = `in_${Date.now()}.${(file.name.split('.').pop() || 'dat')}`;
   const outputName = target === 'mp3' ? 'out.mp3' : 'out.mp4';
 
   await ffmpeg.writeFile(inputName, await ffmpeg.__fetchFile(file));
 
-  // Very light defaults for MVP. We can expose presets later.
   const args =
     target === 'mp3'
       ? ['-i', inputName, '-vn', '-acodec', 'libmp3lame', '-q:a', '4', outputName]
@@ -62,16 +73,11 @@ async function transcodeFileToTarget(file, target = 'mp4') {
   return { blob, filename: safeOutputName(file.name, target) };
 }
 
-function safeOutputName(original, target) {
-  const base = original.replace(/\.[^.]+$/, '');
-  return `${base}.${target}`;
-}
-
 /* =========================================================================
    Small utils
    ========================================================================= */
-const $  = (sel, root=document) => root.querySelector(sel);
-const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const storageKey = k => `${APP.ns}.${k}`;
 
 function prettyBytes(bytes){
@@ -80,127 +86,151 @@ function prettyBytes(bytes){
   while(v>=1024 && i<u.length-1){ v/=1024; i++; }
   return `${v.toFixed(v<10?1:0)} ${u[i]}`;
 }
-function nowISO(){ return new Date().toISOString(); }
+const nowISO = () => new Date().toISOString();
+
+/* =========================================================================
+   Centralized local-file processing
+   - Used by: Upload (drop files), Import (choose files)
+   - Emits:  `${APP.ns}:converted` once each item is ready
+   ========================================================================= */
+async function processLocalFiles(filesList, targetLabel) {
+  const target = normalizeTarget(targetLabel || $('#formatSelect')?.value || 'mp4');
+
+  for (const file of filesList) {
+   try {
+  const { blob, filename } = await transcodeFileToTarget(file, target);
+  const publicPath = await uploadToDestinationServer(blob, filename);
+
+  updateStorageItem(item.id, {
+    status: 'done',
+    name: filename,
+    // If you want local preview too:
+    // previewUrl: URL.createObjectURL(blob),
+    downloadUrl: publicPath               // <-- server URL (hot-linked)
+  });
+} catch (err) {
+  console.error('[ameba] transcode error:', err);
+  updateStorageItem(item.id, { status: 'error', error: String(err?.message || err) });
+} finally {
+  renderStorage();
+}
+
+
+      // Storage listens for this and adds it to “Recent”
+      document.dispatchEvent(new CustomEvent(`${APP.ns}:converted`, {
+        detail: {
+          id: crypto.randomUUID(),
+          name: filename,
+          size: blob.size,
+          type: target === 'mp3' ? 'audio' : 'video',
+          format: target,
+          quality: 'high',
+          source: 'local',
+          meta: fallback ? 'no-ffmpeg (metadata only)' : '',
+          createdAt: nowISO(),
+          downloadUrl
+        }
+      }));
+    } catch (err) {
+      console.error('[dripl] transcode error:', err);
+      alert('There was an error converting one of your files.');
+    }
+  }
+}
+
+async function uploadToDestinationServer(blob, filename) {
+  const fd = new FormData();
+  fd.append('file', blob, filename);
+
+  const res = await fetch('http://localhost:8080/api/destinations/upload', {
+    method: 'POST',
+    body: fd,
+    // If you later attach Supabase auth: headers: { Authorization: `Bearer ${window.authToken || ''}` }
+  });
+  const data = await res.json();
+  if (!res.ok || !data?.ok) throw new Error(data?.error || 'Upload failed');
+  // Returns server-served URL like /files/123_name.mp4
+  return data.url;
+}
+
+
 
 /* =========================================================================
    Upload (drag & drop + paste link converter)
    ========================================================================= */
 (function initUpload(){
-  const drop = $('#uploadDrop');
+  const drop       = $('#uploadDrop');
   const pasteInput = $('#pasteLink');
   const convertBtn = $('#convertBtn');
   const formatSel  = $('#formatSelect');
 
-  // drag-over styling
-  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e=>{
-    e.preventDefault(); e.dataTransfer.dropEffect='copy'; drop.classList.add('dropzone--over');
-  }));
-  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e=>{
-    e.preventDefault(); drop.classList.remove('dropzone--over');
-  }));
+const xhr = new XMLHttpRequest();
+xhr.open("POST", "http://localhost:8080/api/destinations/upload");
+if (window.authToken) xhr.setRequestHeader("Authorization", `Bearer ${window.authToken}`);
+xhr.send(form);
 
-  drop.addEventListener('drop', async (e)=>{
-    const dt = e.dataTransfer;
+  if (drop) {
+    // Visual state
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e=>{
+      e.preventDefault(); e.dataTransfer.dropEffect='copy'; drop.classList.add('dropzone--over');
+    }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e=>{
+      e.preventDefault(); drop.classList.remove('dropzone--over');
+    }));
 
-    // URLs or plain text → treat as paste link conversion
-    const link = dt.getData('text/uri-list') || dt.getData('text/plain');
-    if(link){
-      pasteInput.value = link.trim();
-      convertNow(); return;
-    }
+    drop.addEventListener('drop', async (e)=>{
+      const dt = e.dataTransfer;
 
-    // Files → queue each to storage immediately
-    if(dt.files?.length){
-      for(const f of dt.files){
-        dispatchConvertStart({ name:f.name, size:f.size, kind:'file' });
-        // Simulate success (your real uploader goes here)
-        dispatchConverted({
-          id: crypto.randomUUID(),
-          name: f.name,
-          size: f.size,
-          type: (f.type||'').startsWith('audio') ? 'audio' : 'video',
-          format: (f.name.split('.').pop()||'').toLowerCase(),
-          quality: 'high',
-          source: 'local',
-          meta: '',
-          createdAt: nowISO()
-        });
+      // URL or text → treat as paste link conversion
+      const link = dt.getData('text/uri-list') || dt.getData('text/plain');
+      if (link) {
+        pasteInput.value = link.trim();
+        convertNow();
+        return;
       }
-    }
-  });
 
-async function handleDroppedFiles(filesList) {
-  const target = normalizeTarget(document.querySelector('#formatSelect')?.value || 'mp4');
-
-  for (const file of filesList) {
-    // 1) Create "In progress" storage entry
-    const item = {
-      id: crypto.randomUUID(),
-      name: file.name,
-      type: target === 'mp3' ? 'audio' : 'video',
-      format: target,
-      size: file.size,
-      source: 'local',
-      addedAt: Date.now(),
-      status: 'inprogress'
-    };
-    addToStorage(item);
-    renderStorage(); // if you have a renderer
-
-    try {
-      // 2) Transcode
-      const { blob, filename } = await transcodeFileToTarget(file, target);
-      const url = URL.createObjectURL(blob);
-
-      // 3) Update storage entry to "done" + give download URL
-      updateStorageItem(item.id, {
-        status: 'done',
-        name: filename,
-        downloadUrl: url
-      });
-
-    } catch (err) {
-      console.error('[ameba] transcode error:', err);
-      updateStorageItem(item.id, {
-        status: 'error',
-        error: String(err?.message || err)
-      });
-    } finally {
-      renderStorage();
-    }
+      // REAL files flow -> use FFmpeg + destination
+  if (dt.files?.length) {
+    await handleDroppedFiles(dt.files);   // <— call the real function
   }
-}
+});
+  }
 
   async function convertNow(){
-    const url = pasteInput.value.trim();
+    const url = pasteInput?.value.trim();
     if(!url) return;
-    const outFmt = formatSel.value;
+    const outFmt = formatSel?.value || 'mp4';
 
     convertBtn.disabled = true;
     const label = convertBtn.textContent;
     convertBtn.textContent = 'Converting…';
 
-    dispatchConvertStart({ url, outFmt, kind:'link' });
+    // Notify storage a conversion was requested (optional hook)
+    document.dispatchEvent(new CustomEvent(`${APP.ns}:convert:start`, {
+      detail: { url, outFmt, kind:'link' }
+    }));
 
     try{
-      // Replace with your real API
-      // const res = await fetch('/api/download', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ url, format: outFmt })});
+      // TODO: wire your real server endpoint here.
+      // const res = await fetch('/api/download', {...});
       // const data = await res.json();
-      await new Promise(r=>setTimeout(r, 800));
+      await new Promise(r=>setTimeout(r, 600)); // placeholder latency
 
-      dispatchConverted({
-        id: crypto.randomUUID(),
-        name: `converted.${outFmt}`,
-        size: 12 * 1024 * 1024,
-        type: outFmt === 'mp3' ? 'audio' : 'video',
-        format: outFmt,
-        quality: 'high',
-        source: (new URL(url)).hostname.replace('www.',''),
-        meta: url,
-        createdAt: nowISO()
-      });
+      document.dispatchEvent(new CustomEvent(`${APP.ns}:converted`, {
+        detail: {
+          id: crypto.randomUUID(),
+          name: `converted.${outFmt}`,
+          size: 12 * 1024 * 1024,
+          type: outFmt === 'mp3' ? 'audio' : 'video',
+          format: outFmt,
+          quality: 'high',
+          source: (new URL(url)).hostname.replace(/^www\./,''),
+          meta: url,
+          createdAt: nowISO()
+        }
+      }));
     }catch(err){
-      alert(`Conversion error`);
+      alert('Link conversion failed.');
       console.error(`[${APP.ns}] convert error`, err);
     }finally{
       convertBtn.disabled = false; convertBtn.textContent = label;
@@ -209,111 +239,58 @@ async function handleDroppedFiles(filesList) {
 
   convertBtn?.addEventListener('click', convertNow);
   pasteInput?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') convertNow(); });
-
-  // helper events for Storage
-  function dispatchConvertStart(payload){
-    document.dispatchEvent(new CustomEvent(`${APP.ns}:convert:start`,{detail:payload}));
-  }
-  function dispatchConverted(item){
-    document.dispatchEvent(new CustomEvent(`${APP.ns}:converted`,{detail:item}));
-  }
 })();
 
 /* =========================================================================
-   Import (choose files + stubs for cloud) — robust
+   Import (choose files + stubs for Dropbox/Drive)
    ========================================================================= */
 (function initImport(){
   const chooseBtn = document.getElementById('importChooseBtn');
   const fileInput = document.getElementById('importFileInput');
+  const formatSel = document.getElementById('formatSelect');
 
-  if (!chooseBtn || !fileInput) {
-    console.warn('[import] missing elements', { chooseBtn: !!chooseBtn, fileInput: !!fileInput });
-    return;
-  }
+  if (!chooseBtn || !fileInput) return;
 
-  // Ensure input is usable
-  fileInput.disabled = false;
-
-  // Open the system file chooser
-  function openPicker(e){
-    e?.preventDefault?.();
-    // Some browsers need a tiny delay to ensure focus is not on a <button type=submit>
-    setTimeout(()=> fileInput.click(), 0);
-  }
-
-  // Click & keyboard activation
+  function openPicker(e){ e?.preventDefault?.(); setTimeout(()=>fileInput.click(), 0); }
   chooseBtn.addEventListener('click', openPicker);
-  chooseBtn.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter' || e.key === ' ') openPicker(e);
-  });
+  chooseBtn.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') openPicker(e); });
 
-  // Handle chosen files
-  fileInput.addEventListener('change', ()=>{
+  // Chosen files → same pipeline as drop
+  fileInput.addEventListener('change', async ()=>{
     const files = Array.from(fileInput.files || []);
     if (!files.length) return;
-
-    files.forEach(f=>{
-      document.dispatchEvent(new CustomEvent(`${APP.ns}:converted`, {
-        detail: {
-          id: crypto.randomUUID(),
-          name: f.name,
-          size: f.size,
-          type: (f.type || '').startsWith('audio') ? 'audio' : 'video',
-          format: (f.name.split('.').pop() || '').toLowerCase(),
-          quality: 'high',
-          source: 'device',
-          meta: '',
-          createdAt: new Date().toISOString()
-        }
-      }));
-    });
-
-    // Reset input so selecting the same file later still fires 'change'
-    fileInput.value = '';
+    await processLocalFiles(files, formatSel?.value);
+    fileInput.value = ''; // allow same file again later
   });
 
-  // (Optional) Guard: if something ever overlays the button, log it
-  setTimeout(()=>{
-    const rect = chooseBtn.getBoundingClientRect();
-    const el = document.elementFromPoint(rect.left + 4, rect.top + 4);
-    if (el && el !== chooseBtn && !chooseBtn.contains(el)) {
-      console.warn('[import] Something may overlay the Choose files button:', el);
-    }
-  }, 0);
-
-  // Stubs (wire SDKs later)
+  // Cloud stubs (wire SDKs later)
   document.getElementById('connectDropbox')?.addEventListener('click', ()=>alert('Dropbox SDK not wired yet'));
   document.getElementById('connectDrive')?.addEventListener('click',   ()=>alert('Google Drive Picker not wired yet'));
 })();
 
-
 /* =========================================================================
-   Storage (library)
+   Storage (library) – minimal but functional
+   - Listens for `${APP.ns}:converted` and renders "Recent"
+   - Includes search, tabs, filters/presets/folders shell you already had
    ========================================================================= */
 const DriplStorage = (()=>{
 
   // state
-  let items = load(storageKey('storage.v1')) || [];     // all entries
-  let filters = load(storageKey('filters')) || {};      // last filters used
-  let presets = load(storageKey('presets')) || [];      // saved presets
-  let folders = load(storageKey('folders')) || [];      // folder names
-  let tab = 'recent';                                   // recent | saved | queue | shared | trash
-  let q = '';                                           // search query
+  let items   = load(storageKey('storage.v1')) || [];
+  let filters = load(storageKey('filters')) || {};
+  let presets = load(storageKey('presets')) || [];
+  let folders = load(storageKey('folders')) || [];
+  let tab     = 'recent';
+  let q       = '';
 
   // elements
   const listEl    = $('#storageList');
   const searchEl  = $('#storageSearch');
   const searchClr = $('#storageClearSearch');
 
-  // Initial render
   render();
 
-  // ——— convert events coming from Upload/Import ———
-  document.addEventListener(`${APP.ns}:convert:start`, e=>{
-    const p = e.detail||{};
-    // you may show queue items here if desired
-  });
-
+  // accept results from Upload/Import (once complete)
   document.addEventListener(`${APP.ns}:converted`, e=>{
     const item = e.detail;
     items.unshift(item);
@@ -321,16 +298,14 @@ const DriplStorage = (()=>{
     render();
   });
 
-  // ——— search ———
+  // search
   searchEl?.addEventListener('input', ()=>{
-    q = (searchEl.value||'').trim().toLowerCase();
+    q = (searchEl.value || '').trim().toLowerCase();
     render();
   });
-  searchClr?.addEventListener('click', ()=>{
-    q=''; searchEl.value=''; render();
-  });
+  searchClr?.addEventListener('click', ()=>{ q=''; if (searchEl) searchEl.value=''; render(); });
 
-  // ——— tabs ———
+  // tabs
   $$('#storagePanel .tabs .chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       $$('#storagePanel .tabs .chip').forEach(b=>b.classList.remove('chip--active'));
@@ -339,19 +314,20 @@ const DriplStorage = (()=>{
       render();
     });
   });
-	// ==progress bar==
-document.addEventListener('ameba:transcode-progress', (e) => {
-  const ratio = Math.round((e.detail.ratio || 0) * 100);
-  // Update the active card’s progress bar UI…
+
+  document.addEventListener('ameba:transcode-progress', (e) => {
+  const pct = Math.round((e.detail.ratio || 0) * 100);
+  // TODO: find the “inprogress” item in your Storage list and update its DOM
+  // e.g., set width of .progress__bar inside that item
 });
 
-  // ——— toolbar popovers ———
+
+  // toolbar popovers (filters / presets / folders)
   hookToolbar();
 
-  // public API (optional)
   return { items, render };
 
-  /* ----------------------- helpers ----------------------- */
+  /* ---------- helpers ---------- */
 
   function render(){
     if(!listEl) return;
@@ -368,6 +344,7 @@ document.addEventListener('ameba:transcode-progress', (e) => {
         ${it.type||''} • ${it.format||''} • ${prettyBytes(it.size||0)} • ${it.source||''}
       </div>
       <div class="item__meta">Added ${new Date(it.createdAt||Date.now()).toLocaleString()}</div>
+      ${it.downloadUrl ? `<div class="item__meta"><a class="btn" href="${it.downloadUrl}" download>Download</a></div>` : ''}
     `;
     return el;
   }
@@ -375,13 +352,11 @@ document.addEventListener('ameba:transcode-progress', (e) => {
   function filtered(arr){
     // search
     let out = arr.filter(it=>{
-      const hay = [
-        it.name, it.format, it.source, it.meta
-      ].join(' ').toLowerCase();
+      const hay = [it.name, it.format, it.source, it.meta].join(' ').toLowerCase();
       return hay.includes(q);
     });
 
-    // demo tabs (extend as needed)
+    // demo tabs
     if(tab==='trash') out = out.filter(it=>it.trashed);
     if(tab==='saved') out = out.filter(it=>it.starred);
 
@@ -406,7 +381,7 @@ document.addEventListener('ameba:transcode-progress', (e) => {
     const btnClear   = $('#filterClear');
 
     btnFilters?.addEventListener('click', ()=> togglePopover(panelF, btnFilters));
-    btnClear?.addEventListener('click', ()=>{ filters={}; formF.reset(); save(storageKey('filters'),filters); render(); });
+    btnClear?.addEventListener('click', ()=>{ filters={}; formF?.reset(); save(storageKey('filters'),filters); render(); });
 
     // chip toggles
     $$('#filterPanel .chip[data-key]').forEach(ch=>{
@@ -439,9 +414,7 @@ document.addEventListener('ameba:transcode-progress', (e) => {
     const nameP      = $('#presetName');
     const saveP      = $('#presetSave');
 
-    btnPresets?.addEventListener('click', ()=>{
-      renderPresets(); togglePopover(panelP, btnPresets);
-    });
+    btnPresets?.addEventListener('click', ()=>{ renderPresets(); togglePopover(panelP, btnPresets); });
     saveP?.addEventListener('click', ()=>{
       const nm = nameP.value.trim(); if(!nm) return;
       const copy = JSON.parse(JSON.stringify(filters));
@@ -484,32 +457,50 @@ document.addEventListener('ameba:transcode-progress', (e) => {
       alert(`Folder "${nm}" created`);
     });
 
-    // clicking outside closes any open popover
+    // click-away to close any open popover
     document.addEventListener('click', (e)=>{
-      [panelF,panelP,panelFo].forEach(p=>{
+      [panelF, panelP, panelFo].forEach(p=>{
         if(!p || p.hidden) return;
-        if(!p.contains(e.target) && e.target !== btnFilters && e.target !== btnPresets && e.target !== btnFolder){
-          hidePopover(p);
-        }
+        const within =
+          p.contains(e.target) ||
+          e.target === btnFilters || e.target === btnPresets || e.target === btnFolder;
+        if (!within) hidePopover(p);
       });
     });
   }
 
-  function togglePopover(panel, anchor){
-    if(!panel) return;
-    panel.hidden = !panel.hidden;
-    if(!panel.hidden){
-      // simple position near right edge; could calculate from anchor if wanted
-      panel.style.right = '18px'; panel.style.bottom = '18px';
-    }
-  }
-  function hidePopover(panel){ if(panel) panel.hidden=true; }
+  function togglePopover(panel){ if (!panel) return; panel.hidden = !panel.hidden; }
+  function hidePopover(panel){ if(panel) panel.hidden = true; }
 
   function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
   function load(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch{ return null; } }
-
   function escapeHTML(s){ return (s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 })();
+
+async function loadAssetsFromServer() {
+  if (!window.authToken) return; // only after login
+
+  const res = await fetch("http://localhost:8080/api/assets", {
+    headers: { Authorization: `Bearer ${window.authToken}` }
+  });
+  const assets = await res.json();
+
+  const storageContainer = document.querySelector('#storageList'); // whatever div shows your cards
+  storageContainer.innerHTML = ''; // clear
+
+  assets.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'storage-card';
+    card.innerHTML = `
+      <strong>${a.name}</strong><br>
+      ${a.kind} • ${a.format || 'unknown'} • ${(a.size / 1024 / 1024).toFixed(1)} MB<br>
+      <small>Added ${new Date(a.created_at).toLocaleString()}</small>
+    `;
+    storageContainer.appendChild(card);
+  });
+}
+
+
 
 
 
