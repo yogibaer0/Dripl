@@ -44,6 +44,34 @@ function safeOutputName(original, target) {
   return `${base}.${target}`;
 }
 
+// script.js (near your ffmpeg init)
+async function loadFFmpeg() {
+  // 1) try local vendor (fastest, no CDN needed)
+  try {
+    return await import('/vendor/ffmpeg/ffmpeg.mjs');
+  } catch (_) {
+    // 2) fall back to CDN if vendor missing
+    return await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
+  }
+}
+
+// Example usage:
+let ffmpeg;
+(async () => {
+  const { createFFmpeg, fetchFile } = await loadFFmpeg();
+
+  ffmpeg = createFFmpeg({
+    log: false,
+    corePath: '/vendor/ffmpeg/ffmpeg-core.js', // if present locally…
+    // If you want to *force* CDN core, comment the line above and use:
+    // corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js'
+  });
+
+  await ffmpeg.load();
+  // … your transcode pipeline
+})();
+
+
 /* =========================================================================
    Supabase bootstrap (reads from <meta>)
    ========================================================================= */

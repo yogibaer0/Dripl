@@ -1,67 +1,47 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Content Security Policy -->
-<!-- Pragmatic, permissive CSP for Ameba (friendly + safe enough) -->
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'self' https:;
-  object-src 'none';
-  base-uri 'self';
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ameba (formerly Dripl)</title>
 
-  /* allow your app + CDNs + WASM/Workers */
-  script-src
-    'self' https:
-    'unsafe-inline' 'unsafe-eval'        /* keeps things convenient */
-    blob:;
-  worker-src 'self' blob:;
-  child-src blob:;                        /* old browsers fallback */
+  <!-- 🌐 Pragmatic, open CSP for Ameba -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' https: data: blob:;
+    object-src 'none';
+    base-uri 'self';
+    script-src 'self' https: 'unsafe-inline' 'unsafe-eval' blob:;
+    worker-src 'self' blob:;
+    style-src 'self' https: 'unsafe-inline';
+    img-src 'self' https: data: blob:;
+    font-src 'self' https: data:;
+    media-src 'self' https: blob: data:;
+    connect-src 'self' https: http://localhost:8080 ws://localhost:8080
+      https://dripl.onrender.com
+      https://ujchypvlqzermgpfzaqo.supabase.co
+      https://api.dropboxapi.com https://content.dropboxapi.com
+      https://www.googleapis.com https://*.googleusercontent.com;
+    frame-src https://accounts.google.com https://*.google.com https://*.googleusercontent.com https://www.dropbox.com;
+  ">
 
-  style-src
-    'self' https:
-    'unsafe-inline';                      /* allow inline styles */
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css" />
 
-  img-src
-    'self' https: data: blob:;
-
-  font-src
-    'self' https: data:;
-
-  media-src
-    'self' https: blob: data:;            /* video/audio previews + ffmpeg */
-
-  /* XHR/Fetch/WebSocket endpoints your app talks to */
-  connect-src
-    'self' https: http://localhost:8080 ws://localhost:8080
-   https://dripl.onrender.com
-    https://ujchypvlqzermgpfzaqo.supabase.co
-    https://api.dropboxapi.com https://content.dropboxapi.com
-    https://www.googleapis.com https://*.googleusercontent.com;
-
-  /* OAuth / Picker iframes/popups (Drive, Dropbox, etc.) */
-  frame-src
-    https://accounts.google.com
-    https://*.google.com https://*.googleusercontent.com
-    https://www.dropbox.com;
-
-  /* explicitly allow common CDNs (optional, belt & suspenders) */
-  script-src-elem 'self' https: 'unsafe-inline';
-  style-src-elem  'self' https: 'unsafe-inline';
-">
-
-
+  <!-- Favicons / meta -->
+  <link rel="icon" href="assets/dripl/dripl.png" type="image/png" />
 </head>
 <body>
   <!-- Corner brand -->
   <a class="corner" href="#" aria-label="Home">
     <img class="corner__logo" src="assets/dripl/dripl.png" alt="logo" />
-    <span class="corner__name" id="appName">Dripl</span>
+    <span class="corner__name" id="appName">Ameba</span>
     <span class="corner__badge">beta</span>
   </a>
 
   <!-- Hero -->
   <header class="hero">
     <img class="hero__logo" src="assets/dripl/dripl.png" alt="" />
-    <h1 class="hero__title" id="heroTitle">Dripl</h1>
+    <h1 class="hero__title" id="heroTitle">Ameba</h1>
     <div class="glow-line">
       <svg viewBox="0 0 100 2" preserveAspectRatio="none">
         <path d="M0,1 L100,1" stroke="url(#g)" stroke-width="2" fill="none" />
@@ -76,7 +56,6 @@
   </header>
 
   <main class="panels">
-
     <!-- Upload -->
     <section class="card" id="uploadPanel">
       <div class="card__head">
@@ -87,9 +66,7 @@
       </div>
 
       <div class="upload">
-        <div id="uploadDrop"
-             class="dropzone"
-             aria-label="Drag & drop files here">
+        <div id="uploadDrop" class="dropzone" aria-label="Drag & drop files here">
           <span class="dropzone__hint">
             <strong>Drag &amp; drop files here</strong>
             <em>…or drop a link / text</em>
@@ -97,15 +74,13 @@
         </div>
 
         <div class="upload__controls">
-          <input id="pasteLink" class="input" type="text"
-                 placeholder="Paste link (YouTube, TikTok, etc.)" />
+          <input id="pasteLink" class="input" type="text" placeholder="Paste link (YouTube, TikTok, etc.)" />
           <select id="formatSelect" class="select">
             <option value="mp4">MP4 (video)</option>
             <option value="mp3">MP3 (audio)</option>
           </select>
           <button id="convertBtn" class="btn btn--primary">Convert</button>
         </div>
-
         <p class="muted">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
       </div>
     </section>
@@ -121,17 +96,10 @@
 
       <div class="import">
         <div class="import__col">
-  <h3>This device</h3>
-
-  <!-- One button the user clicks -->
-  <button id="importChooseBtn" class="btn" data-action="choose-files" type="button">
-    Choose files
-  </button>
-
-  <!-- The real file input lives offscreen -->
-  <input id="importFileInput" type="file" multiple
-         style="position:absolute; left:-9999px; width:1px; height:1px;" />
-</div>
+          <h3>This device</h3>
+          <button id="importChooseBtn" class="btn" data-action="choose-files" type="button">Choose files</button>
+          <input id="importFileInput" type="file" multiple style="position:absolute; left:-9999px; width:1px; height:1px;" />
+        </div>
 
         <div class="import__col">
           <h3>Dropbox</h3>
@@ -157,8 +125,7 @@
 
         <div class="toolbar">
           <div class="search">
-            <input id="storageSearch" type="search"
-                   placeholder="Search by file name, tags, notes, or source…" />
+            <input id="storageSearch" type="search" placeholder="Search by file name, tags, notes, or source…" />
             <button id="storageClearSearch" class="icon-btn" aria-label="Clear">✕</button>
           </div>
 
@@ -177,118 +144,34 @@
       </div>
 
       <div id="storageList" class="grid"></div>
-<a class="btn btn--ghost" href="{{downloadUrl}}" download="{{name}}">Download</a>
     </section>
-
   </main>
 
-  <!-- Popovers (Filters / Presets / New Folder) -->
-  <section id="filterPanel" class="popover" hidden>
-    <header>Filters</header>
-    <form id="filterForm" class="stack">
-      <fieldset>
-        <legend>Type</legend>
-        <div class="chips">
-          <button type="button" class="chip" data-key="type" data-val="video">Video</button>
-          <button type="button" class="chip" data-key="type" data-val="audio">Audio</button>
-        </div>
-      </fieldset>
+  <!-- Supabase config -->
+  <meta name="supabase-url" content="https://ujchypvlqzermgpfzaqo.supabase.co" />
+  <meta name="supabase-anon" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2h5cHZscXplcm1ncGZ6YXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzA3NzQsImV4cCI6MjA3NTk0Njc3NH0.WHWxl2VReNQrjlnSlIjyagLpWLex6vmKI0KpXX6_i1w" />
 
-      <fieldset>
-        <legend>Quality</legend>
-        <div class="chips">
-          <button type="button" class="chip" data-key="quality" data-val="high">High</button>
-          <button type="button" class="chip" data-key="quality" data-val="medium">Medium</button>
-          <button type="button" class="chip" data-key="quality" data-val="low">Low</button>
-        </div>
-      </fieldset>
-
-      <div class="grid grid--2">
-        <label>Format <input name="format" type="text" placeholder="mp4/mp3/webm"/></label>
-        <label>Source <input name="source" type="text" placeholder="youtube/tiktok/drive…"/></label>
-        <label>Meta   <input name="meta"   type="text" placeholder="notes/tags…"/></label>
-        <label>Min size (MB) <input name="minSize" type="number" min="0"/></label>
-        <label>Max size (MB) <input name="maxSize" type="number" min="0"/></label>
-      </div>
-
-      <div class="row end">
-        <button id="filterClear" type="button" class="btn btn--ghost">Clear</button>
-        <button type="submit" class="btn btn--primary">Apply</button>
-      </div>
-    </form>
-  </section>
-
-  <section id="presetPanel" class="popover" hidden>
-    <header>Presets</header>
-    <div id="presetList" class="stack"></div>
-    <div class="row">
-      <input id="presetName" class="input" placeholder="Preset name" />
-      <button id="presetSave" class="btn btn--primary">Save current</button>
-    </div>
-  </section>
-
-  <section id="folderPanel" class="popover" hidden>
-    <header>New folder</header>
-    <div class="row">
-      <input id="folderName" class="input" placeholder="Folder name" />
-      <button id="folderCreate" class="btn btn--primary">Create</button>
-    </div>
-  </section>
-
-<!-- Supabase config (read by script.js) -->
-<meta name="supabase-url" content="https://ujchypvlqzermgpfzaqo.supabase.co">
-<meta name="supabase-anon" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2h5cHZscXplcm1ncGZ6YXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzA3NzQsImV4cCI6MjA3NTk0Njc3NH0.WHWxl2VReNQrjlnSlIjyagLpWLex6vmKI0KpXX6_i1w">
-
-
-
-<!-- Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-
-<!-- FFmpeg loader (local) -->
-<script type="module" src="ffmpeg-loader.js" defer></script>
-<script type="module">
-  import { FFmpeg } from '/vendor/ffmpeg/ffmpeg.mjs';
-  import * as FFUtil from '/vendor/ffmpeg/util.mjs';
-
-  async function ensureFFmpeg() {
-    if (window.ffmpegReady) return window.ffmpeg;
-
-    const ffmpeg = new FFmpeg();
-    await ffmpeg.load({
-      coreURL:   '/vendor/ffmpeg/ffmpeg-core.js',
-      wasmURL:   '/vendor/ffmpeg/ffmpeg-core.wasm',
-      workerURL: '/vendor/ffmpeg/ffmpeg-core.worker.js',
-    });
-
-    window.ffmpegReady = true;
-    window.ffmpeg = ffmpeg;
-    return ffmpeg;
-  }
-
-  // Example: small pre-transcode to reduce downstream upload size
-  window.preTranscodeToMP4 = async (file) => {
-    const ffmpeg = await ensureFFmpeg();
-
-    // Write input
-    await ffmpeg.writeFile('in', new Uint8Array(await file.arrayBuffer()));
-
-    // Transcode lightweight (copy audio, h264 video, capped bitrate)
-    await ffmpeg.exec([
-      '-i', 'in',
-      '-c:v', 'libx264', '-preset', 'veryfast', '-b:v', '1500k',
-      '-c:a', 'aac', '-b:a', '128k',
-      'out.mp4'
-    ]);
-
-    const data = await ffmpeg.readFile('out.mp4'); // Uint8Array
-    return new File([data.buffer], 'pretranscoded.mp4', { type: 'video/mp4' });
-  };
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<!-- Lightweight FFmpeg loader for users -->
+<script>
+  window.__FFMPEG__ = {};
+  (async () => {
+    try {
+      const { createFFmpeg, fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
+      const ff = createFFmpeg({ log: false, corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js' });
+      window.__FFMPEG__ = { FFmpeg: ff, fetchFile };
+      console.log('FFmpeg ready');
+    } catch (err) {
+      console.warn('FFmpeg load failed', err);
+    }
+  })();
 </script>
 
-<!-- App code -->
-<script src="script.js" defer></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
+
 
 
 
