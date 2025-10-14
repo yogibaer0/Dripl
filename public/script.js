@@ -1,17 +1,15 @@
 /* =========================================================================
    App constants (rename-ready)
    ========================================================================= */
-const APP = {
-  name: 'Dripl',   // soon: 'Ameba'
-  ns:   'dripl'    // soon: 'ameba' (used for events/localStorage keys)
-};
+const APP = { name: 'Dripl', ns: 'dripl' }; // soon 'Ameba'
 document.getElementById('appName')?.replaceChildren(APP.name);
 document.getElementById('heroTitle')?.replaceChildren(APP.name);
 
+// Point the client to your local destination server (or Render URL later)
+const PREFIX = { API_BASE: 'http://localhost:8080' };
+
 /* =========================================================================
    FFmpeg (wasm) bootstrap
-   - We try to use window.__FFMPEG__ = { FFmpeg, fetchFile }
-   - If it's not present, we gracefully fall back (still adds to Storage).
    ========================================================================= */
 let _ffmpeg = null, _ffmpegLoad = null;
 
@@ -21,16 +19,16 @@ async function getFFmpeg() {
     _ffmpegLoad = (async () => {
       if (!window.__FFMPEG__?.FFmpeg || !window.__FFMPEG__?.fetchFile) {
         console.warn('[dripl] FFmpeg wasm not present; falling back to metadata-only.');
-        return null; // soft fallback: no crash, no transcode
+        return null; // no crash; we’ll still upload original file
       }
       const { FFmpeg, fetchFile } = window.__FFMPEG__;
       const ff = new FFmpeg();
       ff.on('log', ({ message }) => console.log('[ffmpeg]', message));
       ff.on('progress', (p) => {
-        document.dispatchEvent(new CustomEvent('dripl:transcode-progress', { detail: p }));
+        document.dispatchEvent(new CustomEvent(`${APP.ns}:transcode-progress`, { detail: p }));
       });
       await ff.load();
-      ff.__fetchFile = fetchFile; // stash helper
+      ff.__fetchFile = fetchFile;
       return ff;
     })();
   }
@@ -40,15 +38,50 @@ async function getFFmpeg() {
 
 function normalizeTarget(label) {
   const s = (label || '').toLowerCase();
-  if (s.includes('mp3')) return 'mp3';
-  return 'mp4';
+  return s.includes('mp3') ? 'mp3' : 'mp4';
 }
-
 function safeOutputName(original, target) {
   const base = original.replace(/\.[^.]+$/, '');
   return `${base}.${target}`;
 }
 
+/* =========================================================================
+   Upload to destination server (progress-capable)
+   ========================================================================= */
+function uploadFileToServer(fileOrBlob, fileName, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${PREFIX.API_BASE}/api/destination/upload`); // matches server.js
+
+    // include auth if available (Supabase)
+    if (window.authToken) xhr.setRequestHeader('Authorization', `Bearer ${window.authToken}`);
+    if (window.currentUser?.id) xhr.setRequestHeader('x-ameba-user', window.currentUser.id);
+
+    xhr.upload.onprogress = (evt) => {
+      if (evt.lengthComputable && typeof onProgress === 'function') {
+        onProgress(Math.round((evt.loaded / evt.total) * 100));
+      }
+    };
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { resolve({ ok: true, raw: xhr.responseText }); }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+      }
+    };
+
+    const fd = new FormData();
+    fd.append('file', fileOrBlob, fileName);
+    xhr.send(fd);
+  });
+}
+
+/* =========================================================================
+   Transcode (or fallback) to target format
+   ========================================================================= */
 async function transcodeFileToTarget(file, target = 'mp4') {
   const ffmpeg = await getFFmpeg();
   if (!ffmpeg) {
@@ -70,7 +103,7 @@ async function transcodeFileToTarget(file, target = 'mp4') {
 
   const data = await ffmpeg.readFile(outputName);
   const blob = new Blob([data], { type: target === 'mp3' ? 'audio/mpeg' : 'video/mp4' });
-  return { blob, filename: safeOutputName(file.name, target) };
+  return { blob, filename: safeOutputName(file.name, target), fallback: false };
 }
 
 /* =========================================================================
@@ -79,44 +112,24 @@ async function transcodeFileToTarget(file, target = 'mp4') {
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const storageKey = k => `${APP.ns}.${k}`;
-
-function prettyBytes(bytes){
-  if(!Number.isFinite(bytes)) return '';
-  const u=['B','KB','MB','GB']; let i=0; let v=bytes;
-  while(v>=1024 && i<u.length-1){ v/=1024; i++; }
-  return `${v.toFixed(v<10?1:0)} ${u[i]}`;
-}
+function prettyBytes(bytes){ if(!Number.isFinite(bytes)) return ''; const u=['B','KB','MB','GB']; let i=0,v=bytes; while(v>=1024&&i<u.length-1){v/=1024;i++;} return `${v.toFixed(v<10?1:0)} ${u[i]}`; }
 const nowISO = () => new Date().toISOString();
 
 /* =========================================================================
    Centralized local-file processing
-   - Used by: Upload (drop files), Import (choose files)
-   - Emits:  `${APP.ns}:converted` once each item is ready
    ========================================================================= */
 async function processLocalFiles(filesList, targetLabel) {
   const target = normalizeTarget(targetLabel || $('#formatSelect')?.value || 'mp4');
 
   for (const file of filesList) {
-   try {
-  const { blob, filename } = await transcodeFileToTarget(file, target);
-  const publicPath = await uploadToDestinationServer(blob, filename);
+    try {
+      // 1) transcode (or fallback)
+      const { blob, filename, fallback } = await transcodeFileToTarget(file, target);
 
-  updateStorageItem(item.id, {
-    status: 'done',
-    name: filename,
-    // If you want local preview too:
-    // previewUrl: URL.createObjectURL(blob),
-    downloadUrl: publicPath               // <-- server URL (hot-linked)
-  });
-} catch (err) {
-  console.error('[ameba] transcode error:', err);
-  updateStorageItem(item.id, { status: 'error', error: String(err?.message || err) });
-} finally {
-  renderStorage();
-}
+      // 2) upload to destination (progress optional)
+      const uploaded = await uploadFileToServer(blob, filename);
 
-
-      // Storage listens for this and adds it to “Recent”
+      // 3) hand off to Storage
       document.dispatchEvent(new CustomEvent(`${APP.ns}:converted`, {
         detail: {
           id: crypto.randomUUID(),
@@ -128,32 +141,15 @@ async function processLocalFiles(filesList, targetLabel) {
           source: 'local',
           meta: fallback ? 'no-ffmpeg (metadata only)' : '',
           createdAt: nowISO(),
-          downloadUrl
+          downloadUrl: uploaded?.url || uploaded?.location || null
         }
       }));
     } catch (err) {
-      console.error('[dripl] transcode error:', err);
-      alert('There was an error converting one of your files.');
+      console.error('[dripl] convert/upload error:', err);
+      alert('There was an error converting or uploading one of your files.');
     }
   }
 }
-
-async function uploadToDestinationServer(blob, filename) {
-  const fd = new FormData();
-  fd.append('file', blob, filename);
-
-  const res = await fetch('http://localhost:8080/api/destinations/upload', {
-    method: 'POST',
-    body: fd,
-    // If you later attach Supabase auth: headers: { Authorization: `Bearer ${window.authToken || ''}` }
-  });
-  const data = await res.json();
-  if (!res.ok || !data?.ok) throw new Error(data?.error || 'Upload failed');
-  // Returns server-served URL like /files/123_name.mp4
-  return data.url;
-}
-
-
 
 /* =========================================================================
    Upload (drag & drop + paste link converter)
@@ -164,13 +160,8 @@ async function uploadToDestinationServer(blob, filename) {
   const convertBtn = $('#convertBtn');
   const formatSel  = $('#formatSelect');
 
-const xhr = new XMLHttpRequest();
-xhr.open("POST", "http://localhost:8080/api/destinations/upload");
-if (window.authToken) xhr.setRequestHeader("Authorization", `Bearer ${window.authToken}`);
-xhr.send(form);
-
   if (drop) {
-    // Visual state
+    // visual states
     ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e=>{
       e.preventDefault(); e.dataTransfer.dropEffect='copy'; drop.classList.add('dropzone--over');
     }));
@@ -181,7 +172,7 @@ xhr.send(form);
     drop.addEventListener('drop', async (e)=>{
       const dt = e.dataTransfer;
 
-      // URL or text → treat as paste link conversion
+      // URL/text → treat as paste link conversion
       const link = dt.getData('text/uri-list') || dt.getData('text/plain');
       if (link) {
         pasteInput.value = link.trim();
@@ -189,52 +180,18 @@ xhr.send(form);
         return;
       }
 
-      // REAL files flow -> use FFmpeg + destination
-  if (dt.files?.length) {
-    await handleDroppedFiles(dt.files);   // <— call the real function
-  }
-});
+      // Files → unified pipeline
+      if (dt.files?.length) await processLocalFiles(Array.from(dt.files), formatSel?.value);
+    });
   }
 
   async function convertNow(){
-    const url = pasteInput?.value.trim();
-    if(!url) return;
-    const outFmt = formatSel?.value || 'mp4';
+    const url = (pasteInput?.value || '').trim(); if(!url) return;
+    const outFmt = normalizeTarget(formatSel?.value || 'mp4');
 
-    convertBtn.disabled = true;
-    const label = convertBtn.textContent;
-    convertBtn.textContent = 'Converting…';
-
-    // Notify storage a conversion was requested (optional hook)
-    document.dispatchEvent(new CustomEvent(`${APP.ns}:convert:start`, {
-      detail: { url, outFmt, kind:'link' }
-    }));
-
-    try{
-      // TODO: wire your real server endpoint here.
-      // const res = await fetch('/api/download', {...});
-      // const data = await res.json();
-      await new Promise(r=>setTimeout(r, 600)); // placeholder latency
-
-      document.dispatchEvent(new CustomEvent(`${APP.ns}:converted`, {
-        detail: {
-          id: crypto.randomUUID(),
-          name: `converted.${outFmt}`,
-          size: 12 * 1024 * 1024,
-          type: outFmt === 'mp3' ? 'audio' : 'video',
-          format: outFmt,
-          quality: 'high',
-          source: (new URL(url)).hostname.replace(/^www\./,''),
-          meta: url,
-          createdAt: nowISO()
-        }
-      }));
-    }catch(err){
-      alert('Link conversion failed.');
-      console.error(`[${APP.ns}] convert error`, err);
-    }finally{
-      convertBtn.disabled = false; convertBtn.textContent = label;
-    }
+    // TODO: your existing paste-link converter call goes here.
+    // For now just log it so we keep the UI responsive.
+    console.log('[dripl] convert link ->', url, 'to', outFmt);
   }
 
   convertBtn?.addEventListener('click', convertNow);
@@ -248,14 +205,12 @@ xhr.send(form);
   const chooseBtn = document.getElementById('importChooseBtn');
   const fileInput = document.getElementById('importFileInput');
   const formatSel = document.getElementById('formatSelect');
-
   if (!chooseBtn || !fileInput) return;
 
-  function openPicker(e){ e?.preventDefault?.(); setTimeout(()=>fileInput.click(), 0); }
+  const openPicker = (e)=>{ e?.preventDefault?.(); setTimeout(()=>fileInput.click(), 0); };
   chooseBtn.addEventListener('click', openPicker);
   chooseBtn.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') openPicker(e); });
 
-  // Chosen files → same pipeline as drop
   fileInput.addEventListener('change', async ()=>{
     const files = Array.from(fileInput.files || []);
     if (!files.length) return;
@@ -263,19 +218,14 @@ xhr.send(form);
     fileInput.value = ''; // allow same file again later
   });
 
-  // Cloud stubs (wire SDKs later)
   document.getElementById('connectDropbox')?.addEventListener('click', ()=>alert('Dropbox SDK not wired yet'));
   document.getElementById('connectDrive')?.addEventListener('click',   ()=>alert('Google Drive Picker not wired yet'));
 })();
 
 /* =========================================================================
-   Storage (library) – minimal but functional
-   - Listens for `${APP.ns}:converted` and renders "Recent"
-   - Includes search, tabs, filters/presets/folders shell you already had
+   Storage (library)
    ========================================================================= */
 const DriplStorage = (()=>{
-
-  // state
   let items   = load(storageKey('storage.v1')) || [];
   let filters = load(storageKey('filters')) || {};
   let presets = load(storageKey('presets')) || [];
@@ -283,29 +233,21 @@ const DriplStorage = (()=>{
   let tab     = 'recent';
   let q       = '';
 
-  // elements
   const listEl    = $('#storageList');
   const searchEl  = $('#storageSearch');
   const searchClr = $('#storageClearSearch');
 
   render();
 
-  // accept results from Upload/Import (once complete)
   document.addEventListener(`${APP.ns}:converted`, e=>{
-    const item = e.detail;
-    items.unshift(item);
+    items.unshift(e.detail);
     save(storageKey('storage.v1'), items);
     render();
   });
 
-  // search
-  searchEl?.addEventListener('input', ()=>{
-    q = (searchEl.value || '').trim().toLowerCase();
-    render();
-  });
+  searchEl?.addEventListener('input', ()=>{ q = (searchEl.value || '').trim().toLowerCase(); render(); });
   searchClr?.addEventListener('click', ()=>{ q=''; if (searchEl) searchEl.value=''; render(); });
 
-  // tabs
   $$('#storagePanel .tabs .chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       $$('#storagePanel .tabs .chip').forEach(b=>b.classList.remove('chip--active'));
@@ -315,26 +257,14 @@ const DriplStorage = (()=>{
     });
   });
 
-  document.addEventListener('ameba:transcode-progress', (e) => {
-  const pct = Math.round((e.detail.ratio || 0) * 100);
-  // TODO: find the “inprogress” item in your Storage list and update its DOM
-  // e.g., set width of .progress__bar inside that item
-});
-
-
-  // toolbar popovers (filters / presets / folders)
   hookToolbar();
-
   return { items, render };
-
-  /* ---------- helpers ---------- */
 
   function render(){
     if(!listEl) return;
     const data = filtered(items);
     listEl.replaceChildren(...data.map(toCard));
   }
-
   function toCard(it){
     const el = document.createElement('div');
     el.className = 'item';
@@ -348,19 +278,14 @@ const DriplStorage = (()=>{
     `;
     return el;
   }
-
   function filtered(arr){
-    // search
     let out = arr.filter(it=>{
       const hay = [it.name, it.format, it.source, it.meta].join(' ').toLowerCase();
       return hay.includes(q);
     });
-
-    // demo tabs
     if(tab==='trash') out = out.filter(it=>it.trashed);
     if(tab==='saved') out = out.filter(it=>it.starred);
 
-    // filters
     const f = filters;
     if(f.type?.length)     out = out.filter(it=> f.type.includes(it.type));
     if(f.quality?.length)  out = out.filter(it=> f.quality.includes(it.quality));
@@ -369,10 +294,8 @@ const DriplStorage = (()=>{
     if(f.meta)             out = out.filter(it=> (it.meta||'').toLowerCase().includes(f.meta.toLowerCase()));
     if(f.minSize)          out = out.filter(it=> (it.size||0) >= (+f.minSize*1024*1024));
     if(f.maxSize)          out = out.filter(it=> (it.size||0) <= (+f.maxSize*1024*1024));
-
     return out;
   }
-
   function hookToolbar(){
     // Filters
     const btnFilters = $('#btnFilters');
@@ -380,14 +303,12 @@ const DriplStorage = (()=>{
     const formF      = $('#filterForm');
     const btnClear   = $('#filterClear');
 
-    btnFilters?.addEventListener('click', ()=> togglePopover(panelF, btnFilters));
+    btnFilters?.addEventListener('click', ()=> togglePopover(panelF));
     btnClear?.addEventListener('click', ()=>{ filters={}; formF?.reset(); save(storageKey('filters'),filters); render(); });
 
-    // chip toggles
     $$('#filterPanel .chip[data-key]').forEach(ch=>{
       ch.addEventListener('click', ()=>{
-        const key = ch.dataset.key;
-        const val = ch.dataset.val;
+        const key = ch.dataset.key, val = ch.dataset.val;
         ch.classList.toggle('chip--active');
         const list = new Set(filters[key] || []);
         ch.classList.contains('chip--active') ? list.add(val) : list.delete(val);
@@ -414,7 +335,7 @@ const DriplStorage = (()=>{
     const nameP      = $('#presetName');
     const saveP      = $('#presetSave');
 
-    btnPresets?.addEventListener('click', ()=>{ renderPresets(); togglePopover(panelP, btnPresets); });
+    btnPresets?.addEventListener('click', ()=>{ renderPresets(); togglePopover(panelP); });
     saveP?.addEventListener('click', ()=>{
       const nm = nameP.value.trim(); if(!nm) return;
       const copy = JSON.parse(JSON.stringify(filters));
@@ -448,7 +369,7 @@ const DriplStorage = (()=>{
     const nameFo    = $('#folderName');
     const createFo  = $('#folderCreate');
 
-    btnFolder?.addEventListener('click', ()=> togglePopover(panelFo, btnFolder));
+    btnFolder?.addEventListener('click', ()=> togglePopover(panelFo));
     createFo?.addEventListener('click', ()=>{
       const nm = nameFo.value.trim(); if(!nm) return;
       folders.unshift({ id:crypto.randomUUID(), name:nm, createdAt:nowISO() });
@@ -461,44 +382,18 @@ const DriplStorage = (()=>{
     document.addEventListener('click', (e)=>{
       [panelF, panelP, panelFo].forEach(p=>{
         if(!p || p.hidden) return;
-        const within =
-          p.contains(e.target) ||
-          e.target === btnFilters || e.target === btnPresets || e.target === btnFolder;
+        const within = p.contains(e.target) || e.target === btnFilters || e.target === btnPresets || e.target === btnFolder;
         if (!within) hidePopover(p);
       });
     });
   }
-
   function togglePopover(panel){ if (!panel) return; panel.hidden = !panel.hidden; }
   function hidePopover(panel){ if(panel) panel.hidden = true; }
-
   function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
   function load(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch{ return null; } }
   function escapeHTML(s){ return (s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 })();
 
-async function loadAssetsFromServer() {
-  if (!window.authToken) return; // only after login
-
-  const res = await fetch("http://localhost:8080/api/assets", {
-    headers: { Authorization: `Bearer ${window.authToken}` }
-  });
-  const assets = await res.json();
-
-  const storageContainer = document.querySelector('#storageList'); // whatever div shows your cards
-  storageContainer.innerHTML = ''; // clear
-
-  assets.forEach(a => {
-    const card = document.createElement('div');
-    card.className = 'storage-card';
-    card.innerHTML = `
-      <strong>${a.name}</strong><br>
-      ${a.kind} • ${a.format || 'unknown'} • ${(a.size / 1024 / 1024).toFixed(1)} MB<br>
-      <small>Added ${new Date(a.created_at).toLocaleString()}</small>
-    `;
-    storageContainer.appendChild(card);
-  });
-}
 
 
 
