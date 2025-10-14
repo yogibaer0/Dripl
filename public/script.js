@@ -5,8 +5,7 @@ const APP = { name: 'Dripl', ns: 'dripl' }; // soon 'Ameba'
 document.getElementById('appName')?.replaceChildren(APP.name);
 document.getElementById('heroTitle')?.replaceChildren(APP.name);
 
-// Point the client to your local destination server (or Render URL later)
-const PREFIX = { API_BASE: 'http://localhost:8080' };
+const PREFIX = { API_BASE: 'https://dripl.onrender.com' };
 
 /* =========================================================================
    FFmpeg (wasm) bootstrap
@@ -44,6 +43,35 @@ function safeOutputName(original, target) {
   const base = original.replace(/\.[^.]+$/, '');
   return `${base}.${target}`;
 }
+
+/* =========================================================================
+   Supabase bootstrap (reads from <meta>)
+   ========================================================================= */
+let supabaseClient = null;
+(function initSupabase(){
+  const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim();
+  const url  = meta('supabase-url');
+  const anon = meta('supabase-anon');
+  if (!window.supabase || !url || !anon) return;
+
+  supabaseClient = window.supabase.createClient(url, anon);
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    window.authToken   = session?.access_token || null;
+    window.currentUser = session?.user || null;
+    if (session) loadAssetsFromServer?.(); // optional
+  });
+
+  // resume session on refresh
+  supabaseClient.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      window.authToken   = data.session.access_token;
+      window.currentUser = data.session.user;
+      loadAssetsFromServer?.();
+    }
+  });
+})();
+
 
 /* =========================================================================
    Upload to destination server (progress-capable)

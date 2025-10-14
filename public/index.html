@@ -1,12 +1,54 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Dripl</title>
-  <link rel="stylesheet" href="styles.css" />
+  <!-- Content Security Policy -->
+<!-- Pragmatic, permissive CSP for Ameba (friendly + safe enough) -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self' https:;
+  object-src 'none';
+  base-uri 'self';
+
+  /* allow your app + CDNs + WASM/Workers */
+  script-src
+    'self' https:
+    'unsafe-inline' 'unsafe-eval'        /* keeps things convenient */
+    blob:;
+  worker-src 'self' blob:;
+  child-src blob:;                        /* old browsers fallback */
+
+  style-src
+    'self' https:
+    'unsafe-inline';                      /* allow inline styles */
+
+  img-src
+    'self' https: data: blob:;
+
+  font-src
+    'self' https: data:;
+
+  media-src
+    'self' https: blob: data:;            /* video/audio previews + ffmpeg */
+
+  /* XHR/Fetch/WebSocket endpoints your app talks to */
+  connect-src
+    'self' https: http://localhost:8080 ws://localhost:8080
+   https://dripl.onrender.com
+    https://ujchypvlqzermgpfzaqo.supabase.co
+    https://api.dropboxapi.com https://content.dropboxapi.com
+    https://www.googleapis.com https://*.googleusercontent.com;
+
+  /* OAuth / Picker iframes/popups (Drive, Dropbox, etc.) */
+  frame-src
+    https://accounts.google.com
+    https://*.google.com https://*.googleusercontent.com
+    https://www.dropbox.com;
+
+  /* explicitly allow common CDNs (optional, belt & suspenders) */
+  script-src-elem 'self' https: 'unsafe-inline';
+  style-src-elem  'self' https: 'unsafe-inline';
+">
+
+
 </head>
 <body>
   <!-- Corner brand -->
@@ -193,51 +235,58 @@
     </div>
   </section>
 
-<!-- FFmpeg (wasm) ESM build -->
+<!-- Supabase config (read by script.js) -->
+<meta name="supabase-url" content="https://ujchypvlqzermgpfzaqo.supabase.co">
+<meta name="supabase-anon" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2h5cHZscXplcm1ncGZ6YXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzA3NzQsImV4cCI6MjA3NTk0Njc3NH0.WHWxl2VReNQrjlnSlIjyagLpWLex6vmKI0KpXX6_i1w">
+
+
+
+<!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+
+<!-- FFmpeg loader (local) -->
+<script type="module" src="ffmpeg-loader.js" defer></script>
 <script type="module">
-  import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js';
-  import { fetchFile } from 'https://unpkg.com/@ffmpeg/util@0.12.2/dist/esm/index.js';
-  window.__FFMPEG__ = { FFmpeg, fetchFile };
+  import { FFmpeg } from '/vendor/ffmpeg/ffmpeg.mjs';
+  import * as FFUtil from '/vendor/ffmpeg/util.mjs';
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script>
-  window.supabase = supabase.createClient(
-    'https://ujchypvlqzermgpfzaqo.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
-  );
+  async function ensureFFmpeg() {
+    if (window.ffmpegReady) return window.ffmpeg;
 
-  // Track session → token for server calls
-  supabase.auth.onAuthStateChange((event, session) => {
-    window.authToken = session?.access_token || null;
-    window.currentUser = session?.user || null;
-    console.log('auth', event, window.currentUser?.email);
-  });
+    const ffmpeg = new FFmpeg();
+    await ffmpeg.load({
+      coreURL:   '/vendor/ffmpeg/ffmpeg-core.js',
+      wasmURL:   '/vendor/ffmpeg/ffmpeg-core.wasm',
+      workerURL: '/vendor/ffmpeg/ffmpeg-core.worker.js',
+    });
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  window.authToken = session?.access_token || null;
-  window.currentUser = session?.user || null;
-  if (session) loadAssetsFromServer?.(); // optional
-});
+    window.ffmpegReady = true;
+    window.ffmpeg = ffmpeg;
+    return ffmpeg;
+  }
 
+  // Example: small pre-transcode to reduce downstream upload size
+  window.preTranscodeToMP4 = async (file) => {
+    const ffmpeg = await ensureFFmpeg();
 
-// Load user's files from backend when logged in
-    if (session) {
-      loadAssetsFromServer();
-    }
-  });
+    // Write input
+    await ffmpeg.writeFile('in', new Uint8Array(await file.arrayBuffer()));
 
-  // Optional: call once on page load (to resume session if already signed in)
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      window.authToken = data.session.access_token;
-      window.currentUser = data.session.user;
-      loadAssetsFromServer();
-    }
-  });
+    // Transcode lightweight (copy audio, h264 video, capped bitrate)
+    await ffmpeg.exec([
+      '-i', 'in',
+      '-c:v', 'libx264', '-preset', 'veryfast', '-b:v', '1500k',
+      '-c:a', 'aac', '-b:a', '128k',
+      'out.mp4'
+    ]);
+
+    const data = await ffmpeg.readFile('out.mp4'); // Uint8Array
+    return new File([data.buffer], 'pretranscoded.mp4', { type: 'video/mp4' });
+  };
 </script>
 
-
-  <script src="script.js" defer></script>
+<!-- App code -->
+<script src="script.js" defer></script>
 </body>
 </html>
 
