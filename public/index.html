@@ -5,30 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ameba (formerly Dripl)</title>
 
-  <!-- 🌐 Pragmatic, open CSP for Ameba -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self' https: data: blob:;
-    object-src 'none';
-    base-uri 'self';
-    script-src 'self' https: 'unsafe-inline' 'unsafe-eval' blob:;
-    worker-src 'self' blob:;
-    style-src 'self' https: 'unsafe-inline';
-    img-src 'self' https: data: blob:;
-    font-src 'self' https: data:;
-    media-src 'self' https: blob: data:;
-    connect-src 'self' https: http://localhost:8080 ws://localhost:8080
-      https://dripl.onrender.com
-      https://ujchypvlqzermgpfzaqo.supabase.co
-      https://api.dropboxapi.com https://content.dropboxapi.com
-      https://www.googleapis.com https://*.googleusercontent.com;
-    frame-src https://accounts.google.com https://*.google.com https://*.googleusercontent.com https://www.dropbox.com;
-  ">
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- Favicons / meta -->
   <link rel="icon" href="assets/dripl/dripl.png" type="image/png" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <!-- Corner brand -->
@@ -151,26 +129,30 @@
   <meta name="supabase-url" content="https://ujchypvlqzermgpfzaqo.supabase.co" />
   <meta name="supabase-anon" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2h5cHZscXplcm1ncGZ6YXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzA3NzQsImV4cCI6MjA3NTk0Njc3NH0.WHWxl2VReNQrjlnSlIjyagLpWLex6vmKI0KpXX6_i1w" />
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-<!-- Lightweight FFmpeg loader for users -->
-<script>
-  window.__FFMPEG__ = {};
-  (async () => {
-    try {
-      const { createFFmpeg, fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
-      const ff = createFFmpeg({ log: false, corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js' });
-      window.__FFMPEG__ = { FFmpeg: ff, fetchFile };
-      console.log('FFmpeg ready');
-    } catch (err) {
-      console.warn('FFmpeg load failed', err);
-    }
-  })();
-</script>
+  <!-- 1) Supabase UMD (exposes window.supabase) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- 2) FFmpeg loader (CDN core) -> exposes window.__FFMPEG__ -->
+  <script>
+    (async () => {
+      try {
+        const { createFFmpeg, fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js');
+        const corePath = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js';
+        const ff = createFFmpeg({ log: false, corePath });
+        window.__FFMPEG__ = { FFmpeg: ff, fetchFile };
+        console.log('[ameba] FFmpeg ready');
+      } catch (err) {
+        console.warn('[ameba] FFmpeg load failed', err);
+        window.__FFMPEG__ = {};
+      }
+    })();
+  </script>
+
+  <!-- 3) Your app -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
+
 
 
 
