@@ -6,62 +6,89 @@ import helmet from "helmet";
 import cors from "cors";
 import multer from "multer";
 import morgan from "morgan";
-import { fileURLToPath } from "url";
 import fs from "node:fs/promises";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ----- basics
+/* -------------------------- secure headers (inline) ------------------------- */
+function secureHeaders() {
+  return (req, res, next) => {
+    const nonce = crypto.randomBytes(16).toString("base64");
+    res.locals.nonce = nonce;
+
+    const csp = [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+
+      // Scripts (nonce + our trusted CDNs/APIs)
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://cdn.jsdelivr.net https://*.supabase.co https://www.youtube.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.googleusercontent.com https://*.dropboxapi.com https://*.dropbox.com`,
+      `script-src-elem 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net https://*.supabase.co https://www.youtube.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.googleusercontent.com https://*.dropboxapi.com https://*.dropbox.com`,
+
+      // Network calls
+      "connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net https://www.googleapis.com https://content.googleapis.com https://*.googleapis.com https://*.dropboxapi.com https://*.dropbox.com https://studio.dripl.io http://localhost:8080",
+
+      // Embeds
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.google.com https://drive.google.com https://*.dropbox.com",
+
+      // Assets
+      "img-src 'self' data: blob: https://i.ytimg.com https://*.googleusercontent.com https://*.dropboxusercontent.com https://cdn.jsdelivr.net",
+      "media-src 'self' https: blob:",
+      `style-src 'self' 'nonce-${nonce}'`,
+      "font-src 'self' data:",
+      "worker-src 'self' blob:",
+
+      // Misc
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      "upgrade-insecure-requests",
+      "report-sample",
+    ].join("; ");
+
+    res.setHeader("Content-Security-Policy", csp);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader(
+      "Permissions-Policy",
+      "geolocation=(), camera=(), microphone=(), interest-cohort=()"
+    );
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains"
+    );
+    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+
+    next();
+  };
+}
+/* --------------------------------------------------------------------------- */
+
+// core middleware
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("tiny"));
 app.disable("x-powered-by");
 
-// ----- per-request nonce
-app.use((req, res, next) => {
-  res.locals.nonce = crypto.randomBytes(16).toString("base64");
-  next();
-});
-
-// ----- Helmet (keep our own CSP)
+// helmet (we provide CSP ourselves)
 app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginOpenerPolicy: { policy: "same-origin" },
-    crossOriginResourcePolicy: { policy: "same-origin" },
+    crossOriginResourcePolicy: { policy: "same-site" },
     frameguard: { action: "sameorigin" },
     referrerPolicy: { policy: "no-referrer" },
   })
 );
 
-// ----- CSP using the nonce
-app.use((req, res, next) => {
-  const nonce = res.locals.nonce;
+// our secure headers + nonce
+app.use(secureHeaders());
 
-  const csp = [
-    `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`,
-    `script-src-elem 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`,
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://dripl.onrender.com https://studio.dripl.io`,
-    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-    `font-src 'self' https://fonts.gstatic.com data:`,
-    `img-src 'self' data: blob: https://*.supabase.co`,
-    `media-src 'self' data: blob:`,
-    `worker-src 'self' blob:`,
-    `frame-src 'self' https://accounts.google.com https://*.google.com https://*.googleusercontent.com https://*.dropbox.com`,
-    `object-src 'none'`,
-    `base-uri 'self'`,
-    `frame-ancestors 'self'`,
-  ].join("; ");
-
-  res.setHeader("Content-Security-Policy", csp);
-  next();
-});
-
-// ----- static
+// static files
 const publicDir = path.join(__dirname, "..", "public");
 app.use(
   express.static(publicDir, {
@@ -76,20 +103,18 @@ app.use(
   })
 );
 
-// ----- inject nonce into HTML
+// index.html → inject {{NONCE}}
 app.get("/", async (req, res, next) => {
   try {
-    const htmlPath = path.join(publicDir, "index.html");
-    const html = await fs.readFile(htmlPath, "utf8");
-    const out = html.replaceAll("{{NONCE}}", res.locals.nonce);
+    const html = await fs.readFile(path.join(publicDir, "index.html"), "utf8");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(out);
+    res.send(html.replaceAll("{{NONCE}}", res.locals.nonce));
   } catch (err) {
     next(err);
   }
 });
 
-// ----- API used by the frontend (Destination Hub stubs)
+// destination API
 const upload = multer({ dest: path.join(publicDir, "uploads") });
 
 app.post("/api/destination/upload", upload.single("file"), (req, res) => {
@@ -99,36 +124,40 @@ app.post("/api/destination/upload", upload.single("file"), (req, res) => {
     id: req.file.filename,
     name: req.file.originalname,
     size: req.file.size,
-    type: req.file.mimetype.startsWith("audio") ? "audio" : "video",
+    type: req.file.mimetype?.startsWith("audio") ? "audio" : "video",
     source: "local",
   });
 });
 
 app.post("/api/destination/convert-link", async (req, res) => {
-  // placeholder—wire to ytdlp/worker later
   const { url, out } = req.body || {};
   if (!url) return res.status(400).json({ error: "url required" });
   const id = crypto.randomUUID();
   res.json({
     id,
-    name: new URL(url).hostname,
+    name: (() => {
+      try {
+        return new URL(url).hostname;
+      } catch {
+        return "link";
+      }
+    })(),
     size: 0,
     type: out === "mp3" ? "audio" : "video",
     source: "link",
-    url: null, // when ready, return CDN link
+    url: null, // stub until pipeline returns a CDN URL
   });
 });
 
 app.get("/api/destination/recent", async (_req, res) => {
-  // return recent items (placeholder)
-  res.json([]);
+  res.json([]); // fill when DB is wired
 });
 
-// ----- start
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Ameba server listening on http://localhost:${PORT}`);
 });
+
 
 
 
