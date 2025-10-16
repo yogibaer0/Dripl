@@ -35,6 +35,54 @@ const hiddenFileInput = $('#hiddenFileInput');
 
 const storageList = $('#storageList');
 
+// Wait for a condition up to timeoutMs
+const waitFor = (testFn, { interval = 25, timeoutMs = 3000 } = {}) =>
+  new Promise((resolve, reject) => {
+    const start = performance.now();
+    const tick = () => {
+      try {
+        const val = testFn();
+        if (val) return resolve(val);
+        if (performance.now() - start > timeoutMs) return reject(new Error('waitFor timeout'));
+        setTimeout(tick, interval);
+      } catch (e) { reject(e); }
+    };
+    tick();
+  });
+
+(async () => {
+  // Wait for Supabase UMD to be present (loaded by the <script> tag)
+  try {
+    await waitFor(() => (window.supabase || window.Supabase)?.createClient, { timeoutMs: 5000 });
+  } catch {
+    console.warn('[dripl] Supabase UMD did not load in time.');
+  }
+
+  const supaFactory = (window.supabase || window.Supabase);
+  const createClient = supaFactory?.createClient;
+  if (createClient) {
+    // Read config from <meta> (already in your file)
+    const META = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() || '';
+    const SUPABASE_URL = META('supabase-url');
+    const SUPABASE_ANON = META('supabase-anon-key');
+
+    window.supa = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // Auth session hook as before…
+    window.authToken = null;
+    window.currentUser = null;
+
+    window.supa?.auth?.onAuthStateChange?.((event, session) => {
+      window.authToken = session?.access_token || null;
+      window.currentUser = session?.user || null;
+      if (session) {
+        try { loadAssetsFromServer?.(); } catch {}
+      }
+    });
+  }
+})();
+
+
 /* ==================== FFmpeg loader ==================== */
 async function importFFmpeg() {
   // 1) Try local vendor copy
