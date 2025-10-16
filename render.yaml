@@ -1,14 +1,12 @@
-# render.yaml
 services:
   - type: web
-    name: ameba
-    env: node
+    name: ameba-ts         # <- rename avoids collision with existing service
+    env: docker
     plan: free
     rootDir: .
-    buildCommand: "npm ci"
-    startCommand: "node server/server.js"
     autoDeploy: true
     healthCheckPath: "/"
     envVars:
       - key: NODE_VERSION
         value: "20"
+
