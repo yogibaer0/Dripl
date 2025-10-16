@@ -1,0 +1,14 @@
+# render.yaml
+services:
+  - type: web
+    name: ameba
+    env: node
+    plan: free
+    rootDir: .
+    buildCommand: "npm ci"
+    startCommand: "node server/server.js"
+    autoDeploy: true
+    healthCheckPath: "/"
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
