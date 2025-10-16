@@ -23,7 +23,7 @@ export function secureHeaders() {
       "font-src 'self' data:",
       "worker-src 'self' blob:",
       "form-action 'self'",
-      "frame-ancestors 'none'",
+      "frame-ancestors 'self'",
       "upgrade-insecure-requests",
       "report-sample",
     ].join("; ");
