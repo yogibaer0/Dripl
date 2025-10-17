@@ -1,8 +1,10 @@
-/* ==================== bootstrap ==================== */
-const META = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() || '';
-const SUPABASE_URL = META('supabase-url');
-const SUPABASE_ANON = META('supabase-anon-key');
-const API_BASE = META('api-base') || '';
+/* ================== bootstrap ================== */
+const META = (name) =>
+  document.querySelector(`meta[name="${name}"]`)?.content?.trim() || "";
+
+const SUPABASE_URL = META("supabase-url");
+const SUPABASE_ANON_KEY = META("supabase-anon-key");
+const API_BASE = META("api-base") || "";
 
 // robust UMD loader with fallback + nonce carry-through
 async function ensureSupabaseUMD() {
@@ -13,7 +15,7 @@ async function ensureSupabaseUMD() {
     "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"
   ];
 
-  const pageNonce = document.querySelector('script[nonce]')?.getAttribute("nonce") || undefined;
+  const pageNonce = document.querySelector("script[nonce]")?.getAttribute("nonce") || undefined;
 
   for (const url of cdns) {
     try {
@@ -26,10 +28,9 @@ async function ensureSupabaseUMD() {
         s.onerror = () => reject(new Error(`load failed: ${url}`));
         document.head.appendChild(s);
       });
-      if (!window.supabase) {
-  console.warn("[dripl] Supabase UMD not loaded yet");
-}
-const supa = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
+      if (window.supabase) return window.supabase;
+    } catch (e) {
+      console.warn("[dripl] fallback to next CDN:", e.message);
     }
   }
   throw new Error("[dripl] Supabase UMD did not load");
@@ -44,6 +45,7 @@ const supa = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.error(err);
   }
 })();
+
 
 if (!window.supabase && !window.Supabase) {
   console.warn('[dripl] supabase UMD not loaded yet');
