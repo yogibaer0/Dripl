@@ -67,43 +67,18 @@ app.use(
 );
 app.use(secureHeaders());
 
-// static
-const publicDir = path.join(__dirname, "..", "public");
-app.use(
-  express.static(publicDir, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
-        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      }
-      if (filePath.endsWith(".wasm")) {
-        res.setHeader("Content-Type", "application/wasm");
-      }
-    }
-  })
-);
 
-// inject nonce into HTML
-app.get("/", async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const html = await fs.readFile(path.join(publicDir, "index.html"), "utf8");
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html.replaceAll("{{NONCE}}", (res.locals as any).nonce));
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Inject environment variables into index.html
-app.get("/", async (_req, res, next) => {
+// --- inject env + nonce into index.html (serve FIRST) ---
+app.get(["/", "/index.html"], async (_req, res, next) => {
   try {
     const htmlPath = path.join(publicDir, "index.html");
     let html = await fs.readFile(htmlPath, "utf8");
 
-    // Replace placeholders with your actual Render env vars
     html = html
-      .replace("{{SUPABASE_URL}}", process.env.SUPABASE_URL || "")
-      .replace("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY || "")
-      .replace("{{API_BASE}}", process.env.API_BASE || "");
+      .replaceAll("{{NONCE}}", (res.locals as any).nonce ?? "")
+      .replaceAll("{{SUPABASE_URL}}", process.env.SUPABASE_URL ?? "")
+      .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
+      .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
@@ -111,6 +86,22 @@ app.get("/", async (_req, res, next) => {
     next(err);
   }
 });
+
+// --- static AFTER, and do NOT auto-serve index.html ---
+app.use(
+  express.static(publicDir, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      }
+      if (filePath.endsWith(".wasm")) {
+        res.setHeader("Content-Type", "application/wasm");
+      }
+    },
+  })
+);
+
 
 const uploadsDir = path.join(publicDir, "uploads");
 if (!fssync.existsSync(uploadsDir)) {
