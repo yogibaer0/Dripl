@@ -1,7 +1,7 @@
 // ------- paths -------
 // src/server.ts (drop-in replacement for your index route + static order)
 
-// src/server.ts — injection-first, catch-all (except /api/*)
+// at top of the file:
 import fs from "fs/promises";
 import * as fssync from "fs";
 import path from "path";
@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, "..", "public");
 const tplPath = path.join(publicDir, "index.template.html");
 
-// 1) Serve injected HTML for any non-API route
+// Catch-all for non-API routes: ALWAYS send injected template
 app.get(/^\/(?!api\/).*/, async (_req, res, next) => {
   try {
     let html = await fs.readFile(tplPath, "utf8");
@@ -23,8 +23,7 @@ app.get(/^\/(?!api\/).*/, async (_req, res, next) => {
       .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
       .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
 
-    // Debug header so you can confirm injection in DevTools → Network
-    res.setHeader("X-Dripl-Injected", "1");
+    res.setHeader("X-Dripl-Injected", "1");   // debug header to confirm
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
@@ -33,7 +32,7 @@ app.get(/^\/(?!api\/).*/, async (_req, res, next) => {
   }
 });
 
-// 2) Static AFTER, and never auto-serve index
+// Static AFTER, never auto-serve index
 app.use(
   express.static(publicDir, {
     index: false,
@@ -46,11 +45,9 @@ app.use(
   })
 );
 
-// ------- ensure uploads dir exists -------
+// Ensure uploads dir
 const uploadsDir = path.join(publicDir, "uploads");
-if (!fssync.existsSync(uploadsDir)) {
-  fssync.mkdirSync(uploadsDir, { recursive: true });
-}
+if (!fssync.existsSync(uploadsDir)) fssync.mkdirSync(uploadsDir, { recursive: true });
 
 
 /* ------------------------ secure headers (inline) ------------------------ */
