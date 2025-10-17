@@ -2,28 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Branding -->
   <title>Dripl — Upload • Import • Storage</title>
-  <link rel="stylesheet" href="./styles.css" />
-<link rel="icon" href="/favicon.ico">
 
+  <!-- Styles (optional) -->
+  <link rel="stylesheet" href="/styles.css" />
 
-  <!-- Config (read by script.js) -->
-  <!-- Config (injected by server) -->
-<meta name="supabase-url" content="{{SUPABASE_URL}}">
-<meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
-<meta name="api-base" content="{{API_BASE}}">
+  <!-- Favicon (you added favicon.ico already) -->
+  <link rel="icon" href="/favicon.ico" />
 
-
-
-<!-- Your app bootstrap AFTER supabase is present -->
-<script defer nonce="<%= nonce %>" src="/script.js"></script>
-
+  <!-- Config (injected by server; read by script.js) -->
+  <meta name="supabase-url" content="{{SUPABASE_URL}}">
+  <meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
+  <meta name="api-base" content="{{API_BASE}}">
 </head>
-
 <body>
+ 
   <header class="hero">
     <div class="hero__logo" aria-hidden="true"></div>
     <h1 class="hero__title">Dripl</h1>
