@@ -2,19 +2,26 @@
 // src/server.ts (drop-in replacement for your index route + static order)
 
 // at top of the file:
+i// --- at top with your other imports ---
 import fs from "fs/promises";
 import * as fssync from "fs";
 import path from "path";
 import express from "express";
 import { fileURLToPath } from "url";
 
+// --- paths ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, "..", "public");
 const tplPath = path.join(publicDir, "index.template.html");
 
-// Catch-all for non-API routes: ALWAYS send injected template
-app.get(/^\/(?!api\/).*/, async (_req, res, next) => {
+// --- quick health endpoint for Render ---
+app.get("/healthz", (_req, res) => {
+  res.status(200).type("text/plain").send("ok");
+});
+
+// --- serve injected HTML for any non-API route ---
+app.get(/^\/(?!api\/).*/, async (_req, res) => {
   try {
     let html = await fs.readFile(tplPath, "utf8");
     html = html
@@ -23,31 +30,45 @@ app.get(/^\/(?!api\/).*/, async (_req, res, next) => {
       .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
       .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
 
-    res.setHeader("X-Dripl-Injected", "1");   // debug header to confirm
+    res.setHeader("X-Dripl-Injected", "1");
     res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
+    res.type("html").send(html);
   } catch (err) {
-    next(err);
+    console.error("[index] template read failed:", err);
+    // fallback so health check/users don't see a 500
+    res
+      .status(200)
+      .type("html")
+      .send(
+        "<!doctype html><meta charset=utf-8><title>Dripl</title><h1>Dripl</h1><p>Template failed to load. Check server logs and that public/index.template.html exists.</p>"
+      );
   }
 });
 
-// Static AFTER, never auto-serve index
+// --- static AFTER; never auto-serve index.html ---
 app.use(
   express.static(publicDir, {
     index: false,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js") || filePath.endsWith(".mjs"))
+      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
         res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      if (filePath.endsWith(".wasm"))
+      }
+      if (filePath.endsWith(".wasm")) {
         res.setHeader("Content-Type", "application/wasm");
+      }
     },
   })
 );
 
-// Ensure uploads dir
+// --- ensure uploads dir exists ---
 const uploadsDir = path.join(publicDir, "uploads");
 if (!fssync.existsSync(uploadsDir)) fssync.mkdirSync(uploadsDir, { recursive: true });
+
+// --- start server (log the actual port) ---
+const PORT = Number(process.env.PORT) || 8080;
+app.listen(PORT, () => {
+  console.log(`[dripl] listening on :${PORT}`);
+});
 
 
 /* ------------------------ secure headers (inline) ------------------------ */
