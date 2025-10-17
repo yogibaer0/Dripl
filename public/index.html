@@ -7,19 +7,28 @@
   <!-- Branding -->
   <title>Dripl — Upload • Import • Storage</title>
   <link rel="stylesheet" href="./styles.css" />
+<link rel="icon" href="/favicon.ico">
+
 
   <!-- Config (read by script.js) -->
-  <meta name="supabase-url" content="YOUR_SUPABASE_URL" />
-  <meta name="supabase-anon-key" content="YOUR_SUPABASE_ANON_PUBLIC_KEY" />
-  <meta name="api-base" content="https://dripl.onrender.com" />
+  <!-- Config (injected by server) -->
+<meta name="supabase-url" content="{{SUPABASE_URL}}">
+<meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
+<meta name="api-base" content="{{API_BASE}}">
 
-  <!-- External libraries (allowed by CSP + nonce) -->
-  <script
-  nonce="{{NONCE}}"
-  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
-  crossorigin="anonymous"
+
+ <!-- Supabase UMD (jsDelivr) -->
+<script
   defer
+  nonce="<%= nonce %>"
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"
+  integrity=""
+  crossorigin="anonymous"
 ></script>
+
+<!-- Your app bootstrap AFTER supabase is present -->
+<script defer nonce="<%= nonce %>" src="/script.js"></script>
+
 </head>
 
 <body>
