@@ -1,19 +1,64 @@
-import express, { Request, Response, NextFunction } from "express";
+// ------- paths -------
 import path from "path";
-import crypto from "node:crypto";
-import helmet from "helmet";
-import cors from "cors";
+import fs from "fs/promises";
 import * as fssync from "fs";
-import multer from "multer";
-import morgan from "morgan";
-import fs from "node:fs/promises";
+import express from "express";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const publicDir = path.join(__dirname, "..", "public");
 
-const app = express();
-const publicDir = path.join(process.cwd(), "public")
+// ------- IMPORTANT: index injection route FIRST -------
+app.get(["/", "/index.html"], async (_req, res, next) => {
+  try {
+    // quick sanity log so you can see these in Render logs once:
+    if (process.env.__INJECTION_CHECK__ !== "1") {
+      console.log("[injection] SUPABASE_URL present?", !!process.env.SUPABASE_URL);
+      console.log("[injection] SUPABASE_ANON_KEY present?", !!process.env.SUPABASE_ANON_KEY);
+      console.log("[injection] API_BASE present?", !!process.env.API_BASE);
+      process.env.__INJECTION_CHECK__ = "1";
+    }
+
+    const htmlPath = path.join(publicDir, "index.html");
+    let html = await fs.readFile(htmlPath, "utf8");
+
+    html = html
+      .replaceAll("{{NONCE}}", (res.locals as any).nonce ?? "")
+      .replaceAll("{{SUPABASE_URL}}", process.env.SUPABASE_URL ?? "")
+      .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
+      .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
+
+    // avoid stale cached HTML while testing
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ------- static AFTER; do NOT auto-serve index.html -------
+app.use(
+  express.static(publicDir, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      }
+      if (filePath.endsWith(".wasm")) {
+        res.setHeader("Content-Type", "application/wasm");
+      }
+    },
+  })
+);
+
+// ------- ensure uploads dir exists -------
+const uploadsDir = path.join(publicDir, "uploads");
+if (!fssync.existsSync(uploadsDir)) {
+  fssync.mkdirSync(uploadsDir, { recursive: true });
+}
+
 
 /* ------------------------ secure headers (inline) ------------------------ */
 function secureHeaders() {
@@ -66,47 +111,6 @@ app.use(
   })
 );
 app.use(secureHeaders());
-
-
-// --- inject env + nonce into index.html (serve FIRST) ---
-app.get(["/", "/index.html"], async (_req, res, next) => {
-  try {
-    const htmlPath = path.join(publicDir, "index.html");
-    let html = await fs.readFile(htmlPath, "utf8");
-
-    html = html
-      .replaceAll("{{NONCE}}", (res.locals as any).nonce ?? "")
-      .replaceAll("{{SUPABASE_URL}}", process.env.SUPABASE_URL ?? "")
-      .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
-      .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
-
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// --- static AFTER, and do NOT auto-serve index.html ---
-app.use(
-  express.static(publicDir, {
-    index: false,
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
-        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      }
-      if (filePath.endsWith(".wasm")) {
-        res.setHeader("Content-Type", "application/wasm");
-      }
-    },
-  })
-);
-
-
-const uploadsDir = path.join(publicDir, "uploads");
-if (!fssync.existsSync(uploadsDir)) {
-  fssync.mkdirSync(uploadsDir, { recursive: true });
-}
 
 // destination API
 const upload = multer({ dest: path.join(publicDir, "uploads") });
