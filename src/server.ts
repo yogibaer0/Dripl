@@ -1,35 +1,30 @@
 // ------- paths -------
-import path from "path";
+// src/server.ts (drop-in replacement for your index route + static order)
+
+// src/server.ts — injection-first, catch-all (except /api/*)
 import fs from "fs/promises";
 import * as fssync from "fs";
+import path from "path";
 import express from "express";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, "..", "public");
+const tplPath = path.join(publicDir, "index.template.html");
 
-// ------- IMPORTANT: index injection route FIRST -------
-app.get(["/", "/index.html"], async (_req, res, next) => {
+// 1) Serve injected HTML for any non-API route
+app.get(/^\/(?!api\/).*/, async (_req, res, next) => {
   try {
-    // quick sanity log so you can see these in Render logs once:
-    if (process.env.__INJECTION_CHECK__ !== "1") {
-      console.log("[injection] SUPABASE_URL present?", !!process.env.SUPABASE_URL);
-      console.log("[injection] SUPABASE_ANON_KEY present?", !!process.env.SUPABASE_ANON_KEY);
-      console.log("[injection] API_BASE present?", !!process.env.API_BASE);
-      process.env.__INJECTION_CHECK__ = "1";
-    }
-
-    const htmlPath = path.join(publicDir, "index.html");
-    let html = await fs.readFile(htmlPath, "utf8");
-
+    let html = await fs.readFile(tplPath, "utf8");
     html = html
       .replaceAll("{{NONCE}}", (res.locals as any).nonce ?? "")
       .replaceAll("{{SUPABASE_URL}}", process.env.SUPABASE_URL ?? "")
       .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
       .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
 
-    // avoid stale cached HTML while testing
+    // Debug header so you can confirm injection in DevTools → Network
+    res.setHeader("X-Dripl-Injected", "1");
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
@@ -38,17 +33,15 @@ app.get(["/", "/index.html"], async (_req, res, next) => {
   }
 });
 
-// ------- static AFTER; do NOT auto-serve index.html -------
+// 2) Static AFTER, and never auto-serve index
 app.use(
   express.static(publicDir, {
     index: false,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+      if (filePath.endsWith(".js") || filePath.endsWith(".mjs"))
         res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      }
-      if (filePath.endsWith(".wasm")) {
+      if (filePath.endsWith(".wasm"))
         res.setHeader("Content-Type", "application/wasm");
-      }
     },
   })
 );

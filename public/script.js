@@ -1,10 +1,10 @@
 /* ================== bootstrap ================== */
-const META = (name) =>
-  document.querySelector(`meta[name="${name}"]`)?.content?.trim() || "";
-
+const META = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim() || "";
 const SUPABASE_URL = META("supabase-url");
 const SUPABASE_ANON_KEY = META("supabase-anon-key");
 const API_BASE = META("api-base") || "";
+console.log("[dripl] metas", { SUPABASE_URL, keyPreview: SUPABASE_ANON_KEY?.slice(0,6) + "…" });
+
 
 // robust UMD loader with fallback + nonce carry-through
 async function ensureSupabaseUMD() {
