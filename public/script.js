@@ -4,6 +4,46 @@ const SUPABASE_URL = META('supabase-url');
 const SUPABASE_ANON = META('supabase-anon-key');
 const API_BASE = META('api-base') || '';
 
+/ robust UMD loader with fallback + nonce carry-through
+async function ensureSupabaseUMD() {
+  if (window.supabase) return window.supabase;
+
+  const cdns = [
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
+    "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+  ];
+
+  const pageNonce = document.querySelector('script[nonce]')?.getAttribute("nonce") || undefined;
+
+  for (const url of cdns) {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = url;
+        if (pageNonce) s.setAttribute("nonce", pageNonce);
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error(`load failed: ${url}`));
+        document.head.appendChild(s);
+      });
+      if (window.supabase) return window.supabase;
+    } catch (e) {
+      console.warn("[dripl] fallback to next CDN:", e.message);
+    }
+  }
+  throw new Error("[dripl] Supabase UMD did not load");
+}
+
+(async () => {
+  try {
+    const supaFactory = await ensureSupabaseUMD();
+    window.supa = supaFactory.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.info("[dripl] Supabase ready");
+  } catch (err) {
+    console.error(err);
+  }
+})();
+
 if (!window.supabase && !window.Supabase) {
   console.warn('[dripl] supabase UMD not loaded yet');
 }
@@ -63,8 +103,8 @@ const waitFor = (testFn, { interval = 25, timeoutMs = 3000 } = {}) =>
   if (createClient) {
     // Read config from <meta> (already in your file)
     const META = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() || '';
-    const SUPABASE_URL = META('supabase-url');
-    const SUPABASE_ANON = META('supabase-anon-key');
+    const SUPABASE_URL = META('https://ujchypvlqzermgpfzaqo.supabase.co');
+    const SUPABASE_ANON = META('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqY2h5cHZscXplcm1ncGZ6YXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzA3NzQsImV4cCI6MjA3NTk0Njc3NH0.WHWxl2VReNQrjlnSlIjyagLpWLex6vmKI0KpXX6_i1w');
 
     window.supa = createClient(SUPABASE_URL, SUPABASE_ANON);
 

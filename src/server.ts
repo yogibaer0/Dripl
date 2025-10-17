@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const publicDir = path.join(process.cwd(), "public")
 
 /* ------------------------ secure headers (inline) ------------------------ */
 function secureHeaders() {
@@ -36,7 +37,6 @@ function secureHeaders() {
       "form-action 'self'",
       "frame-ancestors 'self'",
       "upgrade-insecure-requests",
-      "report-sample"
     ].join("; ");
 
     res.setHeader("Content-Security-Policy", csp);
@@ -88,6 +88,25 @@ app.get("/", async (_req: Request, res: Response, next: NextFunction) => {
     const html = await fs.readFile(path.join(publicDir, "index.html"), "utf8");
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html.replaceAll("{{NONCE}}", (res.locals as any).nonce));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Inject environment variables into index.html
+app.get("/", async (_req, res, next) => {
+  try {
+    const htmlPath = path.join(publicDir, "index.html");
+    let html = await fs.readFile(htmlPath, "utf8");
+
+    // Replace placeholders with your actual Render env vars
+    html = html
+      .replace("{{SUPABASE_URL}}", process.env.SUPABASE_URL || "")
+      .replace("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY || "")
+      .replace("{{API_BASE}}", process.env.API_BASE || "");
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
   } catch (err) {
     next(err);
   }
