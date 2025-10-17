@@ -1,12 +1,18 @@
 services:
   - type: web
-    name: ameba-ts         # <- rename avoids collision with existing service
-    env: docker
-    plan: free
+    name: ameba-a42m
+    env: node
     rootDir: .
+    buildCommand: "npm ci && npm run build"
+    startCommand: "node dist/server.js"
+    healthCheckPath: "/healthz"          # 👈 NEW
     autoDeploy: true
-    healthCheckPath: "/"
     envVars:
       - key: NODE_VERSION
         value: "20"
-
+      - key: SUPABASE_URL
+        value: ""                         # set in dashboard
+      - key: SUPABASE_ANON_KEY
+        value: ""                         # set in dashboard
+      - key: API_BASE
+        value: ""                         # optional
