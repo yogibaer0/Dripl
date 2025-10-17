@@ -1,26 +1,61 @@
-// ------- paths -------
-// src/server.ts (drop-in replacement for your index route + static order)
-
-// at top of the file:
-i// --- at top with your other imports ---
+// server.ts
+import express from "express";
+import path from "path";
 import fs from "fs/promises";
 import * as fssync from "fs";
-import path from "path";
-import express from "express";
+import cors from "cors";
+import morgan from "morgan";
+import helmet from "helmet";
 import { fileURLToPath } from "url";
 
-// --- paths ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const publicDir = path.join(__dirname, "..", "public");
+
+// Use process.cwd() so paths work the same on Render and locally
+const publicDir = path.resolve(process.cwd(), "public");
 const tplPath = path.join(publicDir, "index.template.html");
 
-// --- quick health endpoint for Render ---
-app.get("/healthz", (_req, res) => {
-  res.status(200).type("text/plain").send("ok");
+const app = express();
+app.set("trust proxy", 1);
+
+// Basic middleware
+app.use(cors());
+app.use(morgan("tiny"));
+
+// Per-request nonce
+app.use((req, res, next) => {
+  const nonce = Math.random().toString(36).slice(2);
+  (res.locals as any).nonce = nonce;
+  next();
 });
 
-// --- serve injected HTML for any non-API route ---
+// Helmet with a pragmatic CSP (allows our CDNs + Supabase)
+app.use((req, res, next) => {
+  const nonce = (res.locals as any).nonce;
+  const supabaseUrl = process.env.SUPABASE_URL || "";
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": ["'self'", `'nonce-${nonce}'`, "https://cdn.jsdelivr.net", "https://unpkg.com"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "blob:"],
+        "connect-src": ["'self'", supabaseUrl || "*"],
+        "font-src": ["'self'", "data:"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+        "frame-ancestors": ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })(req, res, next);
+});
+
+// Health check for Render
+app.get("/healthz", (_req, res) => res.status(200).type("text/plain").send("ok"));
+
+// Serve injected HTML for any non-API route
 app.get(/^\/(?!api\/).*/, async (_req, res) => {
   try {
     let html = await fs.readFile(tplPath, "utf8");
@@ -29,137 +64,36 @@ app.get(/^\/(?!api\/).*/, async (_req, res) => {
       .replaceAll("{{SUPABASE_URL}}", process.env.SUPABASE_URL ?? "")
       .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
       .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "");
-
     res.setHeader("X-Dripl-Injected", "1");
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(html);
   } catch (err) {
     console.error("[index] template read failed:", err);
-    // fallback so health check/users don't see a 500
+    // Serve a safe fallback so health check doesn’t fail
     res
       .status(200)
       .type("html")
-      .send(
-        "<!doctype html><meta charset=utf-8><title>Dripl</title><h1>Dripl</h1><p>Template failed to load. Check server logs and that public/index.template.html exists.</p>"
-      );
+      .send("<!doctype html><meta charset=utf-8><title>Dripl</title><h1>Dripl</h1><p>Template missing.</p>");
   }
 });
 
-// --- static AFTER; never auto-serve index.html ---
+// Static AFTER injection; never auto-serve index.html
 app.use(
   express.static(publicDir, {
     index: false,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+      if (filePath.endsWith(".js") || filePath.endsWith(".mjs"))
         res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      }
-      if (filePath.endsWith(".wasm")) {
-        res.setHeader("Content-Type", "application/wasm");
-      }
+      if (filePath.endsWith(".wasm")) res.setHeader("Content-Type", "application/wasm");
     },
   })
 );
 
-// --- ensure uploads dir exists ---
+// Ensure uploads exists
 const uploadsDir = path.join(publicDir, "uploads");
 if (!fssync.existsSync(uploadsDir)) fssync.mkdirSync(uploadsDir, { recursive: true });
 
-// --- start server (log the actual port) ---
+// Start
 const PORT = Number(process.env.PORT) || 8080;
-app.listen(PORT, () => {
-  console.log(`[dripl] listening on :${PORT}`);
-});
+app.listen(PORT, () => console.log(`[dripl] listening on :${PORT}`));
 
-
-/* ------------------------ secure headers (inline) ------------------------ */
-function secureHeaders() {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const nonce = crypto.randomBytes(16).toString("base64");
-    (res.locals as any).nonce = nonce;
-
-    const csp = [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://cdn.jsdelivr.net https://*.supabase.co https://www.youtube.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.googleusercontent.com https://*.dropboxapi.com https://*.dropbox.com`,
-      `script-src-elem 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net https://*.supabase.co https://www.youtube.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.googleusercontent.com https://*.dropboxapi.com https://*.dropbox.com`,
-      "connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net https://www.googleapis.com https://content.googleapis.com https://*.googleapis.com https://*.dropboxapi.com https://*.dropbox.com https://studio.dripl.io http://localhost:8080",
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.google.com https://drive.google.com https://*.dropbox.com",
-      "img-src 'self' data: blob: https://i.ytimg.com https://*.googleusercontent.com https://*.dropboxusercontent.com https://cdn.jsdelivr.net",
-      "media-src 'self' https: blob:",
-      `style-src 'self' 'nonce-${nonce}'`,
-      "font-src 'self' data:",
-      "worker-src 'self' blob:",
-      "form-action 'self'",
-      "frame-ancestors 'self'",
-      "upgrade-insecure-requests",
-    ].join("; ");
-
-    res.setHeader("Content-Security-Policy", csp);
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("X-Frame-Options", "SAMEORIGIN");
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Permissions-Policy", "geolocation=(), camera=(), microphone=(), interest-cohort=()");
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
-
-    next();
-  };
-}
-/* ------------------------------------------------------------------------ */
-
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(morgan("tiny"));
-app.disable("x-powered-by");
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginOpenerPolicy: { policy: "same-origin" },
-    crossOriginResourcePolicy: { policy: "same-site" },
-    frameguard: { action: "sameorigin" },
-    referrerPolicy: { policy: "no-referrer" }
-  })
-);
-app.use(secureHeaders());
-
-// destination API
-const upload = multer({ dest: path.join(publicDir, "uploads") });
-
-app.post("/api/destination/upload", upload.single("file"), (req: Request, res: Response) => {
-  const file = (req as any).file;
-  res.json({
-    ok: true,
-    url: `/uploads/${file.filename}`,
-    id: file.filename,
-    name: file.originalname,
-    size: file.size,
-    type: file.mimetype?.startsWith("audio") ? "audio" : "video",
-    source: "local"
-  });
-});
-
-app.post("/api/destination/convert-link", async (req: Request, res: Response) => {
-  const { url, out } = (req.body || {}) as { url?: string; out?: string };
-  if (!url) return res.status(400).json({ error: "url required" });
-  const id = crypto.randomUUID();
-  let name = "link";
-  try { name = new URL(url).hostname; } catch {}
-  res.json({
-    id,
-    name,
-    size: 0,
-    type: out === "mp3" ? "audio" : "video",
-    source: "link",
-    url: null
-  });
-});
-
-app.get("/api/destination/recent", async (_req: Request, res: Response) => {
-  res.json([]);
-});
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Ameba TS server listening on http://localhost:${PORT}`);
-});
