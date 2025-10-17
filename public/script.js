@@ -4,7 +4,7 @@ const SUPABASE_URL = META('supabase-url');
 const SUPABASE_ANON = META('supabase-anon-key');
 const API_BASE = META('api-base') || '';
 
-/ robust UMD loader with fallback + nonce carry-through
+// robust UMD loader with fallback + nonce carry-through
 async function ensureSupabaseUMD() {
   if (window.supabase) return window.supabase;
 
@@ -26,9 +26,10 @@ async function ensureSupabaseUMD() {
         s.onerror = () => reject(new Error(`load failed: ${url}`));
         document.head.appendChild(s);
       });
-      if (window.supabase) return window.supabase;
-    } catch (e) {
-      console.warn("[dripl] fallback to next CDN:", e.message);
+      if (!window.supabase) {
+  console.warn("[dripl] Supabase UMD not loaded yet");
+}
+const supa = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
   }
   throw new Error("[dripl] Supabase UMD did not load");
