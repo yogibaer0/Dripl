@@ -1,33 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- LABEL: Charset + Mobile -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- LABEL: Title -->
   <title>Dripl — Upload • Import • Storage</title>
 
-  <!-- Styles (optional) -->
+  <!-- LABEL: Styles (served from /public) -->
   <link rel="stylesheet" href="/styles.css" />
 
-  <!-- Favicon (you added favicon.ico already) -->
+  <!-- LABEL: Favicon (served from /public) -->
   <link rel="icon" href="/favicon.ico" />
 
-  <!-- Config (injected by server; read by script.js) -->
-  <meta name="supabase-url" content="{{SUPABASE_URL}}">
+  <!-- LABEL: Config (Injected by server; read by script.js) -->
+  <meta name="supabase-url"      content="{{SUPABASE_URL}}">
   <meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
-  <meta name="api-base" content="{{API_BASE}}">
+  <meta name="api-base"          content="{{API_BASE}}">
 </head>
 <body>
- 
+  <!-- LABEL: Header / Branding -->
   <header class="hero">
     <div class="hero__logo" aria-hidden="true"></div>
     <h1 class="hero__title">Dripl</h1>
     <div class="glow-line"><svg viewBox="0 0 100 2" preserveAspectRatio="none"><rect width="100" height="2" /></svg></div>
   </header>
 
+  <!-- LABEL: Main Panels -->
   <main class="panels">
 
-    <!-- Upload -->
+    <!-- LABEL: Upload -->
     <section class="card" id="uploadCard" aria-labelledby="uploadTitle">
       <h2 id="uploadTitle" class="card__title">Upload</h2>
 
@@ -48,7 +51,7 @@
       <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
     </section>
 
-    <!-- Import -->
+    <!-- LABEL: Import -->
     <section class="card" id="importCard" aria-labelledby="importTitle">
       <h2 id="importTitle" class="card__title">Import</h2>
 
@@ -73,7 +76,7 @@
       </div>
     </section>
 
-    <!-- Storage -->
+    <!-- LABEL: Storage -->
     <section class="card card--wide" id="storageCard" aria-labelledby="storageTitle">
       <div class="row between align-center">
         <h2 id="storageTitle" class="card__title">Storage</h2>
@@ -105,10 +108,11 @@
     </section>
   </main>
 
-  <!-- App code (module + nonce) -->
-  <script type="module" src="./script.js" nonce="{{NONCE}}"></script>
+  <!-- LABEL: App code (module + CSP nonce) -->
+  <script type="module" src="/script.js" nonce="{{NONCE}}"></script>
 </body>
 </html>
+
 
 
 
