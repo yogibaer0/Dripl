@@ -108,6 +108,11 @@
     </section>
   </main>
 
+present when script.js runs:
+
+<!-- LABEL: Local Supabase UMD (no CDNs, allowed by CSP 'self') -->
+<script src="/vendor/supabase.min.js" nonce="{{NONCE}}"></script>
+
   <!-- LABEL: App code (module + CSP nonce) -->
   <script type="module" src="/script.js" nonce="{{NONCE}}"></script>
 </body>
