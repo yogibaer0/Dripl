@@ -1,0 +1,15 @@
+// scripts/compute-sri.js
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+
+const file = path.join(process.cwd(), "public", "vendor", "supabase.min.js");
+if (!fs.existsSync(file)) {
+  console.error("[sri] file not found:", file);
+  process.exit(0);
+}
+const buf = fs.readFileSync(file);
+const hash = "sha384-" + crypto.createHash("sha384").update(buf).digest("base64");
+const out = path.join(process.cwd(), "public", "vendor", "supabase.min.js.sri");
+fs.writeFileSync(out, hash);
+console.log("[sri] wrote:", path.relative(process.cwd(), out), "=>", hash);

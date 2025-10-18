@@ -1,99 +1,96 @@
-/**
- * ──────────────────────────────────────────────────────────────────────────────
- *  DRIPL SERVER (Ameba)
- *  Purpose: Serve static assets, inject env into HTML, provide health check,
- *           and apply basic security headers.
- * ──────────────────────────────────────────────────────────────────────────────
- */
-
-import express, { Request, Response, NextFunction } from "express";
+// src/server.ts
+import express from "express";
 import path from "node:path";
-import fs from "node:fs/promises";
-import helmet from "helmet";
-import morgan from "morgan";
+import fs from "node:fs";
+import crypto from "node:crypto";
 
-// ── LABEL: Paths ───────────────────────────────────────────────────────────────
-const rootDir   = process.cwd();                       // repo root
-const publicDir = path.join(rootDir, "public");        // where styles.css, script.js, favicon.ico live
-const tplPath   = path.join(publicDir, "index.template.html");
+const app = express();
 
-// ── LABEL: App init ───────────────────────────────────────────────────────────
-const app  = express();
-const PORT = Number(process.env.PORT) || 8080;
+const port = Number(process.env.PORT || 10000);
+const publicDir = path.join(process.cwd(), "public");
+const indexPath = path.join(publicDir, "index.template.html");
+const sriPath = path.join(publicDir, "vendor", "supabase.min.js.sri"); // created at build
+const indexTemplate = fs.readFileSync(indexPath, "utf8");
+const SUPABASE_SRI = fs.existsSync(sriPath) ? fs.readFileSync(sriPath, "utf8").trim() : "";
 
-// ── LABEL: Security middleware ────────────────────────────────────────────────
-// Basic, modern Helmet (no CSP by default; we set a nonce manually below)
-app.use(helmet({
-  referrerPolicy: { policy: "no-referrer" },
-  frameguard:     { action: "deny" },
-  xssFilter:      false
-}));
+// tiny nonce helper
+function makeNonce() {
+  return crypto.randomBytes(16).toString("base64");
+}
 
-// Request logging
-app.use(morgan("tiny"));
+// basic health
+app.get(["/healthz", "/health"], (_req, res) => res.type("text/plain").send("ok"));
 
-// ── LABEL: Nonce for inline-safe scripts ──────────────────────────────────────
-// We generate a request-scoped nonce that the HTML uses in <script nonce="...">
-app.use((_req: Request, res: Response, next: NextFunction) => {
-  (res.locals as any).nonce = Buffer.from(cryptoRandom(16)).toString("base64url");
+// per-request nonce + security headers (CSP allowlist is narrow but practical)
+app.use((req, res, next) => {
+  const nonce = makeNonce();
+  (res.locals as any).nonce = nonce;
+
+  // trusted 3P endpoints you actually use
+  const supabase = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const connect = ["'self'"];
+  if (supabase) connect.push(supabase);
+  if (process.env.API_BASE) connect.push(process.env.API_BASE);
+
+  const csp = [
+    `default-src 'self'`,
+    `script-src 'self' 'nonce-${nonce}'`,              // local UMD + your app (no wildcards)
+    `style-src 'self' 'unsafe-inline'`,               // keep simple; move inline CSS to files when convenient
+    `img-src 'self' data: ${supabase}`,               // allow supabase storage thumbs if needed
+    `connect-src ${connect.join(" ")}`,               // XHR/WS to self + supabase + your api
+    `font-src 'self' data:`,
+    `base-uri 'self'`,
+    `form-action 'self'`,
+    `frame-ancestors 'none'`
+  ].join("; ");
+
+  res.setHeader("Content-Security-Policy", csp);
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   next();
 });
 
-function cryptoRandom(n: number): Uint8Array {
-  // Node 20: globalThis.crypto exists
-  const a = new Uint8Array(n);
-  globalThis.crypto.getRandomValues(a);
-  return a;
-}
-
-// ── LABEL: Static assets FIRST (prevents MIME/type issues) ────────────────────
-// Important: serve public assets before the HTML catch-all.
+// serve static first (so /vendor/supabase.min.js is same-origin)
 app.use(express.static(publicDir, {
-  index: false,          // we control index via the template route below
-  extensions: false,
-  fallthrough: true
+  fallthrough: true,
+  setHeaders(res, filePath) {
+    // small cache for static assets; html stays dynamic via route below
+    if (!filePath.endsWith(".html")) {
+      res.setHeader("Cache-Control", "public, max-age=3600");
+    }
+  }
 }));
 
-// ── LABEL: Health check (Render) ──────────────────────────────────────────────
-app.get("/healthz", (_req, res) => res.status(200).type("text").send("ok"));
-
-// ── LABEL: Minimal API examples (optional placeholders) ───────────────────────
-// Keep /api namespace out of the HTML catch-all below.
-app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
-
-// ── LABEL: HTML catch-all (non-file URLs only) ────────────────────────────────
-// This route injects env into the template. The regex excludes URLs with a dot
-// like /script.js, /styles.css, /favicon.ico so static can handle those.
-app.get(/^\/(?!api\/)(?!.*\.[a-zA-Z0-9]+$).*/, async (_req, res, next) => {
+// template inject (root + SPA catch-all; adjust if you add API routes)
+app.get(["/", "/:anything(*)"], (req, res, next) => {
   try {
-    // 1) Read template
-    let html = await fs.readFile(tplPath, "utf8");
+    const nonce = (res.locals as any).nonce;
+    let html = indexTemplate
+      .replaceAll("{{NONCE}}", nonce)
+      .replaceAll("{{SUPABASE_URL}}", process.env.SUPABASE_URL ?? "")
+      .replaceAll("{{SUPABASE_ANON_KEY}}", process.env.SUPABASE_ANON_KEY ?? "")
+      .replaceAll("{{API_BASE}}", process.env.API_BASE ?? "")
+      .replaceAll("{{SUPABASE_SRI}}", SUPABASE_SRI);
 
-    // 2) Inject env + nonce
-    //    If your tsconfig target < ES2021, swap to regex: html = html.replace(/{{NONCE}}/g, ...)
-    html = html
-      .replaceAll("{{NONCE}}",              (res.locals as any).nonce ?? "")
-      .replaceAll("{{SUPABASE_URL}}",       process.env.SUPABASE_URL       ?? "")
-      .replaceAll("{{SUPABASE_ANON_KEY}}",  process.env.SUPABASE_ANON_KEY  ?? "")
-      .replaceAll("{{API_BASE}}",           process.env.API_BASE           ?? "");
-
-    // 3) Return with an explicit content-type (fixes module/CSS MIME warnings)
-    res.setHeader("X-Dripl-Injected", "1");
-    res.type("html").send(html);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
   } catch (err) {
     next(err);
   }
 });
 
-// ── LABEL: Error handling ─────────────────────────────────────────────────────
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("[server] error:", err);
-  if (!res.headersSent) res.status(500).json({ error: "server_error" });
+// basic error output (won’t leak stack in prod if NODE_ENV=production)
+app.use((err: any, _req, res, _next) => {
+  console.error(err);
+  res.status(500).type("text/plain").send(process.env.NODE_ENV === "production" ? "Internal error" : String(err));
 });
 
-// ── LABEL: Listen ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`[dripl] listening on :${PORT}`);
+app.listen(port, () => {
+  console.log(`[dripl] listening on :${port}`);
 });
+
 
 

@@ -1,58 +1,37 @@
+// public/script.js
 // --- read server-injected meta ---
 const META = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() || "";
 const SUPABASE_URL = META("supabase-url");
 const SUPABASE_ANON_KEY = META("supabase-anon-key");
 const API_BASE = META("api-base");
 
-// sanity log (safe)
+// sanity log (safe; anon key preview only)
 console.log("[dripl] metas", {
   SUPABASE_URL,
   keyPreview: (SUPABASE_ANON_KEY || "").slice(0, 6) + "…",
   API_BASE,
 });
 
-// --- robust UMD loader (primary + fallback) ---
-async function ensureSupabaseUMD() {
-  if (window.supabase) return window.supabase;
-  const cdns = [
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
-    "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js",
-  ];
-  const pageNonce = document.querySelector("script[nonce]")?.getAttribute("nonce") || undefined;
-  for (const url of cdns) {
-    try {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = url;
-        if (pageNonce) s.setAttribute("nonce", pageNonce);
-        s.async = true;
-        s.onload = resolve;
-        s.onerror = () => reject(new Error(`load failed: ${url}`));
-        document.head.appendChild(s);
-      });
-      if (window.supabase) return window.supabase;
-    } catch (e) {
-      console.warn("[dripl] fallback CDN:", e.message);
-    }
-  }
-  throw new Error("[dripl] Supabase UMD did not load");
+// --- supabase init (UMD loaded from /vendor) ---
+const supaFactory = (window.supabase || window.Supabase);
+if (!supaFactory) {
+  console.error("[dripl] Supabase UMD not loaded");
+} else if (!/^https?:\/\//.test(SUPABASE_URL || "")) {
+  console.error("[dripl] Missing/invalid SUPABASE_URL — check Render env + server injection.");
+} else {
+  window.supa = (supaFactory.createClient || supaFactory)(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.info("[dripl] Supabase ready");
+  // TODO: bootstrap app features here
 }
 
-// --- single guarded initializer ---
-(async () => {
-  if (!/^https?:\/\//.test(SUPABASE_URL || "")) {
-    console.error("[dripl] Missing/invalid SUPABASE_URL — check Render env + server injection.");
-    return;
+// --- small UX safeguards / future-proof bits ---
+window.addEventListener("error", (e) => {
+  // avoid noisy logs; surface actionable messages
+  if (String(e?.message || "").includes("Supabase")) {
+    console.error("[dripl] runtime:", e.message);
   }
-  try {
-    const supaFactory = await ensureSupabaseUMD();
-    window.supa = supaFactory.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.info("[dripl] Supabase ready");
-    // TODO: bootstrap app logic here
-  } catch (err) {
-    console.error("[dripl] Supabase init failed:", err);
-  }
-})();
+});
+
 
 
 

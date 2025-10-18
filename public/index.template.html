@@ -20,6 +20,8 @@
   <meta name="api-base"          content="{{API_BASE}}">
 </head>
 <body>
+  <!-- ====== UI ====== -->
+
   <!-- LABEL: Header / Branding -->
   <header class="hero">
     <div class="hero__logo" aria-hidden="true"></div>
@@ -82,18 +84,13 @@
         <h2 id="storageTitle" class="card__title">Storage</h2>
         <div class="row gap">
           <button id="addFolderBtn" class="btn btn--ghost">+ Folder</button>
-          <div class="menu">
-            <button id="filtersBtn" class="btn btn--ghost">Filters</button>
-          </div>
-          <div class="menu">
-            <button id="presetsBtn" class="btn btn--ghost">Presets</button>
-          </div>
+          <div class="menu"><button id="filtersBtn" class="btn btn--ghost">Filters</button></div>
+          <div class="menu"><button id="presetsBtn" class="btn btn--ghost">Presets</button></div>
         </div>
       </div>
 
       <div class="row">
-        <input id="storageSearch" class="input input--wide"
-               placeholder="Search by file name, tags, notes, or source…" />
+        <input id="storageSearch" class="input input--wide" placeholder="Search by file name, tags, notes, or source…" />
       </div>
 
       <div class="chips">
@@ -108,15 +105,19 @@
     </section>
   </main>
 
-present when script.js runs:
+  <!-- ====== SCRIPTS ====== -->
 
-<!-- LABEL: Local Supabase UMD (no CDNs, allowed by CSP 'self') -->
-<script src="/vendor/supabase.min.js" nonce="{{NONCE}}"></script>
+  <!-- LABEL: Local Supabase UMD (CSP 'self' + optional SRI) -->
+  <script src="/vendor/supabase.min.js"
+          integrity="{{SUPABASE_SRI}}"
+          crossorigin="anonymous"
+          nonce="{{NONCE}}"></script>
 
   <!-- LABEL: App code (module + CSP nonce) -->
   <script type="module" src="/script.js" nonce="{{NONCE}}"></script>
 </body>
 </html>
+
 
 
 

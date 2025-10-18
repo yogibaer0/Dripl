@@ -1,27 +1,24 @@
-# Dockerfile
-FROM public.ecr.aws/docker/library/node:20-slim
-
-# yt-dlp needs python3 if we use the script variant; also ffmpeg + curl
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 ffmpeg ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install latest yt-dlp (script variant; now python3 is present)
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-      -o /usr/local/bin/yt-dlp \
- && chmod a+rx /usr/local/bin/yt-dlp \
- && /usr/local/bin/yt-dlp --version
-
+# --- build stage ---
+FROM node:20-slim AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --omit=dev
-COPY . .
+RUN npm ci
+COPY tsconfig.json ./tsconfig.json
+COPY src ./src
+COPY public ./public
+RUN npm run build
 
+# --- runtime stage ---
+FROM node:20-slim
 ENV NODE_ENV=production
-ENV PORT=10000
-EXPOSE 10000
+WORKDIR /app
+COPY --from=build /app/package*.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/public ./public
+EXPOSE 8080
+CMD ["node", "dist/server.js"]
 
-CMD ["node", "server.js"]
 
 
 
