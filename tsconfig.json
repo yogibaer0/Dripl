@@ -10,9 +10,13 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "sourceMap": true,             // easier debugging in prod logs
+    "noEmitOnError": false,        // still emit JS even if types complain (CI keeps building)
+    "types": ["node"]              // make Node types explicit
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
+
 
