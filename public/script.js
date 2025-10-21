@@ -145,6 +145,51 @@ window.addEventListener("error", (e) => {
   }
 });
 
+(async function destinationHub() {
+  const $presets = document.getElementById('presets');
+  const $jobs = document.getElementById('jobList');
+  const fileId = window.currentFileId; // set when user selects/creates a source
+
+  // render preset buttons from server so FE stays in sync with BE
+  const presets = await fetch('/api/presets').then(r=>r.json());
+  $presets.innerHTML = '';
+  for (const p of presets) {
+    const b = document.createElement('button');
+    b.textContent = `Convert: ${p.label}`;
+    b.onclick = async () => {
+      if (!window.currentFileId) return alert('Pick or upload a file first');
+      const r = await fetch('/api/convert', {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body: JSON.stringify({ fileId: window.currentFileId, preset: p.key })
+      }).then(r=>r.json());
+      addJob(r.jobId, p.label);
+    };
+    $presets.appendChild(b);
+  }
+
+  function addJob(id, label) {
+    const li = document.createElement('li');
+    li.id = `job-${id}`;
+    li.textContent = `${label} — queued…`;
+    $jobs.prepend(li);
+    poll(id, li);
+  }
+
+  async function poll(id, li) {
+    const t = setInterval(async () => {
+      const j = await fetch(`/api/jobs/${id}`).then(r=>r.json()).catch(()=>null);
+      if (!j) return;
+      if (j.state === 'waiting' || j.state === 'active') li.textContent = `${j.state} — ${j.progress||0}%`;
+      if (j.state === 'failed') { li.textContent = 'failed'; clearInterval(t); }
+      if (j.state === 'completed' && j.url) {
+        li.innerHTML = `<a href="${j.url}" download>download</a>`;
+        clearInterval(t);
+      }
+    }, 1200);
+  }
+})();
+
 
 
 
