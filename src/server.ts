@@ -3,6 +3,9 @@ import express from "express";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { createClient as createRedisClient } from "redis";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
 
 const app = express();
 
@@ -12,6 +15,28 @@ const indexPath = path.join(publicDir, "index.template.html");
 const sriPath = path.join(publicDir, "vendor", "supabase.min.js.sri"); // created at build
 const indexTemplate = fs.readFileSync(indexPath, "utf8");
 const SUPABASE_SRI = fs.existsSync(sriPath) ? fs.readFileSync(sriPath, "utf8").trim() : "";
+
+// ---- Redis + Supabase helpers (non-breaking) ----
+let _redis: any = null;
+
+async function getRedis() {
+  if (!_redis) {
+    const url = process.env.REDIS_URL;
+    if (!url) throw new Error("Missing REDIS_URL");
+    _redis = createRedisClient({ url });
+    _redis.on("error", (e: any) => console.error("[redis] error:", e));
+    await _redis.connect();
+  }
+  return _redis;
+}
+
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_ANON_KEY");
+  return createSupabaseClient(url, key, { auth: { persistSession: false } });
+}
+
 
 // tiny nonce helper
 function makeNonce() {
@@ -81,6 +106,54 @@ app.get(["/", "/:anything(*)"], (req, res, next) => {
     next(err);
   }
 });
+
+// Health: Redis ping (your existing /health stays as is)
+app.get("/health/redis", async (_req, res) => {
+  try {
+    const redis = await getRedis();
+    const pong = await redis.ping();
+    res.json({ ok: true, redis: pong, now: Date.now() });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Example cache endpoints (TTL set; safe under volatile-ttl)
+app.post("/cache/thumb", express.json(), async (req, res) => {
+  try {
+    const { mediaId, meta, ttlSec = 3600 } = req.body || {};
+    if (!mediaId || !meta) return res.status(400).json({ ok: false, error: "mediaId and meta required" });
+    const redis = await getRedis();
+    await redis.set(`thumb:${mediaId}`, JSON.stringify(meta), { EX: ttlSec });
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+app.get("/cache/thumb/:mediaId", async (req, res) => {
+  try {
+    const redis = await getRedis();
+    const raw = await redis.get(`thumb:${req.params.mediaId}`);
+    res.json({ ok: true, meta: raw ? JSON.parse(raw) : null });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Supabase keepalive (for Render Cron)
+app.get("/keepalive", async (_req, res) => {
+  try {
+    const sb = getSupabase();
+    await sb.auth.getSession();              // cheap "poke" to keep project warm
+    const redis = await getRedis().catch(() => null);
+    if (redis) await redis.set("supabase:last_keepalive", String(Date.now()), { EX: 60 * 60 * 24 });
+    res.json({ ok: true, t: Date.now() });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
 
 // basic error output (won’t leak stack in prod if NODE_ENV=production)
 app.use((err: any, _req, res, _next) => {
