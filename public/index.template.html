@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dripl • Ameba</title>
+  <title>AMEBA</title>
 
   <!-- ===== Config (injected by server.ts) ===== -->
   <meta name="supabase-url" content="{{SUPABASE_URL}}">
@@ -14,16 +14,15 @@
   <!-- ===== Styles ===== -->
   <link rel="stylesheet" href="/styles.css" />
 
-  <!-- ===== Security: CSP nonced UMD & app ===== -->
-  <!-- Local UMD to avoid CDN/CSP headaches.  'SUPABASE_SRI_ATTR' is injected if you supplied an SRI hash. -->
+  <!-- ===== Security: local UMD + CSP nonce ===== -->
   <script {{SUPABASE_SRI_ATTR}} src="/vendor/supabase.min.js" nonce="{{NONCE}}"></script>
 
-  <!-- Small bootstrap that exposes config + nonce to script.js -->
+  <!-- Bootstrap config for JS -->
   <script nonce="{{NONCE}}">
     (function () {
       const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim() || "";
       window.__APP__ = {
-        NONCE:    meta("page-nonce"),
+        NONCE: meta("page-nonce"),
         API_BASE: meta("api-base") || "",
         SUPABASE_URL: meta("supabase-url"),
         SUPABASE_ANON_KEY: meta("supabase-anon-key")
@@ -33,124 +32,135 @@
 </head>
 
 <body>
-  <header class="site-header">
-    <h1>Dripl</h1>
-    <div class="hr"></div>
+  <header class="hero">
+    <h1 class="hero__title">AMEBA</h1>
+    <div class="glow-line">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 10" preserveAspectRatio="none">
+        <path d="M0,5 Q200,0 400,5" stroke="#8b5cf6" stroke-width="2" fill="none" opacity=".3"/>
+      </svg>
+    </div>
   </header>
 
-  <main class="grid">
-    <!-- ============ Upload ============ -->
-    <section class="panel" id="upload">
-      <h2>Upload</h2>
-      <div id="dropzone" class="dropzone" aria-label="Drag & drop files here">
-        <p>Drag &amp; drop files here… <em>or</em> drop a link / text</p>
-      </div>
+  <div class="shell">
+    <div class="panels">
+      <!-- Upload Panel -->
+      <section class="card panel--upload upload">
+        <div class="card__head"><h2>Upload</h2></div>
+        <div class="card__body">
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone__hint">
+              <p>Drag &amp; drop files here or paste a link below</p>
+            </div>
+          </div>
 
-      <div class="row">
-        <input id="paste-input" class="input" placeholder="Paste link (YouTube, TikTok, …)" />
-        <select id="format" class="select">
-          <option value="mp4">MP4 (video)</option>
-          <option value="mp3">MP3 (audio)</option>
-          <option value="gif">GIF</option>
-        </select>
-        <button id="convert-btn" class="btn">Convert</button>
-      </div>
+          <div class="upload__controls">
+            <input id="paste-input" class="input" placeholder="Paste media link…" />
+            <select id="format" class="select">
+              <option value="mp4">MP4 (video)</option>
+              <option value="mp3">MP3 (audio)</option>
+              <option value="gif">GIF</option>
+            </select>
+            <button id="convert-btn" class="btn btn--primary">Convert</button>
+          </div>
 
-      <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
-    </section>
+          <p class="muted">Tip: press <kbd>Enter</kbd> to convert instantly.</p>
+        </div>
+      </section>
 
-    <!-- ============ Import ============ -->
-    <section class="panel" id="import">
-      <h2>Import</h2>
+      <!-- Import Panel -->
+      <section class="card panel--import import">
+        <div class="card__head"><h2>Import</h2></div>
+        <div class="card__body import__cols">
+          <div class="import__col">
+            <h3>This device</h3>
+            <input id="pick-files" type="file" multiple />
+          </div>
+          <div class="import__col">
+            <h3>Dropbox</h3>
+            <button class="btn secondary" id="btn-dropbox">Connect Dropbox</button>
+            <p class="muted">Direct links, multi-select</p>
+          </div>
+          <div class="import__col">
+            <h3>Google Drive</h3>
+            <button class="btn secondary" id="btn-gdrive">Connect Google Drive</button>
+            <p class="muted">Picker with OAuth</p>
+          </div>
+        </div>
+      </section>
 
-      <div class="card">
-        <h3>This device</h3>
-        <input id="pick-files" type="file" multiple />
-      </div>
-
-      <div class="card">
-        <h3>Dropbox</h3>
-        <button class="btn secondary" id="btn-dropbox">Connect Dropbox</button>
-        <p class="muted">Direct links, multi-select</p>
-      </div>
-
-      <div class="card">
-        <h3>Google Drive</h3>
-        <button class="btn secondary" id="btn-gdrive">Connect Google Drive</button>
-        <p class="muted">Picker with OAuth</p>
-      </div>
-    </section>
-
-    <!-- ============ Storage ============ -->
-    <section class="panel" id="storage">
-      <h2>Storage</h2>
-      <div class="row">
-        <button class="btn secondary">+ Folder</button>
-        <button class="btn secondary">Filters</button>
-        <button class="btn secondary">Presets</button>
-      </div>
-      <input id="storage-search" class="input" placeholder="Search by file name, tags, notes…" />
-      <div class="chips">
-        <button class="chip active">Recent</button>
-        <button class="chip">Saved ★</button>
-        <button class="chip">In progress</button>
-        <button class="chip">Shared with me</button>
-        <button class="chip">Trash</button>
-      </div>
-      <ul id="storage-list" class="list"></ul>
-    </section>
-  </main>
-
-  <!-- ============ Destination Hub ============ -->
-  <section class="panel wide" id="dest-hub">
-    <h2>Destination Hub</h2>
-
-    <div class="dest-grid">
-      <!-- Preview -->
-      <div class="preview">
-        <div class="thumb" id="preview-thumb" aria-label="Preview thumbnail"></div>
-        <dl class="meta" id="preview-meta">
-          <div><dt>Filename</dt><dd id="meta-name">—</dd></div>
-          <div><dt>Duration</dt><dd id="meta-duration">—</dd></div>
-          <div><dt>Resolution</dt><dd id="meta-res">—</dd></div>
-          <div><dt>Codec</dt><dd id="meta-codec">—</dd></div>
-        </dl>
-      </div>
-
-      <!-- Presets -->
-      <div class="presets">
-        <h3>One-click formats</h3>
-        <div class="preset-row">
-          <button class="btn preset" data-preset="tiktok">TikTok</button>
-          <button class="btn preset" data-preset="instagram">Instagram</button>
-          <button class="btn preset" data-preset="youtube">YouTube</button>
-          <button class="btn preset" data-preset="reddit">Reddit</button>
-          <button class="btn preset" data-preset="twitter">Twitter (X)</button>
+      <!-- Storage Panel -->
+      <section class="card panel--storage storage">
+        <div class="card__head">
+          <h2>Storage</h2>
+          <div class="toolbar">
+            <button class="btn secondary">+ Folder</button>
+            <button class="btn secondary">Filters</button>
+            <button class="btn secondary">Presets</button>
+          </div>
         </div>
 
-        <div class="row">
-          <label class="switch">
-            <input type="checkbox" id="opt-watermark" />
-            <span>Watermark</span>
-          </label>
-          <label class="switch">
-            <input type="checkbox" id="opt-trim" />
-            <span>Auto-trim to platform max</span>
-          </label>
-        </div>
+        <div class="card__body">
+          <div class="storage__search">
+            <input id="storage-search" type="text" placeholder="Search files, tags, notes…" />
+          </div>
 
-        <div class="row">
-          <button id="start-convert" class="btn primary">Convert Selected</button>
-          <span id="job-status" class="muted"></span>
+          <div class="chips">
+            <button class="chip chip--active">Recent</button>
+            <button class="chip">Saved ★</button>
+            <button class="chip">In progress</button>
+            <button class="chip">Shared</button>
+            <button class="chip">Trash</button>
+          </div>
+
+          <div class="grid" id="storage-list"></div>
         </div>
-      </div>
+      </section>
+
+      <!-- Destination Hub (full-width) -->
+      <section class="card panel--dest dest">
+        <div class="card__head"><h2>Destination Hub</h2></div>
+        <div class="card__body dest">
+          <!-- Preview -->
+          <div class="dest__preview">
+            <img class="dest__thumb" id="preview-thumb" alt="Preview" />
+          </div>
+
+          <!-- Metadata + Actions -->
+          <div class="dest__meta">
+            <div class="meta-list" id="preview-meta">
+              <div class="row"><div class="k">Filename</div><div class="v" id="meta-name">—</div></div>
+              <div class="row"><div class="k">Duration</div><div class="v" id="meta-duration">—</div></div>
+              <div class="row"><div class="k">Resolution</div><div class="v" id="meta-res">—</div></div>
+              <div class="row"><div class="k">Codec</div><div class="v" id="meta-codec">—</div></div>
+            </div>
+
+            <div class="quick">
+              <button class="btn preset" data-preset="tiktok">TikTok</button>
+              <button class="btn preset" data-preset="instagram">Instagram</button>
+              <button class="btn preset" data-preset="youtube">YouTube</button>
+              <button class="btn preset" data-preset="reddit">Reddit</button>
+              <button class="btn preset" data-preset="twitter">Twitter (X)</button>
+            </div>
+
+            <div class="safeguards">
+              <label><input type="checkbox" id="opt-watermark" /> Watermark</label>
+              <label><input type="checkbox" id="opt-trim" /> Auto-trim</label>
+            </div>
+
+            <div class="row end">
+              <button id="start-convert" class="btn btn--primary">Convert Selected</button>
+              <span id="job-status" class="muted"></span>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
-  </section>
+  </div>
 
-  <!-- App logic (non-module; nonce for CSP) -->
   <script src="/script.js" nonce="{{NONCE}}"></script>
 </body>
 </html>
+
 
 
 
