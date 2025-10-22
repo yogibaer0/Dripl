@@ -119,6 +119,14 @@ function handleFileDrop(files) {
   img.src = url;
 }
 
+// When you set a preview URL:
+const img = document.getElementById('previewImg');
+const hint = document.getElementById('previewHint');
+
+img.src = blobOrUrl;
+img.style.display = 'block';
+hint.style.display = 'none';
+
 
 // ====== File Handling Placeholder ======
 // Replace this with your conversion or upload function later
