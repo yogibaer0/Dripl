@@ -180,6 +180,51 @@ body{
 }
 .upload__controls{ display:flex; gap:8px; flex-wrap:wrap; }
 
+/* ===== Drag & Drop Blob Interaction ===== */
+.dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border: 2px dashed #403a6a;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, transform 0.3s ease;
+  cursor: pointer;
+}
+
+.dropzone:hover {
+  border-color: var(--brand-2);
+  box-shadow: 0 0 12px 2px rgba(139, 92, 246, 0.25);
+}
+
+/* Glow when hovering or dragging */
+.dropzone--over {
+  border-color: var(--brand-2);
+  box-shadow: 0 0 16px 4px rgba(139, 92, 246, 0.4);
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.15), rgba(0, 0, 0, 0) 70%);
+  animation: blobPulse 1.5s ease-in-out infinite alternate;
+}
+
+/* Absorb animation (drop) */
+.dropzone--absorbing {
+  animation: blobAbsorb 0.6s ease-out forwards;
+  border-color: var(--brand-2);
+  box-shadow: 0 0 20px 8px rgba(139, 92, 246, 0.45);
+}
+
+@keyframes blobPulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(1.03); opacity: 1; }
+}
+
+@keyframes blobAbsorb {
+  0% { transform: scale(1); background: rgba(139, 92, 246, 0.1); }
+  50% { transform: scale(1.05); background: rgba(139, 92, 246, 0.25); }
+  100% { transform: scale(1); background: rgba(255, 255, 255, 0.02); }
+}
+
+
 /* ==========================================================================
    Import Panel
    ========================================================================== */

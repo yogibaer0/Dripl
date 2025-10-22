@@ -51,38 +51,61 @@
     return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
   }
 
-  // ---------- Upload area (minimal; keep your existing flow) ----------
-  const dropzone = $("#dropzone");
-  if (dropzone) {
-    dropzone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropzone.classList.add("drag");
-    });
-    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
-    dropzone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("drag");
-      const files = Array.from(e.dataTransfer?.files || []);
-      if (files.length) {
-        setPreviewFromFile(files[0]);
-      }
-    });
-  }
+  // ===== DRAG & DROP BLOB BEHAVIOR =====
 
-  $("#pick-files")?.addEventListener("change", (e) => {
-    const f = e.target.files?.[0];
-    if (f) setPreviewFromFile(f);
-  });
+// Select the drop zone
+const dropzone = document.getElementById("dropzone");
+const pasteInput = document.getElementById("paste-input");
 
-  function setPreviewFromFile(file) {
-    $("#meta-name").textContent = file.name;
-    $("#meta-duration").textContent = "—";
-    $("#meta-res").textContent = "—";
-    $("#meta-codec").textContent = file.type || "—";
-    const thumb = $("#preview-thumb");
-    thumb.style.setProperty("--bg", "#1f1f1f");
-    thumb.textContent = file.name.split(".").slice(0, -1).join(".");
+// Helper: activate glow or animation
+function setBlobState(state) {
+  dropzone.classList.remove("dropzone--over", "dropzone--absorbing");
+  if (state) dropzone.classList.add(state);
+}
+
+// Hover start (drag enters)
+dropzone.addEventListener("dragenter", (e) => {
+  e.preventDefault();
+  setBlobState("dropzone--over");
+});
+
+// While dragging inside box
+dropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropzone.style.transform = "scale(1.02)";
+  dropzone.style.transition = "transform 0.2s ease";
+});
+
+// Leave box (no drop)
+dropzone.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  setBlobState("");
+  dropzone.style.transform = "scale(1)";
+});
+
+// Drop file(s)
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  setBlobState("dropzone--absorbing");
+  dropzone.style.transform = "scale(1)";
+  const files = e.dataTransfer.files;
+  if (files && files.length) {
+    handleFileDrop(files);
+  } else {
+    const text = e.dataTransfer.getData("text");
+    if (text) {
+      pasteInput.value = text.trim();
+    }
   }
+});
+
+// ====== File Handling Placeholder ======
+// Replace this with your conversion or upload function later
+function handleFileDrop(files) {
+  console.log("[ameba] absorbed:", files);
+  // TODO: integrate with upload/convert queue
+}
+
 
   // ---------- Destination Hub ----------
   let selectedPreset = null;
