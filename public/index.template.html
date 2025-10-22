@@ -41,13 +41,14 @@
     </div>
   </header>
 
-  <div class="shell">
+  <main class="shell">
     <div class="panels">
-      <!-- Upload Panel -->
-      <section class="card panel--upload upload">
-        <div class="card__head"><h2>Upload</h2></div>
+
+      <!-- Upload -->
+      <section class="card panel--upload upload" aria-labelledby="h-upload">
+        <div class="card__head"><h2 id="h-upload">Upload</h2></div>
         <div class="card__body">
-          <div class="dropzone" id="dropzone">
+          <div class="dropzone" id="dropzone" aria-label="Drop files here">
             <div class="dropzone__hint">
               <p>Drag &amp; drop files here or paste a link below</p>
             </div>
@@ -67,9 +68,9 @@
         </div>
       </section>
 
-      <!-- Import Panel -->
-      <section class="card panel--import import">
-        <div class="card__head"><h2>Import</h2></div>
+      <!-- Import -->
+      <section class="card panel--import import" aria-labelledby="h-import">
+        <div class="card__head"><h2 id="h-import">Import</h2></div>
         <div class="card__body import__cols">
           <div class="import__col">
             <h3>This device</h3>
@@ -88,22 +89,20 @@
         </div>
       </section>
 
-      <!-- Storage Panel -->
-      <section class="card panel--storage storage">
+      <!-- Storage -->
+      <section class="card panel--storage storage" aria-labelledby="h-storage">
         <div class="card__head">
-          <h2>Storage</h2>
+          <h2 id="h-storage">Storage</h2>
           <div class="toolbar">
             <button class="btn secondary">+ Folder</button>
             <button class="btn secondary">Filters</button>
             <button class="btn secondary">Presets</button>
           </div>
         </div>
-
         <div class="card__body">
           <div class="storage__search">
             <input id="storage-search" type="text" placeholder="Search files, tags, notes…" />
           </div>
-
           <div class="chips">
             <button class="chip chip--active">Recent</button>
             <button class="chip">Saved ★</button>
@@ -111,92 +110,100 @@
             <button class="chip">Shared</button>
             <button class="chip">Trash</button>
           </div>
-
           <div class="grid" id="storage-list"></div>
         </div>
       </section>
 
       <!-- Destination Hub (full-width) -->
-      <section class="card panel--dest dest">
-        <div class="card__head"><h2>Destination Hub</h2></div>
-        <div class="card__body dest">
-          <!-- Preview -->
-          <div class="dest__preview">
-            <img class="dest__thumb" id="preview-thumb" alt="Preview" />
-          </div>
+      <section class="card panel--dest" aria-label="Destination Hub">
+        <div class="card__head"><h2 class="hidden">Destination Hub</h2></div>
+        <div class="card__body">
+          <section id="destHub" class="dest-panel" aria-label="Preview, metadata and actions">
+            <!-- LEFT: big square preview -->
+            <div class="dest-left">
+              <div class="preview-wrap" id="previewWrap" aria-live="polite">
+                <img id="previewImg" alt="Preview" />
+                <div class="preview-hint" id="previewHint">
+                  <span>Preview</span>
+                  <span class="muted">• 1:1 • drag a file above or paste a link</span>
+                </div>
+              </div>
+            </div>
 
-<!-- ===================== Destination Hub ===================== -->
-<section id="destHub" class="panel dest-panel">
-  <div class="dest-left">
-    <div class="preview-wrap">
-      <img id="previewImg" src="" alt="Preview" />
-      <div class="preview-hint" id="previewHint">
-        <span>Preview</span>
-        <span class="muted">• 1:1 • drag a file above or paste a link</span>
-      </div>
-    </div>
-  </div>
+            <!-- RIGHT: meta + actions -->
+            <div class="dest-right">
+              <div class="meta-grid" role="list">
+                <div class="meta-row" role="listitem">
+                  <label class="meta-label">Filename</label>
+                  <div class="pill" id="metaFilename">—</div>
+                </div>
+                <div class="meta-row" role="listitem">
+                  <label class="meta-label">Duration</label>
+                  <div class="pill" id="metaDuration">—</div>
+                </div>
+                <div class="meta-row" role="listitem">
+                  <label class="meta-label">Resolution</label>
+                  <div class="pill" id="metaResolution">—</div>
+                </div>
+                <div class="meta-row" role="listitem">
+                  <label class="meta-label">Codec</label>
+                  <div class="pill" id="metaCodec">—</div>
+                </div>
+              </div>
 
-  <div class="dest-right">
-    <div class="meta-grid">
-      <div class="meta-row">
-        <label class="meta-label">Filename</label>
-        <div class="pill" id="metaFilename">—</div>
-      </div>
-      <div class="meta-row">
-        <label class="meta-label">Duration</label>
-        <div class="pill" id="metaDuration">—</div>
-      </div>
-      <div class="meta-row">
-        <label class="meta-label">Resolution</label>
-        <div class="pill" id="metaResolution">—</div>
-      </div>
-      <div class="meta-row">
-        <label class="meta-label">Codec</label>
-        <div class="pill" id="metaCodec">—</div>
-      </div>
-    </div>
+              <div class="dest-actions">
+                <div class="dest-buttons">
+                  <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
+                  <button class="btn btn-ghost" data-target="instagram">Instagram</button>
+                  <button class="btn btn-ghost" data-target="youtube">YouTube</button>
+                  <button class="btn btn-ghost" data-target="reddit">Reddit</button>
+                </div>
 
-    <div class="dest-actions">
-      <div class="dest-buttons">
-        <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
-        <button class="btn btn-ghost" data-target="instagram">Instagram</button>
-        <button class="btn btn-ghost" data-target="youtube">YouTube</button>
-        <button class="btn btn-ghost" data-target="reddit">Reddit</button>
-      </div>
+                <div class="dest-toggles">
+                  <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
+                  <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
+                  <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
+                  <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
+                </div>
 
-      <div class="dest-toggles">
-        <label class="toggle">
-          <input type="checkbox" id="optWatermark" />
-          <span>Watermark</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="optAutotrim" />
-          <span>Auto-trim</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="optAutofit" />
-          <span>Auto-fit to platform</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="optFaceFilters" />
-          <span>Face filters</span>
-        </label>
-      </div>
-
-      <button id="convertSelected" class="btn btn-primary">Convert Selected</button>
-    </div>
-  </div>
-</section>
-<!-- =========================================================== -->
-
+                <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
 
     </div>
-  </div>
+  </main>
 
+  <!-- Your app script (kept external for CSP) -->
   <script src="/script.js" nonce="{{NONCE}}"></script>
+
+  <!-- Tiny helper for drop glow; safe to keep here or move into /script.js -->
+  <script nonce="{{NONCE}}">
+    (function(){
+      const dz = document.getElementById('dropzone');
+      if (!dz) return;
+
+      const on = (t, fn) => dz.addEventListener(t, fn, false);
+      const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+      on('dragenter', e => { stop(e); dz.classList.add('dropzone--over'); });
+      on('dragover',  e => { stop(e); dz.classList.add('dropzone--over'); });
+      on('dragleave', e => { stop(e); dz.classList.remove('dropzone--over'); });
+      on('drop',      e => {
+        stop(e);
+        dz.classList.remove('dropzone--over');
+        dz.classList.add('dropzone--absorbing');
+        setTimeout(()=>dz.classList.remove('dropzone--absorbing'), 600);
+        // TODO: hand off e.dataTransfer.files to your existing handler
+        // window.handleDroppedFiles?.(e.dataTransfer.files);
+      });
+    }());
+  </script>
 </body>
 </html>
+
 
 
 
