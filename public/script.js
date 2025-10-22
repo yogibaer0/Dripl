@@ -1,194 +1,165 @@
-// public/script.js
-// ---------- CONFIG read from server-injected <meta> ----------
-const META = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() || "";
-const SUPABASE_URL = META("supabase-url");
-const SUPABASE_ANON_KEY = META("supabase-anon-key");
-const API_BASE = META("api-base");
+/* global window, document, fetch */
+/**
+ * Dripl front-end glue.
+ * - Initializes Supabase via local UMD
+ * - Wires Upload/Import minimal interactions
+ * - Destination Hub: preset selection, convert trigger, job polling
+ * CSP-safe: this file is loaded with a script nonce injected by server.
+ */
 
-// Safe debug (only a preview of the anon key for logs)
-console.log("[dripl] metas", {
-  SUPABASE_URL,
-  keyPreview: (SUPABASE_ANON_KEY || "").slice(0, 6) + "…",
-  API_BASE,
-});
+(function () {
+  const cfg = window.__APP__ || {};
+  const log = (...a) => console.info("[dripl]", ...a);
 
-// ---------- SUPABASE (UMD loaded from /vendor) ----------
-const supaFactory = (window.supabase || window.Supabase);
-if (!supaFactory) {
-  console.error("[dripl] Supabase UMD not loaded");
-} else if (!/^https?:\/\//.test(SUPABASE_URL || "")) {
-  console.error("[dripl] Missing/invalid SUPABASE_URL — check Render env + server injection.");
-} else {
-  window.supa = (supaFactory.createClient || supaFactory)(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.info("[dripl] Supabase ready");
-}
+  // ---------- Supabase ----------
+  (function initSupabase() {
+    try {
+      const url = cfg.SUPABASE_URL;
+      const key = cfg.SUPABASE_ANON_KEY;
+      if (!url || !/^https?:\/\//.test(url)) {
+        console.error("[dripl] Missing/invalid SUPABASE_URL – check Render env + server injection.");
+        return;
+      }
+      if (!window.supabase || !window.supabase.createClient) {
+        console.error("[dripl] Supabase UMD not loaded");
+        return;
+      }
+      window.supa = window.supabase.createClient(url, key);
+      log("Supabase ready");
+    } catch (err) {
+      console.error("[dripl] Supabase init failed:", err);
+    }
+  }());
 
-// ---------- UI wiring ----------
-const qs = (s) => document.querySelector(s);
+  // ---------- Small helpers ----------
+  const $  = (sel, ctx = document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
-// Upload controls
-const drop = qs("#uploadDrop");
-const pasteLink = qs("#pasteLink");
-const formatSelect = qs("#formatSelect");
-const convertBtn = qs("#convertBtn");
-
-// Import controls
-const chooseFilesBtn = qs("#chooseFilesBtn");
-const hiddenFileInput = qs("#hiddenFileInput");
-const connectDropboxBtn = qs("#connectDropboxBtn");
-const connectGDriveBtn = qs("#connectGDriveBtn");
-
-// Storage list placeholder
-const storageList = qs("#storageList");
-
-// --- helpers ---
-function humanSize(bytes) {
-  if (!Number.isFinite(bytes)) return "—";
-  const units = ["B","KB","MB","GB","TB"];
-  let i = 0, n = bytes;
-  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-  return `${n.toFixed(n < 10 ? 1 : 0)} ${units[i]}`;
-}
-
-function listFiles(files = []) {
-  if (!storageList) return;
-  storageList.setAttribute("aria-busy", "true");
-  const frag = document.createDocumentFragment();
-  files.forEach(f => {
-    const row = document.createElement("div");
-    row.className = "storage-row";
-    row.innerHTML = `
-      <div class="storage-row__name">${f.name}</div>
-      <div class="storage-row__meta">${humanSize(f.size)} • ${f.type || "unknown"}</div>
-      <button class="btn btn--tiny">Upload</button>
-    `;
-    // Example: hook upload to Supabase storage later
-    row.querySelector("button").addEventListener("click", async () => {
-      console.log("[dripl] TODO upload:", f.name);
-      // const { data, error } = await window.supa.storage.from('bucket').upload(`path/${f.name}`, f)
-      // handle result...
+  async function jsonFetch(path, options = {}) {
+    const url = (cfg.API_BASE || "") + path;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      ...options,
+      headers: { "Content-Type": "application/json", Accept: "application/json", ...(options.headers || {}) }
     });
-    frag.appendChild(row);
+    const text = await res.text();
+    // If server ever returns HTML (e.g., error page), avoid "Unexpected token <" noise.
+    if (text.trim().startsWith("<!doctype") || text.trim().startsWith("<html")) {
+      throw new Error("Server returned HTML instead of JSON");
+    }
+    return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
+  }
+
+  // ---------- Upload area (minimal; keep your existing flow) ----------
+  const dropzone = $("#dropzone");
+  if (dropzone) {
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("drag");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("drag");
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length) {
+        setPreviewFromFile(files[0]);
+      }
+    });
+  }
+
+  $("#pick-files")?.addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    if (f) setPreviewFromFile(f);
   });
-  storageList.innerHTML = "";
-  storageList.appendChild(frag);
-  storageList.setAttribute("aria-busy", "false");
-}
 
-// --- Choose files (local) ---
-if (chooseFilesBtn && hiddenFileInput) {
-  chooseFilesBtn.addEventListener("click", () => hiddenFileInput.click());
-  hiddenFileInput.addEventListener("change", (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    console.log("[dripl] picked files:", files.map(f => f.name));
-    listFiles(files);
+  function setPreviewFromFile(file) {
+    $("#meta-name").textContent = file.name;
+    $("#meta-duration").textContent = "—";
+    $("#meta-res").textContent = "—";
+    $("#meta-codec").textContent = file.type || "—";
+    const thumb = $("#preview-thumb");
+    thumb.style.setProperty("--bg", "#1f1f1f");
+    thumb.textContent = file.name.split(".").slice(0, -1).join(".");
+  }
+
+  // ---------- Destination Hub ----------
+  let selectedPreset = null;
+  $$(".preset").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      $$(".preset").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedPreset = btn.dataset.preset;
+    });
   });
-}
 
-// --- Drag & drop to upload box ---
-if (drop) {
-  const enter = () => drop.classList.add("dropzone--hover");
-  const leave = () => drop.classList.remove("dropzone--hover");
+  $("#start-convert")?.addEventListener("click", async () => {
+    const status = $("#job-status");
+    if (!selectedPreset) {
+      status.textContent = "Pick a preset first.";
+      return;
+    }
+    status.textContent = "Starting…";
 
-  ["dragenter","dragover"].forEach(evt =>
-    drop.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); enter(); })
-  );
-  ["dragleave","drop"].forEach(evt =>
-    drop.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); leave(); })
-  );
-  drop.addEventListener("drop", (e) => {
-    const files = Array.from(e.dataTransfer?.files || []);
-    const text = e.dataTransfer?.getData("text")?.trim();
-    if (files.length) {
-      console.log("[dripl] dropped files:", files.map(f => f.name));
-      listFiles(files);
-    } else if (text) {
-      pasteLink.value = text;
-      convertBtn?.click();
+    const body = {
+      preset: selectedPreset,
+      options: {
+        watermark: $("#opt-watermark")?.checked || false,
+        autoTrim: $("#opt-trim")?.checked || false
+      },
+      // In a fuller build, you’d pass real file IDs captured from the upload/import panels.
+      fileIds: [] 
+    };
+
+    try {
+      const { ok, data } = await jsonFetch("/api/convert", { method: "POST", body: JSON.stringify(body) });
+      if (!ok) throw new Error("Failed to start job");
+      status.textContent = `Queued (job ${data.jobId})…`;
+      pollJob(data.jobId, status);
+    } catch (err) {
+      console.error(err);
+      status.textContent = "Failed to start conversion.";
     }
   });
-}
 
-// --- Convert link (paste + button + Enter) ---
-async function handleConvert() {
-  const url = pasteLink?.value?.trim();
-  if (!url) return;
-  const fmt = formatSelect?.value || "mp4";
-  console.log(`[dripl] convert request: ${fmt} -> ${url}`);
-
-  // Example call to your API (hook up when ready)
-  // await fetch(`${API_BASE || ""}/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, format: fmt }) })
-
-  // For now, surface a friendly toast
-  alert("Convert queued (demo) — wire this to your API when ready.");
-}
-
-if (convertBtn) convertBtn.addEventListener("click", handleConvert);
-if (pasteLink) {
-  pasteLink.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleConvert();
-  });
-}
-
-// --- Third-party import stubs (safe, no errors) ---
-function comingSoon(which) {
-  alert(`${which} picker coming soon.\nThis button is intentionally a no-op until OAuth is wired.`);
-}
-connectDropboxBtn?.addEventListener("click", () => comingSoon("Dropbox"));
-connectGDriveBtn?.addEventListener("click", () => comingSoon("Google Drive"));
-
-// --- Error softening ---
-window.addEventListener("error", (e) => {
-  if (String(e?.message || "").includes("Supabase")) {
-    console.error("[dripl] runtime:", e.message);
-  }
-});
-
-(async function destinationHub() {
-  const $presets = document.getElementById('presets');
-  const $jobs = document.getElementById('jobList');
-  const fileId = window.currentFileId; // set when user selects/creates a source
-
-  // render preset buttons from server so FE stays in sync with BE
-  const presets = await fetch('/api/presets').then(r=>r.json());
-  $presets.innerHTML = '';
-  for (const p of presets) {
-    const b = document.createElement('button');
-    b.textContent = `Convert: ${p.label}`;
-    b.onclick = async () => {
-      if (!window.currentFileId) return alert('Pick or upload a file first');
-      const r = await fetch('/api/convert', {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        body: JSON.stringify({ fileId: window.currentFileId, preset: p.key })
-      }).then(r=>r.json());
-      addJob(r.jobId, p.label);
-    };
-    $presets.appendChild(b);
-  }
-
-  function addJob(id, label) {
-    const li = document.createElement('li');
-    li.id = `job-${id}`;
-    li.textContent = `${label} — queued…`;
-    $jobs.prepend(li);
-    poll(id, li);
-  }
-
-  async function poll(id, li) {
-    const t = setInterval(async () => {
-      const j = await fetch(`/api/jobs/${id}`).then(r=>r.json()).catch(()=>null);
-      if (!j) return;
-      if (j.state === 'waiting' || j.state === 'active') li.textContent = `${j.state} — ${j.progress||0}%`;
-      if (j.state === 'failed') { li.textContent = 'failed'; clearInterval(t); }
-      if (j.state === 'completed' && j.url) {
-        li.innerHTML = `<a href="${j.url}" download>download</a>`;
-        clearInterval(t);
+  async function pollJob(jobId, statusEl) {
+    let tries = 0;
+    const MAX = 120; // ~2 minutes if 1s interval
+    const iv = setInterval(async () => {
+      tries++;
+      if (tries > MAX) {
+        clearInterval(iv);
+        statusEl.textContent = "Timed out. Check Jobs page.";
+        return;
       }
-    }, 1200);
+      try {
+        const { ok, data } = await jsonFetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+        if (!ok) throw new Error("poll failed");
+        if (data.status === "completed") {
+          clearInterval(iv);
+          statusEl.innerHTML = `Done: <a href="${data.url}" target="_blank" rel="noopener">download</a>`;
+        } else if (data.status === "failed") {
+          clearInterval(iv);
+          statusEl.textContent = "Job failed.";
+        } else {
+          statusEl.textContent = `Status: ${data.status}…`;
+        }
+      } catch (e) {
+        clearInterval(iv);
+        statusEl.textContent = "Polling error.";
+      }
+    }, 1000);
   }
+
+  // ---------- Storage (placeholder wiring) ----------
+  $("#storage-search")?.addEventListener("input", (e) => {
+    // Hook to your search/filtering
+    void e.target.value;
+  });
+
 })();
+
 
 
 

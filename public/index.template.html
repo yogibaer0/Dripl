@@ -1,122 +1,157 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- LABEL: Charset + Mobile -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dripl • Ameba</title>
 
-  <!-- LABEL: Title -->
-  <title>Dripl — Upload • Import • Storage</title>
+  <!-- ===== Config (injected by server.ts) ===== -->
+  <meta name="supabase-url" content="{{SUPABASE_URL}}">
+  <meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
+  <meta name="api-base" content="{{API_BASE}}">
+  <meta name="page-nonce" content="{{NONCE}}">
 
-  <!-- LABEL: Styles (served from /public) -->
+  <!-- ===== Styles ===== -->
   <link rel="stylesheet" href="/styles.css" />
 
-  <!-- LABEL: Favicon (served from /public) -->
-  <link rel="icon" href="/favicon.ico" />
+  <!-- ===== Security: CSP nonced UMD & app ===== -->
+  <!-- Local UMD to avoid CDN/CSP headaches.  'SUPABASE_SRI_ATTR' is injected if you supplied an SRI hash. -->
+  <script {{SUPABASE_SRI_ATTR}} src="/vendor/supabase.min.js" nonce="{{NONCE}}"></script>
 
-  <!-- LABEL: Config (Injected by server; read by script.js) -->
-  <meta name="supabase-url"      content="{{SUPABASE_URL}}">
-  <meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
-  <meta name="api-base"          content="{{API_BASE}}">
+  <!-- Small bootstrap that exposes config + nonce to script.js -->
+  <script nonce="{{NONCE}}">
+    (function () {
+      const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim() || "";
+      window.__APP__ = {
+        NONCE:    meta("page-nonce"),
+        API_BASE: meta("api-base") || "",
+        SUPABASE_URL: meta("supabase-url"),
+        SUPABASE_ANON_KEY: meta("supabase-anon-key")
+      };
+    }());
+  </script>
 </head>
-<body>
-  <!-- ====== UI ====== -->
 
-  <!-- LABEL: Header / Branding -->
-  <header class="hero">
-    <div class="hero__logo" aria-hidden="true"></div>
-    <h1 class="hero__title">Dripl</h1>
-    <div class="glow-line"><svg viewBox="0 0 100 2" preserveAspectRatio="none"><rect width="100" height="2" /></svg></div>
+<body>
+  <header class="site-header">
+    <h1>Dripl</h1>
+    <div class="hr"></div>
   </header>
 
-  <!-- LABEL: Main Panels -->
-  <main class="panels">
-
-    <!-- LABEL: Upload -->
-    <section class="card" id="uploadCard" aria-labelledby="uploadTitle">
-      <h2 id="uploadTitle" class="card__title">Upload</h2>
-
-      <div id="uploadDrop" class="dropzone" aria-label="Drag & drop files here">
-        <span class="dropzone__hint">Drag & drop files here</span>
-        <span class="dropzone__or">…or drop a link / text</span>
+  <main class="grid">
+    <!-- ============ Upload ============ -->
+    <section class="panel" id="upload">
+      <h2>Upload</h2>
+      <div id="dropzone" class="dropzone" aria-label="Drag & drop files here">
+        <p>Drag &amp; drop files here… <em>or</em> drop a link / text</p>
       </div>
 
-      <div class="row gap">
-        <input id="pasteLink" class="input" type="url" placeholder="Paste link (YouTube, TikTok, etc.)" />
-        <select id="formatSelect" class="select">
+      <div class="row">
+        <input id="paste-input" class="input" placeholder="Paste link (YouTube, TikTok, …)" />
+        <select id="format" class="select">
           <option value="mp4">MP4 (video)</option>
           <option value="mp3">MP3 (audio)</option>
+          <option value="gif">GIF</option>
         </select>
-        <button id="convertBtn" class="btn btn--primary">Convert</button>
+        <button id="convert-btn" class="btn">Convert</button>
       </div>
 
       <p class="hint">Pro tip: press <kbd>Enter</kbd> to convert instantly.</p>
     </section>
 
-    <!-- LABEL: Import -->
-    <section class="card" id="importCard" aria-labelledby="importTitle">
-      <h2 id="importTitle" class="card__title">Import</h2>
+    <!-- ============ Import ============ -->
+    <section class="panel" id="import">
+      <h2>Import</h2>
 
-      <div class="import__cols">
-        <div class="import__col">
-          <h3 class="import__col-title">This device</h3>
-          <button id="chooseFilesBtn" class="btn">Choose files</button>
-          <input id="hiddenFileInput" type="file" hidden multiple />
-        </div>
+      <div class="card">
+        <h3>This device</h3>
+        <input id="pick-files" type="file" multiple />
+      </div>
 
-        <div class="import__col">
-          <h3 class="import__col-title">Dropbox</h3>
-          <button id="connectDropboxBtn" class="btn btn--ghost">Connect Dropbox</button>
-          <p class="meta small">Direct links, multi-select</p>
-        </div>
+      <div class="card">
+        <h3>Dropbox</h3>
+        <button class="btn secondary" id="btn-dropbox">Connect Dropbox</button>
+        <p class="muted">Direct links, multi-select</p>
+      </div>
 
-        <div class="import__col">
-          <h3 class="import__col-title">Google Drive</h3>
-          <button id="connectGDriveBtn" class="btn btn--ghost">Connect Google Drive</button>
-          <p class="meta small">Picker with OAuth</p>
-        </div>
+      <div class="card">
+        <h3>Google Drive</h3>
+        <button class="btn secondary" id="btn-gdrive">Connect Google Drive</button>
+        <p class="muted">Picker with OAuth</p>
       </div>
     </section>
 
-    <!-- LABEL: Storage -->
-    <section class="card card--wide" id="storageCard" aria-labelledby="storageTitle">
-      <div class="row between align-center">
-        <h2 id="storageTitle" class="card__title">Storage</h2>
-        <div class="row gap">
-          <button id="addFolderBtn" class="btn btn--ghost">+ Folder</button>
-          <div class="menu"><button id="filtersBtn" class="btn btn--ghost">Filters</button></div>
-          <div class="menu"><button id="presetsBtn" class="btn btn--ghost">Presets</button></div>
-        </div>
-      </div>
-
+    <!-- ============ Storage ============ -->
+    <section class="panel" id="storage">
+      <h2>Storage</h2>
       <div class="row">
-        <input id="storageSearch" class="input input--wide" placeholder="Search by file name, tags, notes, or source…" />
+        <button class="btn secondary">+ Folder</button>
+        <button class="btn secondary">Filters</button>
+        <button class="btn secondary">Presets</button>
       </div>
-
+      <input id="storage-search" class="input" placeholder="Search by file name, tags, notes…" />
       <div class="chips">
-        <button class="chip chip--active" data-tab="recent">Recent</button>
-        <button class="chip" data-tab="saved">Saved ★</button>
-        <button class="chip" data-tab="progress">In progress</button>
-        <button class="chip" data-tab="shared">Shared with me</button>
-        <button class="chip" data-tab="trash">Trash</button>
+        <button class="chip active">Recent</button>
+        <button class="chip">Saved ★</button>
+        <button class="chip">In progress</button>
+        <button class="chip">Shared with me</button>
+        <button class="chip">Trash</button>
       </div>
-
-      <div id="storageList" class="storage-list" aria-live="polite" aria-busy="false"></div>
+      <ul id="storage-list" class="list"></ul>
     </section>
   </main>
 
-  <!-- ====== SCRIPTS ====== -->
+  <!-- ============ Destination Hub ============ -->
+  <section class="panel wide" id="dest-hub">
+    <h2>Destination Hub</h2>
 
-  <!-- LABEL: Local Supabase UMD (CSP 'self' + optional SRI) -->
-  <script src="/vendor/supabase.min.js"
-          integrity="{{SUPABASE_SRI}}"
-          crossorigin="anonymous"
-          nonce="{{NONCE}}"></script>
+    <div class="dest-grid">
+      <!-- Preview -->
+      <div class="preview">
+        <div class="thumb" id="preview-thumb" aria-label="Preview thumbnail"></div>
+        <dl class="meta" id="preview-meta">
+          <div><dt>Filename</dt><dd id="meta-name">—</dd></div>
+          <div><dt>Duration</dt><dd id="meta-duration">—</dd></div>
+          <div><dt>Resolution</dt><dd id="meta-res">—</dd></div>
+          <div><dt>Codec</dt><dd id="meta-codec">—</dd></div>
+        </dl>
+      </div>
 
-  <!-- LABEL: App code (module + CSP nonce) -->
-  <script type="module" src="/script.js" nonce="{{NONCE}}"></script>
+      <!-- Presets -->
+      <div class="presets">
+        <h3>One-click formats</h3>
+        <div class="preset-row">
+          <button class="btn preset" data-preset="tiktok">TikTok</button>
+          <button class="btn preset" data-preset="instagram">Instagram</button>
+          <button class="btn preset" data-preset="youtube">YouTube</button>
+          <button class="btn preset" data-preset="reddit">Reddit</button>
+          <button class="btn preset" data-preset="twitter">Twitter (X)</button>
+        </div>
+
+        <div class="row">
+          <label class="switch">
+            <input type="checkbox" id="opt-watermark" />
+            <span>Watermark</span>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="opt-trim" />
+            <span>Auto-trim to platform max</span>
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="start-convert" class="btn primary">Convert Selected</button>
+          <span id="job-status" class="muted"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- App logic (non-module; nonce for CSP) -->
+  <script src="/script.js" nonce="{{NONCE}}"></script>
 </body>
 </html>
+
 
 
 
