@@ -99,6 +99,27 @@ dropzone.addEventListener("drop", (e) => {
   }
 });
 
+function handleFileDrop(files) {
+  const f = files[0];
+  if (!f) return;
+
+  // update filename
+  document.getElementById("metaFilename").textContent = f.name || "—";
+
+  // naive resolution/duration placeholders (wire real probe later)
+  document.getElementById("metaResolution").textContent = "—";
+  document.getElementById("metaDuration").textContent = "—";
+  document.getElementById("metaCodec").textContent = f.type || "—";
+
+  // Preview: for images & videos we can show a blob URL
+  const url = URL.createObjectURL(f);
+  const img = document.getElementById("destPreviewImg");
+  // const vid = document.getElementById("destPreviewVideo"); // if you switch to video
+
+  img.src = url;
+}
+
+
 // ====== File Handling Placeholder ======
 // Replace this with your conversion or upload function later
 function handleFileDrop(files) {
