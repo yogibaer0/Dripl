@@ -125,35 +125,80 @@
             <img class="dest__thumb" id="preview-thumb" alt="Preview" />
           </div>
 
-          <!-- Metadata + Actions -->
-          <div class="dest__meta">
-            <div class="meta-list" id="preview-meta">
-              <div class="row"><div class="k">Filename</div><div class="v" id="meta-name">—</div></div>
-              <div class="row"><div class="k">Duration</div><div class="v" id="meta-duration">—</div></div>
-              <div class="row"><div class="k">Resolution</div><div class="v" id="meta-res">—</div></div>
-              <div class="row"><div class="k">Codec</div><div class="v" id="meta-codec">—</div></div>
-            </div>
+          <!-- ===================== Destination Hub ===================== -->
+<section class="panel panel--wide" aria-labelledby="dest-title">
+  <h3 id="dest-title" class="panel-title">Destination Hub</h3>
 
-            <div class="quick">
-              <button class="btn preset" data-preset="tiktok">TikTok</button>
-              <button class="btn preset" data-preset="instagram">Instagram</button>
-              <button class="btn preset" data-preset="youtube">YouTube</button>
-              <button class="btn preset" data-preset="reddit">Reddit</button>
-              <button class="btn preset" data-preset="twitter">Twitter (X)</button>
-            </div>
+  <!-- 3-column layout matching the sketch -->
+  <div class="dest-grid">
 
-            <div class="safeguards">
-              <label><input type="checkbox" id="opt-watermark" /> Watermark</label>
-              <label><input type="checkbox" id="opt-trim" /> Auto-trim</label>
-            </div>
+    <!-- LEFT: Large preview window -->
+    <div class="dest-preview">
+      <div class="preview-frame">
+        <!-- Use a <video> when you wire it; for now an image placeholder -->
+        <img id="destPreviewImg" src="/assets/preview-placeholder.png" alt="Media preview" />
+        <!-- Example video drop-in (keep commented for now)
+        <video id="destPreviewVideo" controls muted playsinline></video>
+        -->
+      </div>
+      <p class="preview-hint">Preview • 16:9 • drag a file above or paste a link</p>
+    </div>
 
-            <div class="row end">
-              <button id="start-convert" class="btn btn--primary">Convert Selected</button>
-              <span id="job-status" class="muted"></span>
-            </div>
-          </div>
-        </div>
-      </section>
+    <!-- MIDDLE: Meta data -->
+    <div class="dest-meta">
+      <div class="kv">
+        <span class="k">Filename</span><span class="v" id="metaFilename">—</span>
+      </div>
+      <div class="kv">
+        <span class="k">Duration</span><span class="v" id="metaDuration">—</span>
+      </div>
+      <div class="kv">
+        <span class="k">Resolution</span><span class="v" id="metaResolution">—</span>
+      </div>
+      <div class="kv">
+        <span class="k">Codec</span><span class="v" id="metaCodec">—</span>
+      </div>
+
+      <div class="dest-options">
+        <label class="opt">
+          <input type="checkbox" id="optWatermark" checked />
+          <span>Watermark</span>
+        </label>
+        <label class="opt">
+          <input type="checkbox" id="optAutotrim" />
+          <span>Auto-trim</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- RIGHT: One-click actions -->
+    <aside class="dest-actions">
+      <div class="actions-stack">
+        <button class="btn btn--pill" data-dest="tiktok">TikTok</button>
+        <button class="btn btn--pill" data-dest="instagram">Instagram</button>
+        <button class="btn btn--pill" data-dest="youtube">YouTube</button>
+        <button class="btn btn--pill" data-dest="reddit">Reddit</button>
+      </div>
+
+      <div class="action-toggles">
+        <label class="opt">
+          <input type="checkbox" id="optPlatformAlign" checked />
+          <span>Auto-fit to platform</span>
+        </label>
+        <label class="opt">
+          <input type="checkbox" id="optFaceFilters" />
+          <span>Face filters</span>
+        </label>
+      </div>
+
+      <button id="convertSelected" class="btn btn--primary btn--wide">
+        Convert Selected
+      </button>
+    </aside>
+
+  </div>
+</section>
+
     </div>
   </div>
 
