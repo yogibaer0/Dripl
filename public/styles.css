@@ -43,7 +43,7 @@ body{
   font: 14px/1.45 ui-sans-serif, system-ui, Segoe UI, Roboto, Inter, sans-serif;
 }
 
-/* Utility */
+/* Utilities */
 .muted{ color:var(--muted); }
 .hidden{ display:none !important; }
 
@@ -65,7 +65,9 @@ body{
 .glow-line svg{ display:block; width:100%; height:14px; }
 
 /* ==========================================================================
-   Layout Grid (3 top panels + 1 full-width panel underneath)
+   Layout Grid
+   - Top row: Import (smallest), Upload (medium), Storage (largest)
+   - Bottom row: Destination hub spans full width
    ========================================================================== */
 
 .shell{ max-width:var(--max); margin:18px auto 120px; padding:0 var(--space); }
@@ -73,19 +75,26 @@ body{
 .panels{
   display:grid;
   gap:var(--gap);
-  grid-template-columns: repeat(3, 1fr);
+
+  /* 2 | 4 | 6 ratio (Import | Upload | Storage) */
+  grid-template-columns: 2fr 4fr 6fr;
+
+  /* Order columns to match the ratio above */
   grid-template-areas:
-    "upload import storage"
+    "import upload storage"
     "dest   dest   dest";
 }
 
-/* Areas */
+/* Area hooks */
 .panel--upload  { grid-area: upload; }
 .panel--import  { grid-area: import; }
 .panel--storage { grid-area: storage; }
 .panel--dest    { grid-area: dest; }
 
-/* Card container */
+/* ==========================================================================
+   Card (shared)
+   ========================================================================== */
+
 .card{
   background: linear-gradient(180deg, var(--panel-1) 0%, var(--panel-2) 100%);
   border:1px solid var(--border);
@@ -96,8 +105,6 @@ body{
   flex-direction:column;
   min-height:420px;
 }
-
-/* Card header */
 .card__head{
   display:flex;
   align-items:center;
@@ -108,8 +115,6 @@ body{
 }
 .card__head h2{ margin:0; font-size:16px; }
 .toolbar{ display:flex; gap:8px; align-items:center; }
-
-/* Card body */
 .card__body{ padding:var(--space); display:flex; flex-direction:column; gap:12px; }
 
 /* ==========================================================================
@@ -158,7 +163,7 @@ body{
 }
 
 /* ==========================================================================
-   Upload Panel — Blob Glow
+   Upload Panel — “Blob” Glow & Absorb
    ========================================================================== */
 
 .upload .dropzone{
@@ -259,7 +264,6 @@ body{
   align-items: center;
   justify-items: center;
 }
-
 .preview-wrap {
   width: 360px;
   max-width: 100%;
@@ -283,7 +287,7 @@ body{
 }
 .preview-hint .muted { color: rgba(255,255,255,0.5); font-size: 12px; }
 
-/* glow on hover and while dragging */
+/* glow on hover and drag */
 .preview-wrap:hover,
 .preview-wrap.is-hovering {
   border-color: rgba(164, 129, 255, 0.9);
@@ -347,13 +351,3 @@ body{
   .grid{ grid-template-columns:1fr; }
   .storage__search input{ min-width:0; width:52vw; }
 }
-
-
-
-
-
-
-
-
-
-
