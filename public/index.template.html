@@ -68,49 +68,26 @@
         </div>
       </section>
 
-      <!-- Import card -->
-<section class="panel import" aria-label="Import">
-  <header>Import</header>
+<!-- Import -->
+<section class="card panel--import import" aria-labelledby="h-import">
+  <div class="card__head"><h2 id="h-import">Import</h2></div>
 
-  <!-- Goo background lives here (you'll animate the <path> later) -->
-  <div class="goo-container">
-    <svg class="goo-bg" viewBox="0 0 1000 320" preserveAspectRatio="none">
-      <path id="importGoo" d="M0,140 Q500,210 1000,140 L1000,320 L0,320 Z"></path>
-    </svg>
+  <div class="card__body">
+    <div class="goo-container">
+      <svg class="goo-bg" viewBox="0 0 1000 320" preserveAspectRatio="none">
+        <path id="importGoo" d="M0,140 Q500,210 1000,140 L1000,320 L0,320 Z"></path>
+      </svg>
 
-    <!-- ICON ROW (bottom half, centered) -->
-    <div class="icon-row" role="group" aria-label="Import sources">
-      <button class="import-icon" id="imp-device"  aria-label="This device" title="This device"></button>
-      <button class="import-icon" id="imp-dropbox" aria-label="Dropbox"     title="Dropbox"></button>
-      <button class="import-icon" id="imp-drive"   aria-label="Google Drive" title="Google Drive"></button>
-      <!-- add more here (MEGA, OneDrive, etc) -->
+      <!-- icon row lives INSIDE the goo -->
+      <div class="icon-row" role="group" aria-label="Import sources">
+        <button class="import-icon" id="imp-device"  aria-label="This device" title="This device"></button>
+        <button class="import-icon" id="imp-dropbox" aria-label="Dropbox" title="Dropbox"></button>
+        <button class="import-icon" id="imp-drive"   aria-label="Google Drive" title="Google Drive"></button>
+      </div>
     </div>
   </div>
 </section>
 
-
-<!-- Dropbox -->
-<div class="import_col">
-  <h3>Dropbox</h3>
-  <button class="btn btn--icon" id="btn-dropbox">
-    <img class="icon" src="/assets/dropbox-icon.svg" alt="" aria-hidden="true" />
-    <span>Connect Dropbox</span>
-  </button>
-  <p class="muted">Direct links, multi-select</p>
-</div>
-
-<!-- Google Drive -->
-<div class="import_col">
-  <h3>Google Drive</h3>
-  <button class="btn btn--icon" id="btn-gdrive">
-    <img class="icon" src="/assets/google-drive-logo.svg" alt="" aria-hidden="true" />
-    <span>Connect Google Drive</span>
-  </button>
-  <p class="muted">Picker with OAuth</p>
-</div>
-
-        </div>
-      </section>
 
       <!-- Storage -->
       <section class="card panel--storage storage" aria-labelledby="h-storage">
@@ -224,6 +201,17 @@
       });
     }());
   </script>
+<script nonce="{{NONCE}}">
+  (function(){
+// wire new icon buttons
+    const byId = (id) => document.getElementById(id);
+    const safeClick = (el) => () => el && el.click();
+
+    byId('imp-device') .addEventListener('click', () => byId('dropzone')?.click()); // or your file picker
+    byId('imp-dropbox').addEventListener('click', safeClick(oldDropbox));
+    byId('imp-drive')  .addEventListener('click', safeClick(oldGDrive));
+  }());
+</script>
 </body>
 </html>
 
