@@ -218,45 +218,55 @@ body{
    Import Panel
    ========================================================================== */
 
-.import__cols{
-  display:grid;
-  grid-template-columns:repeat(1, 1fr);
-  gap:12px;
-}
-.import__col{
-  background:var(--panel-inset);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:12px;
+.panel.import{
+  position: relative;
+  min-height: 300px;                 /* your compact height */
 }
 
-/* === Ameba: Icon Buttons for Import panel =============================== */
-.btn--icon {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: var(--space-2) var(--space-3);       /* Uses your existing scales if defined */
-  line-height: 1.15;
+.goo-container{
+  position: relative;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg,#12051c 0%,#1a0f27 100%);
+}
+.goo-bg path{
+  fill: #9b5cf8;                      /* your pink/purple */
+  opacity: .18;                       /* subtle until animated */
 }
 
-.btn--icon .icon {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  /* If you inline SVGs you can inherit color:
-     fill: currentColor; */
-  filter: drop-shadow(0 0 0 transparent);
+/* Icon row anchored near the bottom, centered */
+.icon-row{
+  position: absolute;
+  left: 16px; right: 16px;
+  bottom: 18%;                        /* sits in lower third */
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  pointer-events: auto;
 }
 
-/* Optional: keep hover/active consistent with your system */
-.btn--icon:hover { transform: translateY(-0.5px); }
-.btn--icon:active { transform: translateY(0); }
+/* Icon buttons (SVG or mask) */
+.import-icon{
+  width: 56px; height: 56px;
+  border: 0; border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.import-icon:hover{ transform: translateY(-2px); background: rgba(255,255,255,0.1); }
+.import-icon:focus-visible{ outline: 2px solid #b98cff; outline-offset: 2px; }
 
-/* Small muted helper text under buttons */
-.muted {
-  opacity: .7;
-  font-size: .875rem;
-  margin-top: .25rem;
+/* Use background-image now; swap to inline SVG later */
+#imp-device { background-image: url('/icons/folder.svg'); }
+#imp-dropbox{ background-image: url('/icons/dropbox.svg'); }
+#imp-drive  { background-image: url('/icons/google-drive.svg'); }
+
+.import-icon{
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 28px 28px;        /* icon size inside the button */
 }
 
 /* ==========================================================================

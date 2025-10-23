@@ -68,20 +68,26 @@
         </div>
       </section>
 
-      <!-- Import -->
-      <section class="card panel--import import" aria-labelledby="h-import">
-        <div class="card__head"><h2 id="h-import">Import</h2></div>
-        <div class="card__body import__cols">
-          <!-- This device -->
-<div class="import_col">
-  <h3>This device</h3>
-  <input id="pick-files" type="file" multiple hidden />
-  <label for="pick-files" class="btn btn--icon" id="btn-import-local">
-    <img class="icon" src="/assets/dripl-files.svg" alt="" aria-hidden="true" />
-    <span>Select files</span>
-  </label>
-  <div id="localFileName" class="muted"></div>
-</div>
+      <!-- Import card -->
+<section class="panel import" aria-label="Import">
+  <header>Import</header>
+
+  <!-- Goo background lives here (you'll animate the <path> later) -->
+  <div class="goo-container">
+    <svg class="goo-bg" viewBox="0 0 1000 320" preserveAspectRatio="none">
+      <path id="importGoo" d="M0,140 Q500,210 1000,140 L1000,320 L0,320 Z"></path>
+    </svg>
+
+    <!-- ICON ROW (bottom half, centered) -->
+    <div class="icon-row" role="group" aria-label="Import sources">
+      <button class="import-icon" id="imp-device"  aria-label="This device" title="This device"></button>
+      <button class="import-icon" id="imp-dropbox" aria-label="Dropbox"     title="Dropbox"></button>
+      <button class="import-icon" id="imp-drive"   aria-label="Google Drive" title="Google Drive"></button>
+      <!-- add more here (MEGA, OneDrive, etc) -->
+    </div>
+  </div>
+</section>
+
 
 <!-- Dropbox -->
 <div class="import_col">
