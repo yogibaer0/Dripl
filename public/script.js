@@ -50,6 +50,23 @@
     }
     return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
   }
+{
+  // Display chosen filenames under the "Select files" button
+  const fileInput = document.getElementById('fileInput');
+  const fileNameOut = document.getElementById('localFileName');
+  if (fileInput && fileNameOut) {
+    fileInput.addEventListener('change', () => {
+      if (!fileInput.files || fileInput.files.length === 0) {
+        fileNameOut.textContent = '';
+        return;
+      }
+      const names = [...fileInput.files].map(f => f.name).slice(0, 3).join(', ');
+      const more = fileInput.files.length > 3 ? ` (+${fileInput.files.length - 3} more)` : '';
+      fileNameOut.textContent = `${names}${more}`;
+    });
+  }
+}
+
 
   // ===== DRAG & DROP BLOB BEHAVIOR =====
 

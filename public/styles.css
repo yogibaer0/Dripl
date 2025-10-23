@@ -230,6 +230,35 @@ body{
   padding:12px;
 }
 
+/* === Ameba: Icon Buttons for Import panel =============================== */
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-2) var(--space-3);       /* Uses your existing scales if defined */
+  line-height: 1.15;
+}
+
+.btn--icon .icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  /* If you inline SVGs you can inherit color:
+     fill: currentColor; */
+  filter: drop-shadow(0 0 0 transparent);
+}
+
+/* Optional: keep hover/active consistent with your system */
+.btn--icon:hover { transform: translateY(-0.5px); }
+.btn--icon:active { transform: translateY(0); }
+
+/* Small muted helper text under buttons */
+.muted {
+  opacity: .7;
+  font-size: .875rem;
+  margin-top: .25rem;
+}
+
 /* ==========================================================================
    Storage Panel
    ========================================================================== */
