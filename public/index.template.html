@@ -41,16 +41,14 @@
     </div>
   </header>
 
-<input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true" />
-
+  <!-- Hidden input for local picker (must not be display:none) -->
+  <label for="fileInput" class="sr-only">Choose a file</label>
+  <input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true" />
 
   <main class="shell">
     <div class="panels">
 
       <!-- Upload -->
-
-<input id="fileInput" type="file" accept="video/*,image/*" />
-
       <section class="card panel--upload upload" aria-labelledby="h-upload">
         <div class="card__head"><h2 id="h-upload">Upload</h2></div>
         <div class="card__body">
@@ -61,12 +59,14 @@
           </div>
 
           <div class="upload__controls">
+            <label for="paste-input" class="sr-only">Paste media link</label>
             <input id="paste-input" class="input" placeholder="Paste media link…" />
-            <select id="format" class="select">
+            <select id="format" class="select" aria-label="Output format">
               <option value="mp4">MP4 (video)</option>
               <option value="mp3">MP3 (audio)</option>
               <option value="gif">GIF</option>
             </select>
+            <label for="convert-btn" class="sr-only">Convert</label>
             <button id="convert-btn" class="btn btn--primary">Convert</button>
           </div>
 
@@ -74,47 +74,43 @@
         </div>
       </section>
 
-<!-- Import -->
-<section class="card panel--import import" aria-labelledby="h-import">
-  <div class="card__head"><h2 id="h-import">Import</h2></div>
+      <!-- Import -->
+      <section class="card panel--import import" aria-labelledby="h-import">
+        <div class="card__head"><h2 id="h-import">Import</h2></div>
+        <div class="card__body">
+          <div class="goo-container">
+            <svg class="goo-bg" viewBox="0 0 1000 320" preserveAspectRatio="none">
+              <path id="importGoo" d="M0,140 Q500,210 1000,140 L1000,320 L0,320 Z"></path>
+            </svg>
 
-  <div class="card__body">
-    <div class="goo-container">
-      <svg class="goo-bg" viewBox="0 0 1000 320" preserveAspectRatio="none">
-        <path id="importGoo" d="M0,140 Q500,210 1000,140 L1000,320 L0,320 Z"></path>
-      </svg>
+            <!-- icons inside the goo -->
+            <div class="icon-row" role="group" aria-label="Import sources">
+              <button class="import-icon" id="imp-device"  aria-label="This device" title="This device">
+                <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+                  <path fill="currentColor"
+                        d="M4 7.5c0-1.1.9-2 2-2h3.2c.3 0 .6.1.8.3l1 1c.2.2.5.3.8.3H18c1.1 0 2 .9 2 2v7.7c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7.5Z"/>
+                  <path d="M4 10h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
 
-      <!-- icon row lives INSIDE the goo -->
-      <div class="icon-row" role="group" aria-label="Import sources">
-        <button class="import-icon" id="imp-device"  aria-label="This device" title="This device">
-          <!-- simple folder icon (valid path) -->
-          <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-            <path fill="currentColor"
-              d="M4 7.5c0-1.1.9-2 2-2h3.2c.3 0 .6.1.8.3l1 1c.2.2.5.3.8.3H18c1.1 0 2 .9 2 2v7.7c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7.5Z"/>
-            <path d="M4 10h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
+              <button class="import-icon" id="imp-dropbox" aria-label="Dropbox" title="Dropbox">
+                <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+                  <path fill="currentColor"
+                        d="M7.5 3.5 12 6l-4.5 2.5L3 6l4.5-2.5Zm9 0L21 6l-4.5 2.5L12 6l4.5-2.5ZM7.5 11.5 12 14l-4.5 2.5L3 14l4.5-2.5Zm13.5 2.5-4.5 2.5L12 14l4.5-2.5L21 14Zm-9 2.6 3.6 2.1-3.6 2.1L8.4 18.6 12 16.6Z"/>
+                </svg>
+              </button>
 
-        <button class="import-icon" id="imp-dropbox" aria-label="Dropbox" title="Dropbox">
-          <!-- simple dropbox mark -->
-          <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-            <path fill="currentColor"
-              d="M7.5 3.5 12 6l-4.5 2.5L3 6l4.5-2.5Zm9 0L21 6l-4.5 2.5L12 6l4.5-2.5ZM7.5 11.5 12 14l-4.5 2.5L3 14l4.5-2.5Zm13.5 2.5-4.5 2.5L12 14l4.5-2.5L21 14Zm-9 2.6 3.6 2.1-3.6 2.1L8.4 18.6 12 16.6Z"/>
-          </svg>
-        </button>
-
-        <button class="import-icon" id="imp-drive" aria-label="Google Drive" title="Google Drive">
-          <!-- official colored triangles -->
-          <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-            <polygon fill="#FBBC04" points="10,4 14,4 20,14 16,14"/>
-            <polygon fill="#34A853" points="10,4 4,14 8,14 14,4"/>
-            <polygon fill="#4285F4" points="8,14 12,20 20,14 16,14 12,18"/>
-          </svg>
-        </button>
-      </div>
-    </div> <!-- /goo-container -->
-  </div> <!-- /card__body -->
-</section>
+              <button class="import-icon" id="imp-drive" aria-label="Google Drive" title="Google Drive">
+                <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+                  <polygon fill="#FBBC04" points="10,4 14,4 20,14 16,14"/>
+                  <polygon fill="#34A853" points="10,4 4,14 8,14 14,4"/>
+                  <polygon fill="#4285F4" points="8,14 12,20 20,14 16,14 12,18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- Storage -->
       <section class="card panel--storage storage" aria-labelledby="h-storage">
@@ -141,15 +137,17 @@
         </div>
       </section>
 
-      <!-- Destination Hub (full-width) -->
+      <!-- Destination Hub -->
       <section class="card panel--dest" aria-label="Destination Hub">
         <div class="card__head"><h2 class="hidden">Destination Hub</h2></div>
         <div class="card__body">
           <section id="destHub" class="dest-panel" aria-label="Preview, metadata and actions">
-            <!-- LEFT: big square preview -->
             <div class="dest-left">
               <div class="preview-wrap" id="previewWrap" aria-live="polite">
-                <img id="previewImg" alt="Preview" />
+                <!-- preview media (one visible at a time) -->
+                <img id="previewImg" alt="" hidden>
+                <video id="previewVideo" playsinline muted loop controls hidden></video>
+
                 <div class="preview-hint" id="previewHint">
                   <span>Preview</span>
                   <span class="muted">• 1:1 • drag a file above or paste a link</span>
@@ -157,43 +155,49 @@
               </div>
             </div>
 
-            <!-- RIGHT: meta + actions -->
             <div class="dest-right">
               <div class="meta-grid" role="list">
                 <div class="meta-row" role="listitem">
-                  <label class="meta-label">Filename</label>
+                  <label for="metaFilename" class="meta-label">Filename</label>
                   <div class="pill" id="metaFilename">—</div>
                 </div>
                 <div class="meta-row" role="listitem">
-                  <label class="meta-label">Duration</label>
+                  <label for="metaDuration" class="meta-label">Duration</label>
                   <div class="pill" id="metaDuration">—</div>
                 </div>
                 <div class="meta-row" role="listitem">
-                  <label class="meta-label">Resolution</label>
+                  <label for="metaResolution" class="meta-label">Resolution</label>
                   <div class="pill" id="metaResolution">—</div>
                 </div>
                 <div class="meta-row" role="listitem">
-                  <label class="meta-label">Codec</label>
+                  <label for="metaCodec" class="meta-label">Codec</label>
                   <div class="pill" id="metaCodec">—</div>
                 </div>
               </div>
 
               <div class="dest-actions">
                 <div class="dest-buttons">
-                  <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
-                  <button class="btn btn-ghost" data-target="instagram">Instagram</button>
-                  <button class="btn btn-ghost" data-target="youtube">YouTube</button>
-                  <button class="btn btn-ghost" data-target="reddit">Reddit</button>
-                </div>
+                  <label class="sr-only" for="optWatermark">Watermark</label>
+                  <label class="sr-only" for="optAutotrim">Auto-trim</label>
+                  <label class="sr-only" for="optAutofit">Auto-fit to platform</label>
+                  <label class="sr-only" for="optFaceFilters">Face filters</label>
 
-                <div class="dest-toggles">
-                  <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
-                  <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
-                  <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
-                  <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
-                </div>
+                  <div class="dest-buttons">
+                    <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
+                    <button class="btn btn-ghost" data-target="instagram">Instagram</button>
+                    <button class="btn btn-ghost" data-target="youtube">YouTube</button>
+                    <button class="btn btn-ghost" data-target="reddit">Reddit</button>
+                  </div>
 
-                <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
+                  <div class="dest-toggles">
+                    <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
+                    <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
+                    <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
+                    <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
+                  </div>
+
+                  <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
+                </div>
               </div>
             </div>
           </section>
@@ -203,34 +207,27 @@
     </div>
   </main>
 
-  <!-- Your app script (kept external for CSP) -->
   <script src="/script.js" nonce="{{NONCE}}"></script>
 
-  <!-- Tiny helper for drop glow; safe to keep here or move into /script.js -->
+  <!-- small dropzone glow helper; keep or move into script.js -->
   <script nonce="{{NONCE}}">
     (function(){
-      const dz = document.getElementById('dropzone');
-      if (!dz) return;
-
+      const dz = document.getElementById('dropzone'); if (!dz) return;
       const on = (t, fn) => dz.addEventListener(t, fn, false);
       const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
-
       on('dragenter', e => { stop(e); dz.classList.add('dropzone--over'); });
       on('dragover',  e => { stop(e); dz.classList.add('dropzone--over'); });
       on('dragleave', e => { stop(e); dz.classList.remove('dropzone--over'); });
       on('drop',      e => {
         stop(e);
-        dz.classList.remove('dropzone--over');
-        dz.classList.add('dropzone--absorbing');
+        dz.classList.remove('dropzone--over'); dz.classList.add('dropzone--absorbing');
         setTimeout(()=>dz.classList.remove('dropzone--absorbing'), 600);
-        // TODO: hand off e.dataTransfer.files to your existing handler
-        // window.handleDroppedFiles?.(e.dataTransfer.files);
       });
     }());
   </script>
-
 </body>
 </html>
+
 
 
 
