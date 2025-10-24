@@ -114,36 +114,30 @@
   /* =========================================================
      Import icons (goo) — robust wiring
      ========================================================= */
-  (function initImportIcons(){
+  function initImportIcons() {
   const $ = (id) => document.getElementById(id);
   const deviceBtn  = $("imp-device");
   const dropboxBtn = $("imp-dropbox");
   const driveBtn   = $("imp-drive");
   const fileInput  = $("fileInput");
 
-  // Legacy connect buttons (if they exist)
   const legacyDropbox = $("btn-dropbox") ||
-                        document.querySelector('[data-action="dropbox"]');
-  const legacyDrive   = $("btn-gdrive")  ||
-                        document.querySelector('[data-action="gdrive"],[data-action="google-drive"]');
+    document.querySelector('[data-action="dropbox"]');
+  const legacyDrive = $("btn-gdrive") ||
+    document.querySelector('[data-action="gdrive"],[data-action="google-drive"]');
 
-  // Device (local picker)
   if (deviceBtn) {
     deviceBtn.addEventListener("click", () => {
       if (!fileInput) { console.warn("[ameba] fileInput not found"); return; }
       fileInput.click();
     });
   }
-
-  // Dropbox (proxy to your existing connect button or show a note)
   if (dropboxBtn) {
     dropboxBtn.addEventListener("click", () => {
       if (legacyDropbox) legacyDropbox.click();
       else console.info("[ameba] Dropbox connect not wired yet");
     });
   }
-
-  // Google Drive
   if (driveBtn) {
     driveBtn.addEventListener("click", () => {
       if (legacyDrive) legacyDrive.click();
@@ -156,7 +150,8 @@
     dropboxBtn: !!dropboxBtn, legacyDropbox: !!legacyDropbox,
     driveBtn: !!driveBtn, legacyDrive: !!legacyDrive
   });
-})();
+}
+
 
 
   /* =========================================================
