@@ -235,38 +235,27 @@ body{
   opacity: .18;                       /* subtle until animated */
 }
 
-/* Icon row anchored near the bottom, centered */
-.icon-row{
+.goo-container { position: relative; }
+.goo-bg       { position: absolute; inset: 0; z-index: 0; }   /* the purple wave */
+.icon-row     {
   position: absolute;
   left: 16px; right: 16px;
-  bottom: 18%;                        /* sits in lower third */
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  pointer-events: auto;
+  bottom: 12px;                 /* ↓ lower them from 18% to a fixed px */
+  display: flex; justify-content: center; gap: 18px;
+  z-index: 1;                   /* make sure icons are above the SVG */
 }
 
-/* Icon buttons (SVG or mask) */
-.import-icon{
-  width: 56px; height: 56px;
-  border: 0; border-radius: 14px;
-  background: rgba(255,255,255,0.06);
-  display: grid; place-items: center;
-  cursor: pointer;
-  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+.import-icon .icon { 
+  width: 28px; 
+  height: 28px; 
+  display: block; 
 }
-.import-icon:hover{ transform: translateY(-2px); background: rgba(255,255,255,0.1); }
-.import-icon:focus-visible{ outline: 2px solid #b98cff; outline-offset: 2px; }
-
-/* Use background-image now; swap to inline SVG later */
-#imp-device { background-image: url('/icons/folder.svg'); }
-#imp-dropbox{ background-image: url('/icons/dropbox.svg'); }
-#imp-drive  { background-image: url('/icons/google-drive.svg'); }
-
-.import-icon{
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 28px 28px;        /* icon size inside the button */
+.import-icon { 
+  background-color: rgba(255,255,255,0.06); 
+}
+.import-icon:hover { 
+  transform: translateY(-2px); 
+  background-color: rgba(255,255,255,0.1); 
 }
 
 /* ==========================================================================

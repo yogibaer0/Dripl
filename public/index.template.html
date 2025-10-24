@@ -79,13 +79,25 @@
       </svg>
 
       <!-- icon row lives INSIDE the goo -->
-      <div class="icon-row" role="group" aria-label="Import sources">
-        <button class="import-icon" id="imp-device"  aria-label="This device" title="This device"></button>
-        <button class="import-icon" id="imp-dropbox" aria-label="Dropbox" title="Dropbox"></button>
-        <button class="import-icon" id="imp-drive"   aria-label="Google Drive" title="Google Drive"></button>
-      </div>
-    </div>
-  </div>
+     <div class="icon-row" role="group" aria-label="Import sources">
+  <button class="import-icon" id="imp-device"  aria-label="This device">
+    <!-- folder svg -->
+    <svg viewBox="0 0 24 24" class="icon"><path d="M4.7 8.8 ... Z"/></svg>
+  </button>
+  <button class="import-icon" id="imp-dropbox" aria-label="Dropbox">
+    <!-- dropbox svg -->
+    <svg viewBox="0 0 24 24" class="icon"><path d="..."/></svg>
+  </button>
+  <button class="import-icon" id="imp-drive" aria-label="Google Drive">
+    <!-- drive triangle (official colors) -->
+    <svg viewBox="0 0 24 24" class="icon">
+      <polygon fill="#FBBC04" points="12,2 24,2 20,8 8,8"/>
+      <polygon fill="#34A853" points="8,8 4,14 12,22 16,16"/>
+      <polygon fill="#4285F4" points="20,8 16,16 12,22 20,14"/>
+    </svg>
+  </button>
+</div>
+
 </section>
 
 
