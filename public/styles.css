@@ -235,28 +235,31 @@ body{
   opacity: .18;                       /* subtle until animated */
 }
 
+/* Keep goo bg behind the icons */
 .goo-container { position: relative; }
-.goo-bg       { position: absolute; inset: 0; z-index: 0; }   /* the purple wave */
-.icon-row     {
+.goo-bg       { position: absolute; inset: 0; z-index: 0; }
+
+.icon-row{
   position: absolute;
   left: 16px; right: 16px;
-  bottom: 12px;                 /* ↓ lower them from 18% to a fixed px */
+  bottom: 12px;                 /* nudge to taste */
   display: flex; justify-content: center; gap: 18px;
-  z-index: 1;                   /* make sure icons are above the SVG */
+  z-index: 1;                   /* icons above SVG */
 }
 
-.import-icon .icon { 
-  width: 28px; 
-  height: 28px; 
-  display: block; 
+/* Buttons have a box */
+.import-icon{
+  width: 56px; height: 56px;
+  border: 0; border-radius: 14px;
+  display: grid; place-items: center;
+  background-color: rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: transform .18s ease, background-color .18s ease;
 }
-.import-icon { 
-  background-color: rgba(255,255,255,0.06); 
-}
-.import-icon:hover { 
-  transform: translateY(-2px); 
-  background-color: rgba(255,255,255,0.1); 
-}
+.import-icon:hover{ transform: translateY(-2px); background-color: rgba(255,255,255,0.10); }
+
+/* SVG size inside the button */
+.import-icon .icon{ width: 28px; height: 28px; display:block; }
 
 /* ==========================================================================
    Storage Panel
