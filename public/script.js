@@ -19,29 +19,30 @@
    * Key DOM refs (all optional)
    * --------------------------- */
   const els = {
-    // Upload
-    fileInput: $("#fileInput"),                // hidden <input type="file">
-    dropZone : $("#dropzone"),                 // drag/drop area
-    pasteLink: $("#pasteLinkInput"),           // link input (optional)
-    convertBtn: $("#convertBtn"),
+  // Upload
+  fileInput: $("#fileInput"),
+  dropZone : $("#dropzone"),
+  pasteLink: $("#paste-input"),       // ← fix ID
+  convertBtn: $("#convert-btn"),      // ← fix ID
 
-    // Preview + metadata (bottom strip)
-    previewImg: $("#destPreviewImg"),          // <img> in preview
-    previewHint: $("#previewHint"),
-    metaFilename: $("#metaFilename"),
-    metaDuration: $("#metaDuration"),
-    metaResolution: $("#metaResolution"),
-    metaCodec: $("#metaCodec"),
+  // Preview + metadata
+  previewImg: $("#previewImg"),       // ← fix ID
+  previewHint: $("#previewHint"),
+  metaFilename: $("#metaFilename"),
+  metaDuration: $("#metaDuration"),
+  metaResolution: $("#metaResolution"),
+  metaCodec: $("#metaCodec"),
 
-    // Import icons (inside goo)
-    impDevice: $("#imp-device"),
-    impDropbox: $("#imp-dropbox"),
-    impDrive: $("#imp-drive"),
+  // Import icons
+  impDevice: $("#imp-device"),
+  impDropbox: $("#imp-dropbox"),
+  impDrive: $("#imp-drive"),
 
-    // Optional legacy connect buttons (proxy click)
-    oldDropbox: $("#btn-dropbox") || $('[data-action="dropbox"]'),
-    oldGDrive : $("#btn-gdrive")  || $('[data-action="gdrive"], [data-action="google-drive"]'),
-  };
+  // Optional legacy (likely absent now)
+  oldDropbox: $("#btn-dropbox") || $('[data-action="dropbox"]'),
+  oldGDrive : $("#btn-gdrive")  || $('[data-action="gdrive"], [data-action="google-drive"]'),
+};
+
 
   /* =========================================================
      Preview + metadata

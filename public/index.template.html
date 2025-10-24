@@ -41,10 +41,16 @@
     </div>
   </header>
 
+<input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true" />
+
+
   <main class="shell">
     <div class="panels">
 
       <!-- Upload -->
+
+<input id="fileInput" type="file" accept="video/*,image/*" />
+
       <section class="card panel--upload upload" aria-labelledby="h-upload">
         <div class="card__head"><h2 id="h-upload">Upload</h2></div>
         <div class="card__body">
@@ -222,15 +228,6 @@
       });
     }());
   </script>
-<script nonce="{{NONCE}}">
-  (function(){
-    const byId = (id) => document.getElementById(id);
-
-    byId('imp-device') ?.addEventListener('click', () => byId('dropzone')?.click());
-    byId('imp-dropbox')?.addEventListener('click', () => /* connectDropboxPicker() */ null);
-    byId('imp-drive')  ?.addEventListener('click', () => /* connectGooglePicker() */ null);
-  }());
-</script>
 
 </body>
 </html>
