@@ -278,6 +278,17 @@ body{
 
 /* Keep the wave behind everything */
 .goo-bg{ position:absolute; inset:0; z-index:0; }
+/* make the wave ignore the mouse so buttons receive clicks */
+.goo-bg { pointer-events: none; }
+
+/* better than display:none for programmatic clicks */
+#fileInput {
+  position: absolute;
+  width: 1px; height: 1px;
+  left: -9999px; top: auto;
+  opacity: 0; pointer-events: none;
+}
+
 
 
 /* ==========================================================================

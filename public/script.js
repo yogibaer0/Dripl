@@ -115,27 +115,55 @@
      Import icons (goo) — robust wiring
      ========================================================= */
   function initImportIcons() {
-    // Device → open hidden input
-    if (els.impDevice && els.fileInput) {
-      on(els.impDevice, "click", () => els.fileInput.click());
-    } else if (els.impDevice) {
-      on(els.impDevice, "click", () => warn("fileInput not found; cannot open picker"));
-    }
+  const byId = (id) => document.getElementById(id);
+  const deviceBtn  = byId("imp-device");
+  const dropboxBtn = byId("imp-dropbox");
+  const driveBtn   = byId("imp-drive");
 
-    // Dropbox → proxy to legacy connect if present
-    if (els.impDropbox && els.oldDropbox) {
-      on(els.impDropbox, "click", () => els.oldDropbox.click());
-    } else if (els.impDropbox) {
-      on(els.impDropbox, "click", () => warn("Dropbox connect not wired"));
-    }
+  const fileInput  = byId("fileInput");
+  const legacyDropbox = byId("btn-dropbox") ||
+                        document.querySelector('[data-action="dropbox"]');
+  const legacyDrive   = byId("btn-gdrive")  ||
+                        document.querySelector('[data-action="gdrive"],[data-action="google-drive"]');
 
-    // Google Drive → proxy to legacy connect if present
-    if (els.impDrive && els.oldGDrive) {
-      on(els.impDrive, "click", () => els.oldGDrive.click());
-    } else if (els.impDrive) {
-      on(els.impDrive, "click", () => warn("Google Drive connect not wired"));
-    }
+  // Device (local files)
+  if (deviceBtn) {
+    deviceBtn.addEventListener("click", () => {
+      if (fileInput) {
+        // safety: ensure it’s not display:none
+        const cs = getComputedStyle(fileInput);
+        if (cs.display === "none") {
+          console.warn("[ameba] #fileInput is display:none; use visually-hidden styles instead.");
+        }
+        fileInput.click();
+      } else {
+        console.warn("[ameba] fileInput not found");
+      }
+    });
   }
+
+  // Dropbox
+  if (dropboxBtn) {
+    dropboxBtn.addEventListener("click", () => {
+      if (legacyDropbox) legacyDropbox.click();
+      else console.info("[ameba] Dropbox connect button not found; wire your picker here.");
+    });
+  }
+
+  // Google Drive
+  if (driveBtn) {
+    driveBtn.addEventListener("click", () => {
+      if (legacyDrive) legacyDrive.click();
+      else console.info("[ameba] Google Drive connect button not found; wire your picker here.");
+    });
+  }
+
+  // quick sanity log
+  console.log("[ameba] import icons ready", {
+    deviceBtn: !!deviceBtn, dropboxBtn: !!dropboxBtn, driveBtn: !!driveBtn,
+    fileInput: !!fileInput, legacyDropbox: !!legacyDropbox, legacyDrive: !!legacyDrive
+  });
+}
 
   /* =========================================================
      Paste-link → Convert (Dripl/Ameba Engine)
