@@ -323,6 +323,62 @@ body{
   .panel--import .goo-container{ min-height:180px; }
 }
 
+/* ===========================
+   AMEBA – Floating Import Icons
+   =========================== */
+
+/* Tweak these to taste */
+:root{
+  --ameba-bob-amp: 6px;     /* vertical amplitude */
+  --ameba-bob-dur: 4.8s;    /* base duration */
+  --ameba-wobble-dur: 5.6s; /* inner wobble */
+}
+
+/* Vertical bob for the button */
+@keyframes ameba-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(calc(-1 * var(--ameba-bob-amp))); }
+}
+
+/* Gentle inner wobble for the SVG */
+@keyframes ameba-wobble {
+  0%, 100% { transform: rotate(-1deg) translateX(-1px); }
+  50%      { transform: rotate( 1deg) translateX( 1px); }
+}
+
+/* Apply animations */
+.icon-row .import-icon{
+  animation: ameba-bob var(--dur, var(--ameba-bob-dur)) ease-in-out infinite;
+  will-change: transform;
+}
+.icon-row .import-icon .icon{
+  animation: ameba-wobble var(--wdur, var(--ameba-wobble-dur)) ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Stagger each icon so they’re not in sync */
+.icon-row .import-icon:nth-child(1){ --dur: 4.4s; --wdur: 5.2s; }
+.icon-row .import-icon:nth-child(2){ --dur: 5.1s; --wdur: 6.0s; }
+.icon-row .import-icon:nth-child(3){ --dur: 4.7s; --wdur: 5.6s; }
+/* add more nth-child rules if you add more icons */
+
+/* Interaction polish */
+.icon-row .import-icon:hover,
+.icon-row .import-icon:focus-visible{
+  background-color: rgba(255,255,255,0.12);
+  transform: translateY(calc(-1 * (var(--ameba-bob-amp) + 2px)));
+  box-shadow: 0 6px 20px rgba(157, 111, 255, 0.25);
+}
+
+/* Respect accessibility settings */
+@media (prefers-reduced-motion: reduce){
+  .icon-row .import-icon,
+  .icon-row .import-icon .icon{
+    animation: none !important;
+  }
+}
+
+
 
 
 
