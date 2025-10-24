@@ -217,6 +217,14 @@ body{
 /* ==========================================================================
    Import Panel
    ========================================================================== */
+/* Panel height fix */
+.panel--import .card__body { 
+  position: relative; 
+}
+.panel--import .goo-container { 
+  min-height: 180px; 
+}
+
 
 .panel.import{
   position: relative;
@@ -239,27 +247,38 @@ body{
 .goo-container { position: relative; }
 .goo-bg       { position: absolute; inset: 0; z-index: 0; }
 
+/* ---- Icons inside the goo ---- */
 .icon-row{
   position: absolute;
   left: 16px; right: 16px;
-  bottom: 12px;                 /* nudge to taste */
-  display: flex; justify-content: center; gap: 18px;
-  z-index: 1;                   /* icons above SVG */
+  bottom: 12px;                          /* nudge lower/raise to taste */
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  z-index: 1;                            /* above the wave */
 }
 
-/* Buttons have a box */
 .import-icon{
   width: 56px; height: 56px;
   border: 0; border-radius: 14px;
   display: grid; place-items: center;
   background-color: rgba(255,255,255,0.06);
+  color: #E6D9FF;                        /* <— makes SVG (currentColor) visible */
   cursor: pointer;
   transition: transform .18s ease, background-color .18s ease;
 }
-.import-icon:hover{ transform: translateY(-2px); background-color: rgba(255,255,255,0.10); }
+.import-icon:hover{
+  transform: translateY(-2px);
+  background-color: rgba(255,255,255,0.10);
+}
 
-/* SVG size inside the button */
-.import-icon .icon{ width: 28px; height: 28px; display:block; }
+.import-icon .icon{
+  width: 28px; height: 28px; display:block;
+}
+
+/* Keep the wave behind everything */
+.goo-bg{ position:absolute; inset:0; z-index:0; }
+
 
 /* ==========================================================================
    Storage Panel
