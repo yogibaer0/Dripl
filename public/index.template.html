@@ -66,8 +66,7 @@
               <option value="mp3">MP3 (audio)</option>
               <option value="gif">GIF</option>
             </select>
-            <label for="convert-btn" class="sr-only">Convert</label>
-            <button id="convert-btn" class="btn btn--primary">Convert</button>
+            <button id="convert-btn" class="btn btn--primary" aria-label="Convert">Convert</button>
           </div>
 
           <p class="muted">Tip: press <kbd>Enter</kbd> to convert instantly.</p>
@@ -157,23 +156,28 @@
 
             <div class="dest-right">
               <div class="meta-grid" role="list">
-                <div class="meta-row" role="listitem">
-                  <label for="metaFilename" class="meta-label">Filename</label>
-                  <div class="pill" id="metaFilename">—</div>
-                </div>
-                <div class="meta-row" role="listitem">
-                  <label for="metaDuration" class="meta-label">Duration</label>
-                  <div class="pill" id="metaDuration">—</div>
-                </div>
-                <div class="meta-row" role="listitem">
-                  <label for="metaResolution" class="meta-label">Resolution</label>
-                  <div class="pill" id="metaResolution">—</div>
-                </div>
-                <div class="meta-row" role="listitem">
-                  <label for="metaCodec" class="meta-label">Codec</label>
-                  <div class="pill" id="metaCodec">—</div>
-                </div>
-              </div>
+
+  <div class="meta-row" role="listitem">
+    <span id="lblMetaFilename" class="meta-label">Filename</span>
+    <div class="pill" id="metaFilename" role="text" aria-labelledby="lblMetaFilename">—</div>
+  </div>
+
+  <div class="meta-row" role="listitem">
+    <span id="lblMetaDuration" class="meta-label">Duration</span>
+    <div class="pill" id="metaDuration" role="text" aria-labelledby="lblMetaDuration">—</div>
+  </div>
+
+  <div class="meta-row" role="listitem">
+    <span id="lblMetaResolution" class="meta-label">Resolution</span>
+    <div class="pill" id="metaResolution" role="text" aria-labelledby="lblMetaResolution">—</div>
+  </div>
+
+  <div class="meta-row" role="listitem">
+    <span id="lblMetaCodec" class="meta-label">Codec</span>
+    <div class="pill" id="metaCodec" role="text" aria-labelledby="lblMetaCodec">—</div>
+  </div>
+
+</div>
 
               <div class="dest-actions">
                 <div class="dest-buttons">
