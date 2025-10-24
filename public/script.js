@@ -180,6 +180,38 @@
     on(els.convertBtn, "click", handleConvertFromLink);
     on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); });
   }
+  // ---------- destination hub: satellites + presets ----------
+  const PRESETS = {
+    youtube:   { label:"YouTube",   resolution:"1920×1080", codec:"video/h264; mp4" },
+    instagram: { label:"Instagram", resolution:"1080×1350", codec:"video/h264; mp4" }, // “tan” IG post aspect
+    tiktok:    { label:"TikTok",    resolution:"1080×1920", codec:"video/h264; mp4" },
+    reddit:    { label:"Reddit",    resolution:"1920×1080", codec:"video/h264; mp4" }
+  };
+
+  function initSatellites(){
+    const hubPanel = document.querySelector(".dest-panel");
+    const sats = Array.from(document.querySelectorAll(".satellite"));
+    if (!hubPanel || !sats.length) return;
+
+    function activate(platform){
+      // visual active state
+      sats.forEach(b => b.classList.toggle("is-active", b.dataset.platform === platform));
+      hubPanel.dataset.platform = platform;
+
+      // apply preset to metadata pills (non-destructive: preview load still overwrites real video facts)
+      const p = PRESETS[platform]; if (!p) return;
+      const { metaResolution, metaCodec } = els;
+      if (metaResolution) metaResolution.textContent = p.resolution;
+      if (metaCodec)      metaCodec.textContent      = p.codec;
+    }
+
+    sats.forEach(btn => {
+      btn.addEventListener("click", () => activate(btn.dataset.platform));
+    });
+
+    // default selection (optional: pick first)
+    // activate("tiktok");
+  }
 
   // ---------- boot ----------
   function boot(){
@@ -187,6 +219,7 @@
       initUpload();
       initImportIcons();
       initConvert();
+      initSatellites();
       log("UI ready");
     } catch (e) { err("boot error:", e); }
   }

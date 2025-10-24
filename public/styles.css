@@ -99,8 +99,17 @@ body{margin:0;color:var(--text);background:
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:var(--space);}
 
 /* destination hub / preview */
-.dest-panel{display:grid;grid-template-columns:420px minmax(520px,1fr);gap:24px;padding:16px 18px 20px;border-radius:14px;
-  background:#14131a;border:1px solid rgba(255,255,255,.06);}
+/* destination hub / preview */
+.dest-panel{
+  display:grid;
+  grid-template-columns:420px minmax(520px,1fr) 210px; /* <— now 3 columns */
+  gap:24px;
+  padding:16px 18px 20px;
+  border-radius:14px;
+  background:#14131a;
+  border:1px solid rgba(255,255,255,.06);
+}
+
 .dest-left{display:grid;align-items:center;justify-items:center;}
 .preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;
   background:radial-gradient(120% 120% at 20% 10%, #1a1921, #0f0f14);border:1px dashed rgba(132,98,255,.35);
@@ -125,6 +134,48 @@ body{margin:0;color:var(--text);background:
 .dest-toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px;}
 .toggle{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.82);font-size:13px;}
 .toggle input{transform:translateY(1px);}
+
+/* satellite strip (right side) */
+.dest-sat{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;                /* horizontal spacing */
+  flex-wrap:wrap;          /* wrap if narrow */
+  align-content:flex-start;
+  padding:6px;
+}
+
+.satellite{
+  width:58px;height:58px;border-radius:999px;border:0;cursor:pointer;
+  background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.satellite:hover{ transform:translateY(-2px); filter:brightness(1.05); }
+.satellite.is-active{
+  box-shadow:0 0 0 2px rgba(255,255,255,.18), 0 0 28px 6px rgba(138,92,246,.28);
+  transform:translateY(-2px) scale(1.04);
+}
+
+/* platform colors */
+.sat--yt{ background:#ff1f1f; }               /* YouTube red */
+.sat--ig{ background:#d2b48c; }               /* Instagram tan (per request) */
+.sat--tt{ background:#a855f7; }               /* TikTok purple (brand-adjacent) */
+.sat--rd{ background:#ff4500; }               /* Reddit orange */
+
+/* subtle hub “morph” accent by platform */
+.dest-panel[data-platform="youtube"]   { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(255,31,31,.15) inset; }
+.dest-panel[data-platform="instagram"] { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(210,180,140,.12) inset; }
+.dest-panel[data-platform="tiktok"]    { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(168,85,247,.16) inset; }
+.dest-panel[data-platform="reddit"]    { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(255,69,0,.14) inset; }
+
+/* responsive: when stacked, move the strip under the hub */
+@media (max-width:1100px){
+  .dest-panel{ grid-template-columns:1fr; }
+  .dest-sat{ justify-content:flex-start; }
+}
+
 
 /* responsive */
 @media (max-width:1100px){
