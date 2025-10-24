@@ -288,6 +288,41 @@ body{
   left: -9999px; top: auto;
   opacity: 0; pointer-events: none;
 }
+/* Make the Import card body a column so we can push the goo down */
+.panel--import .card__body{
+  display: flex;
+  flex-direction: column;
+}
+
+/* The tank lives at the bottom, with room above it */
+.panel--import .goo-container{
+  margin-top: auto;           /* pushes the tank to the bottom of the card */
+  min-height: 220px;          /* tank height; tweak 200–260px */
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg,#12051c 0%,#1a0f27 100%);
+}
+
+/* Wave behind, icons above (you already have these) */
+.goo-bg{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+.icon-row{
+  position:absolute; left:16px; right:16px; bottom:16px;
+  display:flex; justify-content:center; gap:18px; z-index:1;
+}
+.import-icon{ width:56px; height:56px; border-radius:14px; display:grid; place-items:center;
+  background-color:rgba(255,255,255,.06); color:#E6D9FF; transition:.18s; }
+.import-icon:hover{ transform:translateY(-2px); background-color:rgba(255,255,255,.10); }
+.import-icon .icon{ width:28px; height:28px; display:block; }
+
+/* Optional: responsive sizing so it never overwhelms the card */
+@media (max-width: 1280px){
+  .panel--import .goo-container{ min-height:200px; }
+}
+@media (max-width: 900px){
+  .panel--import .goo-container{ min-height:180px; }
+}
+
 
 
 
