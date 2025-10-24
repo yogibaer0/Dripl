@@ -1,233 +1,198 @@
-/* global window, document, fetch */
-/**
- * Dripl front-end glue.
- * - Initializes Supabase via local UMD
- * - Wires Upload/Import minimal interactions
- * - Destination Hub: preset selection, convert trigger, job polling
- * CSP-safe: this file is loaded with a script nonce injected by server.
- */
+/* =========================================================
+   AMEBA – App bootstrap (safe, idempotent)
+   ========================================================= */
+(function Ameba() {
+  "use strict";
 
-(function () {
-  const cfg = window.__APP__ || {};
-  const log = (...a) => console.info("[dripl]", ...a);
+  /* -----------------------------
+   * DOM helpers
+   * --------------------------- */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
 
-  // ---------- Supabase ----------
-  (function initSupabase() {
+  const log = (...a) => console.log("[ameba]", ...a);
+  const warn = (...a) => console.warn("[ameba]", ...a);
+  const err = (...a) => console.error("[ameba]", ...a);
+
+  /* -----------------------------
+   * Key DOM refs (all optional)
+   * --------------------------- */
+  const els = {
+    // Upload
+    fileInput: $("#fileInput"),                // hidden <input type="file">
+    dropZone : $("#dropzone"),                 // drag/drop area
+    pasteLink: $("#pasteLinkInput"),           // link input (optional)
+    convertBtn: $("#convertBtn"),
+
+    // Preview + metadata (bottom strip)
+    previewImg: $("#destPreviewImg"),          // <img> in preview
+    previewHint: $("#previewHint"),
+    metaFilename: $("#metaFilename"),
+    metaDuration: $("#metaDuration"),
+    metaResolution: $("#metaResolution"),
+    metaCodec: $("#metaCodec"),
+
+    // Import icons (inside goo)
+    impDevice: $("#imp-device"),
+    impDropbox: $("#imp-dropbox"),
+    impDrive: $("#imp-drive"),
+
+    // Optional legacy connect buttons (proxy click)
+    oldDropbox: $("#btn-dropbox") || $('[data-action="dropbox"]'),
+    oldGDrive : $("#btn-gdrive")  || $('[data-action="gdrive"], [data-action="google-drive"]'),
+  };
+
+  /* =========================================================
+     Preview + metadata
+     ========================================================= */
+  function setPreviewFromFile(file) {
+    if (!file || !els.previewImg) return;
+
+    const url = URL.createObjectURL(file);
+    els.previewImg.src = url;
+    els.previewImg.style.display = "block";
+    if (els.previewHint) els.previewHint.style.display = "none";
+
+    // Optional: revoke after image loads to free memory
+    els.previewImg.onload = () => URL.revokeObjectURL(url);
+  }
+
+  function setMetadata({ name, type }) {
+    const setText = (el, value) => { if (el) el.textContent = value ?? "—"; };
+
+    setText(els.metaFilename, name || "—");
+    setText(els.metaCodec, type || "—");
+
+    // You can populate these when you parse video in a worker/ffprobe step
+    setText(els.metaResolution, "—");
+    setText(els.metaDuration, "—");
+  }
+
+  /* =========================================================
+     Single source of truth: handle files
+     ========================================================= */
+  function handleFileDrop(fileList) {
+    const file = fileList && fileList[0];
+    if (!file) return;
+
+    setMetadata(file);
+    setPreviewFromFile(file);
+
+    log("absorbed:", file);
+    // TODO: enqueue to pipeline, upload temp, etc.
+  }
+
+  /* =========================================================
+     Upload: local input + dropzone
+     ========================================================= */
+  function initUpload() {
+    // Local file input
+    on(els.fileInput, "change", (e) => {
+      const files = e.target.files;
+      if (files && files.length) handleFileDrop(files);
+    });
+
+    // Drag & drop
+    if (!els.dropZone) return;
+
+    const prevent = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((ev) =>
+      on(els.dropZone, ev, prevent)
+    );
+
+    on(els.dropZone, "dragenter", () => els.dropZone.classList.add("is-hover"));
+    on(els.dropZone, "dragleave", () => els.dropZone.classList.remove("is-hover"));
+    on(els.dropZone, "drop", (e) => {
+      els.dropZone.classList.remove("is-hover");
+      const files = e.dataTransfer?.files;
+      if (files && files.length) handleFileDrop(files);
+    });
+  }
+
+  /* =========================================================
+     Import icons (goo) — robust wiring
+     ========================================================= */
+  function initImportIcons() {
+    // Device → open hidden input
+    if (els.impDevice && els.fileInput) {
+      on(els.impDevice, "click", () => els.fileInput.click());
+    } else if (els.impDevice) {
+      on(els.impDevice, "click", () => warn("fileInput not found; cannot open picker"));
+    }
+
+    // Dropbox → proxy to legacy connect if present
+    if (els.impDropbox && els.oldDropbox) {
+      on(els.impDropbox, "click", () => els.oldDropbox.click());
+    } else if (els.impDropbox) {
+      on(els.impDropbox, "click", () => warn("Dropbox connect not wired"));
+    }
+
+    // Google Drive → proxy to legacy connect if present
+    if (els.impDrive && els.oldGDrive) {
+      on(els.impDrive, "click", () => els.oldGDrive.click());
+    } else if (els.impDrive) {
+      on(els.impDrive, "click", () => warn("Google Drive connect not wired"));
+    }
+  }
+
+  /* =========================================================
+     Paste-link → Convert (Dripl/Ameba Engine)
+     ========================================================= */
+  async function handleConvertFromLink() {
+    if (!els.pasteLink) return;
+    const url = (els.pasteLink.value || "").trim();
+    if (!url) return;
+
     try {
-      const url = cfg.SUPABASE_URL;
-      const key = cfg.SUPABASE_ANON_KEY;
-      if (!url || !/^https?:\/\//.test(url)) {
-        console.error("[dripl] Missing/invalid SUPABASE_URL – check Render env + server injection.");
-        return;
-      }
-      if (!window.supabase || !window.supabase.createClient) {
-        console.error("[dripl] Supabase UMD not loaded");
-        return;
-      }
-      window.supa = window.supabase.createClient(url, key);
-      log("Supabase ready");
-    } catch (err) {
-      console.error("[dripl] Supabase init failed:", err);
+      log("convert from link:", url);
+      // TODO: call your backend to resolve + fetch/convert
+      // const res = await fetch("/api/convert", { method: "POST", body: JSON.stringify({ url })});
+      // const job = await res.json();
+      // update UI with job.id, progress, etc.
+    } catch (e) {
+      err("convert error:", e);
     }
-  }());
+  }
 
-  // ---------- Small helpers ----------
-  const $  = (sel, ctx = document) => ctx.querySelector(sel);
-  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
-
-  async function jsonFetch(path, options = {}) {
-    const url = (cfg.API_BASE || "") + path;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-      ...options,
-      headers: { "Content-Type": "application/json", Accept: "application/json", ...(options.headers || {}) }
-    });
-    const text = await res.text();
-    // If server ever returns HTML (e.g., error page), avoid "Unexpected token <" noise.
-    if (text.trim().startsWith("<!doctype") || text.trim().startsWith("<html")) {
-      throw new Error("Server returned HTML instead of JSON");
+  function initConvert() {
+    if (els.convertBtn) on(els.convertBtn, "click", handleConvertFromLink);
+    if (els.pasteLink) {
+      on(els.pasteLink, "keydown", (e) => {
+        if (e.key === "Enter") handleConvertFromLink();
+      });
     }
-    return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
   }
-{
-  // Display chosen filenames under the "Select files" button
-  const fileInput = document.getElementById('fileInput');
-  const fileNameOut = document.getElementById('localFileName');
-  if (fileInput && fileNameOut) {
-    fileInput.addEventListener('change', () => {
-      if (!fileInput.files || fileInput.files.length === 0) {
-        fileNameOut.textContent = '';
-        return;
-      }
-      const names = [...fileInput.files].map(f => f.name).slice(0, 3).join(', ');
-      const more = fileInput.files.length > 3 ? ` (+${fileInput.files.length - 3} more)` : '';
-      fileNameOut.textContent = `${names}${more}`;
-    });
+
+  /* =========================================================
+     Safety: remove any undefined references from earlier drafts
+     ========================================================= */
+  // DELETED: any use of `blobOrUrl` (no such global anymore)
+  // DELETED: duplicate definitions of handleFileDrop
+
+  /* =========================================================
+     Boot
+     ========================================================= */
+  function boot() {
+    try {
+      initUpload();
+      initImportIcons();
+      initConvert();
+      log("UI ready");
+    } catch (e) {
+      err("boot error:", e);
+    }
   }
-}
 
-
-  // ===== DRAG & DROP BLOB BEHAVIOR =====
-
-// Select the drop zone
-const dropzone = document.getElementById("dropzone");
-const pasteInput = document.getElementById("paste-input");
-
-// Helper: activate glow or animation
-function setBlobState(state) {
-  dropzone.classList.remove("dropzone--over", "dropzone--absorbing");
-  if (state) dropzone.classList.add(state);
-}
-
-// Hover start (drag enters)
-dropzone.addEventListener("dragenter", (e) => {
-  e.preventDefault();
-  setBlobState("dropzone--over");
-});
-
-// While dragging inside box
-dropzone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropzone.style.transform = "scale(1.02)";
-  dropzone.style.transition = "transform 0.2s ease";
-});
-
-// Leave box (no drop)
-dropzone.addEventListener("dragleave", (e) => {
-  e.preventDefault();
-  setBlobState("");
-  dropzone.style.transform = "scale(1)";
-});
-
-// Drop file(s)
-dropzone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  setBlobState("dropzone--absorbing");
-  dropzone.style.transform = "scale(1)";
-  const files = e.dataTransfer.files;
-  if (files && files.length) {
-    handleFileDrop(files);
+  // Start after DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
   } else {
-    const text = e.dataTransfer.getData("text");
-    if (text) {
-      pasteInput.value = text.trim();
-    }
+    boot();
   }
-});
-
-function handleFileDrop(files) {
-  const f = files[0];
-  if (!f) return;
-
-  // update filename
-  document.getElementById("metaFilename").textContent = f.name || "—";
-
-  // naive resolution/duration placeholders (wire real probe later)
-  document.getElementById("metaResolution").textContent = "—";
-  document.getElementById("metaDuration").textContent = "—";
-  document.getElementById("metaCodec").textContent = f.type || "—";
-
-  // Preview: for images & videos we can show a blob URL
-  const url = URL.createObjectURL(f);
-  const img = document.getElementById("destPreviewImg");
-  // const vid = document.getElementById("destPreviewVideo"); // if you switch to video
-
-  img.src = url;
-}
-
-// When you set a preview URL:
-const img = document.getElementById('previewImg');
-const hint = document.getElementById('previewHint');
-
-img.src = blobOrUrl;
-img.style.display = 'block';
-hint.style.display = 'none';
-
-
-// ====== File Handling Placeholder ======
-// Replace this with your conversion or upload function later
-function handleFileDrop(files) {
-  console.log("[ameba] absorbed:", files);
-  // TODO: integrate with upload/convert queue
-}
-
-
-  // ---------- Destination Hub ----------
-  let selectedPreset = null;
-  $$(".preset").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      $$(".preset").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      selectedPreset = btn.dataset.preset;
-    });
-  });
-
-  $("#start-convert")?.addEventListener("click", async () => {
-    const status = $("#job-status");
-    if (!selectedPreset) {
-      status.textContent = "Pick a preset first.";
-      return;
-    }
-    status.textContent = "Starting…";
-
-    const body = {
-      preset: selectedPreset,
-      options: {
-        watermark: $("#opt-watermark")?.checked || false,
-        autoTrim: $("#opt-trim")?.checked || false
-      },
-      // In a fuller build, you’d pass real file IDs captured from the upload/import panels.
-      fileIds: [] 
-    };
-
-    try {
-      const { ok, data } = await jsonFetch("/api/convert", { method: "POST", body: JSON.stringify(body) });
-      if (!ok) throw new Error("Failed to start job");
-      status.textContent = `Queued (job ${data.jobId})…`;
-      pollJob(data.jobId, status);
-    } catch (err) {
-      console.error(err);
-      status.textContent = "Failed to start conversion.";
-    }
-  });
-
-  async function pollJob(jobId, statusEl) {
-    let tries = 0;
-    const MAX = 120; // ~2 minutes if 1s interval
-    const iv = setInterval(async () => {
-      tries++;
-      if (tries > MAX) {
-        clearInterval(iv);
-        statusEl.textContent = "Timed out. Check Jobs page.";
-        return;
-      }
-      try {
-        const { ok, data } = await jsonFetch(`/api/jobs/${encodeURIComponent(jobId)}`);
-        if (!ok) throw new Error("poll failed");
-        if (data.status === "completed") {
-          clearInterval(iv);
-          statusEl.innerHTML = `Done: <a href="${data.url}" target="_blank" rel="noopener">download</a>`;
-        } else if (data.status === "failed") {
-          clearInterval(iv);
-          statusEl.textContent = "Job failed.";
-        } else {
-          statusEl.textContent = `Status: ${data.status}…`;
-        }
-      } catch (e) {
-        clearInterval(iv);
-        statusEl.textContent = "Polling error.";
-      }
-    }, 1000);
-  }
-
-  // ---------- Storage (placeholder wiring) ----------
-  $("#storage-search")?.addEventListener("input", (e) => {
-    // Hook to your search/filtering
-    void e.target.value;
-  });
-
 })();
+
 
 
 
