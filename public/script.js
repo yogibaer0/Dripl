@@ -180,38 +180,51 @@
     on(els.convertBtn, "click", handleConvertFromLink);
     on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); });
   }
-  // ---------- destination hub: satellites + presets ----------
-  const PRESETS = {
-    youtube:   { label:"YouTube",   resolution:"1920×1080", codec:"video/h264; mp4" },
-    instagram: { label:"Instagram", resolution:"1080×1350", codec:"video/h264; mp4" }, // “tan” IG post aspect
-    tiktok:    { label:"TikTok",    resolution:"1080×1920", codec:"video/h264; mp4" },
-    reddit:    { label:"Reddit",    resolution:"1920×1080", codec:"video/h264; mp4" }
-  };
+  // ---------- Destination satellites (floating) ----------
+const PRESETS = {
+  youtube:   { label:"YouTube",   resolution:"1920×1080", codec:"video/h264; mp4" },
+  instagram: { label:"Instagram", resolution:"1080×1350", codec:"video/h264; mp4" },
+  tiktok:    { label:"TikTok",    resolution:"1080×1920", codec:"video/h264; mp4" },
+  reddit:    { label:"Reddit",    resolution:"1920×1080", codec:"video/h264; mp4" }
+};
 
-  function initSatellites(){
-    const hubPanel = document.querySelector(".dest-panel");
-    const sats = Array.from(document.querySelectorAll(".satellite"));
-    if (!hubPanel || !sats.length) return;
+function initSatellites(){
+  const hubPanel = document.querySelector(".dest-panel");
+  const sats = Array.from(document.querySelectorAll(".dest-sat-float .satellite"));
+  if (!hubPanel || !sats.length) return;
 
-    function activate(platform){
-      // visual active state
-      sats.forEach(b => b.classList.toggle("is-active", b.dataset.platform === platform));
-      hubPanel.dataset.platform = platform;
+  function activate(platform){
+    // toggle button state
+    sats.forEach(b => b.classList.toggle("is-active", b.dataset.platform === platform));
 
-      // apply preset to metadata pills (non-destructive: preview load still overwrites real video facts)
-      const p = PRESETS[platform]; if (!p) return;
-      const { metaResolution, metaCodec } = els;
-      if (metaResolution) metaResolution.textContent = p.resolution;
-      if (metaCodec)      metaCodec.textContent      = p.codec;
-    }
-
-    sats.forEach(btn => {
-      btn.addEventListener("click", () => activate(btn.dataset.platform));
+  // keep the ghost text buttons in sync with satellites
+  document.querySelectorAll('.dest-buttons [data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const platform = btn.getAttribute('data-target');
+      const match = document.querySelector(`.dest-sat-float .satellite[data-platform="${platform}"]`);
+      if (match) match.click(); // delegate to the same activate() path
     });
+  });
 
-    // default selection (optional: pick first)
-    // activate("tiktok");
+
+    // morph hub (layout/preview shape handled in CSS via data attribute)
+    hubPanel.dataset.platform = platform;
+
+    // update visible metadata pills for the selected instance (non-destructive)
+    const p = PRESETS[platform];
+    if (p) {
+      const res = document.querySelector('[data-meta="resolution"]') || els.metaResolution;
+      const cod = document.querySelector('[data-meta="codec"]')      || els.metaCodec;
+      if (res) res.textContent = p.resolution;
+      if (cod) cod.textContent = p.codec;
+    }
   }
+
+  sats.forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.platform)));
+
+  // optional: start with none selected (keeps your square default)
+  // activate("youtube");
+}
 
   // ---------- boot ----------
   function boot(){

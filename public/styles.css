@@ -35,6 +35,8 @@ body{margin:0;color:var(--text);background:
   grid-template-areas:"upload import storage" "dest dest dest";}
 .panel--upload{grid-area:upload;} .panel--import{grid-area:import;}
 .panel--storage{grid-area:storage;} .panel--dest{grid-area:dest;}
+/* allow floating controls inside dest card */
+.panel--dest .card__body { position: relative; }
 
 /* card */
 .card{background:linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);
@@ -135,19 +137,14 @@ body{margin:0;color:var(--text);background:
 .toggle{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.82);font-size:13px;}
 .toggle input{transform:translateY(1px);}
 
-/* satellite strip (right side) */
-.dest-sat{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:12px;                /* horizontal spacing */
-  flex-wrap:wrap;          /* wrap if narrow */
-  align-content:flex-start;
-  padding:6px;
+/* floating satellite cells */
+.dest-sat-float{
+  position:absolute; top:-10px; right:-6px;
+  display:flex; gap:12px; align-items:center; z-index:3;
+  pointer-events:auto;
 }
-
 .satellite{
-  width:58px;height:58px;border-radius:999px;border:0;cursor:pointer;
+  width:58px; height:58px; border-radius:999px; border:0; cursor:pointer;
   background:rgba(255,255,255,.06);
   box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
   transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
@@ -158,23 +155,52 @@ body{margin:0;color:var(--text);background:
   transform:translateY(-2px) scale(1.04);
 }
 
-/* platform colors */
-.sat--yt{ background:#ff1f1f; }               /* YouTube red */
-.sat--ig{ background:#d2b48c; }               /* Instagram tan (per request) */
-.sat--tt{ background:#a855f7; }               /* TikTok purple (brand-adjacent) */
-.sat--rd{ background:#ff4500; }               /* Reddit orange */
+/* requested platform colors */
+.sat--yt{ background:#ff1f1f; }     /* YouTube red */
+.sat--ig{ background:#d2b48c; }     /* Instagram tan */
+.sat--tt{ background:#a855f7; }     /* TikTok purple */
+.sat--rd{ background:#ff4500; }     /* Reddit orange */
 
-/* subtle hub “morph” accent by platform */
-.dest-panel[data-platform="youtube"]   { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(255,31,31,.15) inset; }
-.dest-panel[data-platform="instagram"] { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(210,180,140,.12) inset; }
-.dest-panel[data-platform="tiktok"]    { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(168,85,247,.16) inset; }
-.dest-panel[data-platform="reddit"]    { box-shadow:0 0 0 0 rgba(0,0,0,0), 0 0 24px 2px rgba(255,69,0,.14) inset; }
-
-/* responsive: when stacked, move the strip under the hub */
+/* keep them visible on small screens (stack below hub) */
 @media (max-width:1100px){
-  .dest-panel{ grid-template-columns:1fr; }
-  .dest-sat{ justify-content:flex-start; }
+  .dest-sat-float{ position:static; margin-top:10px; justify-content:flex-start; }
 }
+
+/* subtle hub glow by platform */
+.dest-panel[data-platform="youtube"]   { box-shadow: inset 0 0 24px 2px rgba(255,31,31,.15); }
+.dest-panel[data-platform="instagram"] { box-shadow: inset 0 0 24px 2px rgba(210,180,140,.12); }
+.dest-panel[data-platform="tiktok"]    { box-shadow: inset 0 0 24px 2px rgba(168,85,247,.16); }
+.dest-panel[data-platform="reddit"]    { box-shadow: inset 0 0 24px 2px rgba(255,69,0,.14); }
+
+/* YOUTUBE: preview on the RIGHT, 16:9 and wider */
+.dest-panel[data-platform="youtube"] .dest-left   { grid-column: 2; }
+.dest-panel[data-platform="youtube"] .dest-right  { grid-column: 1; }
+.dest-panel[data-platform="youtube"] .preview-wrap{
+  width:560px; max-width:100%; aspect-ratio:16/9; border-radius:14px;
+}
+
+/* TIKTOK: phone shape (vertical 9:16), keep preview on LEFT */
+.dest-panel[data-platform="tiktok"] .preview-wrap{
+  width:280px; max-width:100%; aspect-ratio:9/16; border-radius:22px;
+  box-shadow: inset 0 0 0 1px rgba(168,85,247,.22), 0 10px 26px rgba(0,0,0,.35);
+}
+
+/* INSTAGRAM: square-ish feed (4:5 feels right for portrait posts) */
+.dest-panel[data-platform="instagram"] .preview-wrap{
+  width:360px; max-width:100%; aspect-ratio:4/5; border-radius:16px;
+}
+
+/* REDDIT: standard 16:9 but not as wide as YouTube */
+.dest-panel[data-platform="reddit"] .preview-wrap{
+  width:480px; max-width:100%; aspect-ratio:16/9;
+}
+
+/* responsive fallback keeps things sane */
+@media (max-width:1100px){
+  .dest-panel[data-platform="youtube"] .dest-left,
+  .dest-panel[data-platform="youtube"] .dest-right{ grid-column:auto; }
+}
+
 
 
 /* responsive */
