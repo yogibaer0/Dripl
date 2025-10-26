@@ -35,6 +35,8 @@ body{margin:0;color:var(--text);background:
   grid-template-areas:"upload import storage" "dest dest dest";}
 .panel--upload{grid-area:upload;} .panel--import{grid-area:import;}
 .panel--storage{grid-area:storage;} .panel--dest{grid-area:dest;}
+/* anchor for floating satellites */
+.panel--dest .card__body { position: relative; }
 
 /* card */
 .card{background:linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);
@@ -125,6 +127,68 @@ body{margin:0;color:var(--text);background:
 .dest-toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px;}
 .toggle{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.82);font-size:13px;}
 .toggle input{transform:translateY(1px);}
+
+/* satellite launcher */
+.dest-sat-float{
+  position:absolute; top:-10px; right:-16px;
+  display:flex; gap:12px; align-items:center; z-index:3;
+}
+.satellite{
+  width:58px; height:58px; border-radius:999px; border:0; cursor:pointer;
+  background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.satellite:hover{ transform:translateY(-2px); filter:brightness(1.05); }
+.satellite.is-active{ box-shadow:0 0 0 2px rgba(255,255,255,.18), 0 0 28px 6px rgba(138,92,246,.28); transform:translateY(-2px) scale(1.04); }
+
+/* requested platform colors */
+.sat--yt{ background:#ff1f1f; }   /* YouTube red   */
+.sat--ig{ background:#d2b48c; }   /* Instagram tan */
+.sat--tt{ background:#a855f7; }   /* TikTok purple */
+.sat--rd{ background:#ff4500; }   /* Reddit orange */
+
+/* return to base pill */
+.sat-return{
+  margin-left:8px; padding:.55rem .85rem; border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06); cursor:pointer; font-size:.9rem;
+}
+
+/* subtle hub glow by platform (base hub remains default when empty) */
+.dest-panel[data-platform="youtube"]   { box-shadow: inset 0 0 24px 2px rgba(255,31,31,.15); }
+.dest-panel[data-platform="instagram"] { box-shadow: inset 0 0 24px 2px rgba(210,180,140,.12); }
+.dest-panel[data-platform="tiktok"]    { box-shadow: inset 0 0 24px 2px rgba(168,85,247,.16); }
+.dest-panel[data-platform="reddit"]    { box-shadow: inset 0 0 24px 2px rgba(255,69,0,.14); }
+
+/* YouTube: swap columns so preview sits on the right, 16:9 and wider */
+.dest-panel[data-platform="youtube"] .dest-left  { grid-column: 2; }
+.dest-panel[data-platform="youtube"] .dest-right { grid-column: 1; }
+.dest-panel[data-platform="youtube"] .preview-wrap{ width:560px; max-width:100%; aspect-ratio:16/9; border-radius:14px; }
+
+/* TikTok: phone shape on left (9:16) */
+.dest-panel[data-platform="tiktok"] .preview-wrap{
+  width:280px; max-width:100%; aspect-ratio:9/16; border-radius:22px;
+  box-shadow: inset 0 0 0 1px rgba(168,85,247,.22), 0 10px 26px rgba(0,0,0,.35);
+}
+
+/* Instagram: portrait 4:5 on left */
+.dest-panel[data-platform="instagram"] .preview-wrap{
+  width:360px; max-width:100%; aspect-ratio:4/5; border-radius:16px;
+}
+
+/* Reddit: classic 16:9, slightly narrower than YT */
+.dest-panel[data-platform="reddit"] .preview-wrap{
+  width:480px; max-width:100%; aspect-ratio:16/9; border-radius:14px;
+}
+
+/* responsive guardrails for morph states */
+@media (max-width:1100px){
+  .dest-panel[data-platform="youtube"] .dest-left,
+  .dest-panel[data-platform="youtube"] .dest-right{ grid-column:auto; }
+  .dest-sat-float{ position:static; margin-top:10px; justify-content:flex-start; }
+}
+
 
 /* responsive */
 @media (max-width:1100px){
