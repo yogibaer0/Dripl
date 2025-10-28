@@ -127,6 +127,21 @@ app.get("/api/jobs/:id", (req, res) => {
   res.json(j);
 });
 
+// ----- Source of Truth------ 
+
+type Platform = null | "tiktok" | "instagram" | "youtube" | "reddit";
+
+interface HubState {
+  activePlatform: Platform;        // null = Default Hub
+  media: {                         // persistent preview node; no re-mounts
+    url?: string; type?: "video"|"image";
+    width?: number; height?: number; duration?: number;
+  };
+  presets: { [P in Exclude<Platform,null>]: {
+    resolution: string; codec: string; lastUserEdits?: Record<string, string|number|boolean>;
+  }};
+}
+
 // ------- Error handling -------
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
