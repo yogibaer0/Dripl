@@ -406,15 +406,17 @@
   document.addEventListener("hub-platform-changed", layout);
 
   // expose tiny API for dev
-  window.Hub = Object.assign(window.Hub || {}, {
-    satellites: {
-      relayout: layout,
-      setRadius(px){
-        document.documentElement.style.setProperty("--orbit-radius", `${px|0}px`);
-        layout();
-      }
+  window.Hub = {
+  ...(window.Hub || {}),
+  satellites: {
+    relayout: layout,
+    setRadius(px){
+      document.documentElement.style.setProperty("--orbit-radius", `${px|0}px`);
+      layout();
     }
-  });
+  }
+};
+
 
   layout();
 })();
