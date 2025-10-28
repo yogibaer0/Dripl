@@ -230,6 +230,29 @@
     // Optional: double-click active satellite to reset
     sats.forEach(btn => btn.addEventListener("dblclick", () => activate("")));
   }
+function animateSwitching(on) {
+  const hub = document.querySelector(".dest-panel");
+  if (!hub) return;
+  hub.classList.toggle("is-switching", !!on);
+  if (on) hub.setAttribute("aria-busy","true"); else hub.removeAttribute("aria-busy");
+}
+
+function activatePlatform(platform){
+  if (!hub) return;
+  if (hub.getAttribute("aria-busy")==="true") return; // ignore while switching
+
+  animateSwitching(true);
+  // ... existing preset + dataset updates ...
+  hub.dataset.platform = platform || "";
+
+  // finish on transition end (one-shot)
+  const done = () => { animateSwitching(false); hub.removeEventListener("transitionend", done); };
+  hub.addEventListener("transitionend", done);
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") returnToHub();
+});
+
 
   // ---------- boot ----------
   function boot(){
