@@ -138,33 +138,6 @@ body{margin:0;color:var(--text);background:
 .toggle{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.82);font-size:13px;}
 .toggle input{transform:translateY(1px);}
 
-/* satellite launcher */
-.dest-sat-float{
-  position:absolute; top:-10px; right:-16px;
-  display:flex; gap:12px; align-items:center; z-index:3;
-}
-.satellite{
-  width:58px; height:58px; border-radius:999px; border:0; cursor:pointer;
-  background:rgba(255,255,255,.06);
-  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
-  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
-}
-.satellite:hover{ transform:translateY(-2px); filter:brightness(1.05); }
-.satellite.is-active{ box-shadow:0 0 0 2px rgba(255,255,255,.18), 0 0 28px 6px rgba(138,92,246,.28); transform:translateY(-2px) scale(1.04); }
-
-/* requested platform colors */
-.sat--yt{ background:#ff1f1f; }   /* YouTube red   */
-.sat--ig{ background:#d2b48c; }   /* Instagram tan */
-.sat--tt{ background:#a855f7; }   /* TikTok purple */
-.sat--rd{ background:#ff4500; }   /* Reddit orange */
-
-/* return to base pill */
-.sat-return{
-  margin-left:8px; padding:.55rem .85rem; border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.06); cursor:pointer; font-size:.9rem;
-}
-
 /* subtle hub glow by platform (base hub remains default when empty) */
 .dest-panel[data-platform="youtube"]   { box-shadow: inset 0 0 24px 2px rgba(255,31,31,.15); }
 .dest-panel[data-platform="instagram"] { box-shadow: inset 0 0 24px 2px rgba(210,180,140,.12); }
@@ -221,7 +194,6 @@ body{margin:0;color:var(--text);background:
 @media (max-width:1100px){
   .dest-panel[data-platform="youtube"] .dest-left,
   .dest-panel[data-platform="youtube"] .dest-right{ grid-column:auto; }
-  .dest-sat-float{ position:static; margin-top:10px; justify-content:flex-start; }
 }
 
 /* responsive */
@@ -236,5 +208,95 @@ body{margin:0;color:var(--text);background:
   .storage__search input{min-width:0;width:52vw;}
 }
 
+/* ==========================================================
+   SATELLITE RAIL — anchored outside the hub’s right edge
+   ========================================================== */
+
+/* Reserve a visual "orbit lane" so satellites don’t overlap */
+.dest-panel {
+  position: relative;
+  margin-right: 100px; /* create space for orbit lane */
+}
+
+/* Rail anchor: sits just outside hub’s right edge */
+.dest-sat-rail {
+  position: absolute;
+  top: 50%;
+  right: -80px;  /* distance outside hub’s border */
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;       /* vertical spacing between satellites */
+  z-index: 4;
+}
+
+/* Stack wrapper (for animation or orbiting later) */
+.dest-sat-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+/* Satellite cell style — from your existing palette */
+.satellite {
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  background: rgba(255,255,255,.06);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.satellite:hover {
+  transform: scale(1.06);
+  filter: brightness(1.05);
+}
+.satellite.is-active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.2),
+              0 0 30px 8px rgba(138,92,246,.35);
+}
+
+/* Color accents per platform */
+.sat--yt { background: #ff1f1f; }
+.sat--ig { background: #d2b48c; }
+.sat--tt { background: #a855f7; }
+.sat--rd { background: #ff4500; }
+
+/* Return button */
+.sat-return {
+  margin-top: 20px;
+  padding: .5rem .8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  cursor: pointer;
+  font-size: .85rem;
+  transition: background .2s ease;
+}
+.sat-return:hover {
+  background: rgba(255,255,255,.1);
+}
+
+/* Responsive guardrails */
+@media (max-width: 1100px) {
+  .dest-panel {
+    margin-right: 0;
+  }
+  .dest-sat-rail {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .dest-sat-stack {
+    flex-direction: row;
+    gap: 12px;
+  }
+}
 
 

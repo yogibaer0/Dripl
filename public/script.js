@@ -182,65 +182,6 @@
     on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); });
   }
 
-  // ---------- Satellite morph controller (additive) ----------
-  const PRESETS = {
-    tiktok:    { label:"TikTok",    resolution:"1080×1920", codec:"video/h264; mp4" },
-    instagram: { label:"Instagram", resolution:"1080×1350", codec:"video/h264; mp4" },
-    youtube:   { label:"YouTube",   resolution:"1920×1080", codec:"video/h264; mp4" },
-    reddit:    { label:"Reddit",    resolution:"1920×1080", codec:"video/h264; mp4" }
-  };
-
-  function initSatellites(){
-    const hub = document.querySelector(".dest-panel");            // base hub
-    const sats = Array.from(document.querySelectorAll(".dest-sat-float .satellite"));
-    const btnReturn = document.getElementById("satReturn");
-    if (!hub || !sats.length) return;
-
-    // use your existing meta pills
-    const metaRes   = document.getElementById("metaResolution");
-    const metaCodec = document.getElementById("metaCodec");
-
-    function setActive(platform){
-      sats.forEach(b => {
-        const on = b.dataset.platform === platform;
-        b.classList.toggle("is-active", on);
-        b.setAttribute("aria-pressed", String(on));
-      });
-    }
-
-    function activate(platform){
-      // 1) visually morph the base hub via data attribute (CSS handles shapes/layout)
-      hub.dataset.platform = platform || "";
-
-      // 2) reflect preset specs in the visible pills (display-only; your real metadata still populates on load)
-      const p = PRESETS[platform];
-      if (p){ if (metaRes) metaRes.textContent = p.resolution; if (metaCodec) metaCodec.textContent = p.codec; }
-
-      // 3) toggle active states / Return pill
-      setActive(platform);
-      if (btnReturn) btnReturn.hidden = !platform;
-    }
-
-    // satellites click → morph
-    sats.forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.platform)));
-
-    // ghost text buttons mirror satellites (they already exist in your base hub)
-    document.querySelectorAll('.dest-buttons [data-target]').forEach(btn => {
-      btn.addEventListener("click", () => {
-        const platform = btn.getAttribute("data-target");
-        const match = document.querySelector(`.dest-sat-float .satellite[data-platform="${platform}"]`);
-        if (match) match.click();
-      });
-    });
-
-    // Return to Hub
-    if (btnReturn) btnReturn.addEventListener("click", () => activate(""));
-
-    // Optional: double-click active satellite to reset
-    sats.forEach(btn => btn.addEventListener("dblclick", () => activate("")));
-  }
-
-
 /* =========================================================
    DESTINATION HUB KERNEL (robust, idempotent, animation-safe)
    - Keeps preview nodes persistent (no flicker)
@@ -260,7 +201,7 @@
     metaDuration()   { return document.getElementById("metaDuration"); },
     metaResolution() { return document.getElementById("metaResolution"); },
     metaCodec()      { return document.getElementById("metaCodec"); },
-    satellites()     { return Array.from(document.querySelectorAll(".dest-sat-float .satellite")); },
+    satellites()     { return Array.from(document.querySelectorAll(".dest-sat-rail .satellite")); },
     ghostButtons()   { return Array.from(document.querySelectorAll(".dest-buttons [data-target]")); },
     returnBtn()      { return document.getElementById("satReturn"); },
   };
@@ -406,7 +347,6 @@
       initUpload();
       initImportIcons();
       initConvert();
-      initSatellites();
       log("UI ready");
     } catch (e) { err("boot error:", e); }
   }
