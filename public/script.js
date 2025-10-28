@@ -94,19 +94,28 @@
 
   // ---------- single intake ----------
   function handleFileDrop(fileList){
-    const file = fileList && fileList[0];
-    if (!file) return;
+  const file = fileList && fileList[0];
+  if (!file) return;
 
-    setBasicMetadataFromFile(file);
+  // Guard: only call if provided elsewhere
+  try {
+    if (typeof setBasicMetadataFromFile === "function") {
+      setBasicMetadataFromFile(file);
+    } else {
+      // Fallback: at least show the filename pill
+      setText(els.metaFilename, file.name || "—");
+    }
+  } catch {}
 
-    const url = URL.createObjectURL(file);
-    if (file.type?.startsWith("video")) showVideo(url);
-    else showImage(url);
+  const url = URL.createObjectURL(file);
+  if (file.type?.startsWith("video")) showVideo(url);
+  else showImage(url);
 
-    addToStorageList(file);
+  addToStorageList(file);
 
-    log("absorbed:", { name: file.name, type: file.type, size: file.size });
-  }
+  log("absorbed:", { name: file.name, type: file.type, size: file.size });
+}
+
 
   // ---------- upload init ----------
   function initUpload(){
@@ -230,28 +239,7 @@
     // Optional: double-click active satellite to reset
     sats.forEach(btn => btn.addEventListener("dblclick", () => activate("")));
   }
-function animateSwitching(on) {
-  const hub = document.querySelector(".dest-panel");
-  if (!hub) return;
-  hub.classList.toggle("is-switching", !!on);
-  if (on) hub.setAttribute("aria-busy","true"); else hub.removeAttribute("aria-busy");
-}
 
-function activatePlatform(platform){
-  if (!hub) return;
-  if (hub.getAttribute("aria-busy")==="true") return; // ignore while switching
-
-  animateSwitching(true);
-  // ... existing preset + dataset updates ...
-  hub.dataset.platform = platform || "";
-
-  // finish on transition end (one-shot)
-  const done = () => { animateSwitching(false); hub.removeEventListener("transitionend", done); };
-  hub.addEventListener("transitionend", done);
-}
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") returnToHub();
-});
 
 /* =========================================================
    DESTINATION HUB KERNEL (robust, idempotent, animation-safe)
@@ -410,14 +398,6 @@ document.addEventListener("keydown", (e) => {
   const urlP = new URLSearchParams(location.search).get("platform");
   if (urlP && PRESETS[urlP]) activatePlatform(urlP);
 })();
-
-// URL
-Hub.setMedia("https://example.com/demo.mp4");
-// or a File from an input element:
-// Hub.setMedia(input.files[0]);
-
-Hub.activatePlatform("youtube"); // morph to YT
-Hub.returnToHub();               // back to default
 
 
   // ---------- boot ----------

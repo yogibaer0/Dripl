@@ -192,19 +192,6 @@ body{margin:0;color:var(--text);background:
   width:480px; max-width:100%; aspect-ratio:16/9; border-radius:14px;
 }
 
-/* smooth platform switch */
-.dest-panel { transition: box-shadow .22s cubic-bezier(.22,.61,.36,1); }
-.preview-wrap { transition: width .22s cubic-bezier(.22,.61,.36,1),
-                          aspect-ratio .22s cubic-bezier(.22,.61,.36,1),
-                          border-radius .22s cubic-bezier(.22,.61,.36,1); }
-.dest-right .meta-grid, .dest-actions {
-  transition: opacity .18s ease, transform .18s ease;
-}
-.dest-panel.is-switching .meta-grid,
-.dest-panel.is-switching .dest-actions { opacity:.0; transform:translateY(6px); }
-.dest-panel:not(.is-switching) .meta-grid,
-.dest-panel:not(.is-switching) .dest-actions { opacity:1; transform:none; }
-
 /* ===== Hub switch animation helpers (non-invasive) ===== */
 .dest-panel { transition: box-shadow .22s cubic-bezier(.22,.61,.36,1); }
 .preview-wrap {
