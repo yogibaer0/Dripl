@@ -209,94 +209,108 @@ body{margin:0;color:var(--text);background:
 }
 
 /* ==========================================================
-   SATELLITE RAIL — anchored outside the hub’s right edge
+   SATELLITES — absolute orbit rail (hub-relative)
    ========================================================== */
 
-/* Reserve a visual "orbit lane" so satellites don’t overlap */
-.dest-panel {
-  position: relative;
-  margin-right: 100px; /* create space for orbit lane */
+/* Tunables */
+:root{
+  --orbit-radius: 82px;  /* distance from hub border to the rail */
+  --sat-size: 60px;      /* diameter of a satellite cell */
+  --sat-gap: 16px;       /* min gap if we fall back to flex mode */
+  --sat-bob-amp: 4px;    /* gentle bob amount */
+  --sat-bob-dur: 4.8s;   /* bob duration */
 }
 
-/* Rail anchor: sits just outside hub’s right edge */
-.dest-sat-rail {
-  position: absolute;
-  top: 50%;
-  right: -80px;  /* distance outside hub’s border */
+/* Reserve a visual "orbit lane" but DO NOT change hub width */
+.dest-panel{ position:relative; margin-right: calc(var(--orbit-radius) + 18px); }
+
+/* Rail: anchored to hub’s right edge, vertically centered */
+.dest-sat-rail{
+  position:absolute;
+  top:50%;
+  right: calc(-1 * var(--orbit-radius));
   transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;       /* vertical spacing between satellites */
-  z-index: 4;
+  z-index:4;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
 
-/* Stack wrapper (for animation or orbiting later) */
-.dest-sat-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
+/* Stack becomes a measuring/positioning surface */
+.dest-sat-stack{
+  position:relative;
+  width: var(--sat-size);
+  /* height is set by JS to match hub height when in absolute mode */
 }
 
-/* Satellite cell style — from your existing palette */
-.satellite {
-  width: 60px;
-  height: 60px;
-  border-radius: 999px;
-  border: 0;
-  cursor: pointer;
-  background: rgba(255,255,255,.06);
-  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
-  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-}
-.satellite:hover {
-  transform: scale(1.06);
-  filter: brightness(1.05);
-}
-.satellite.is-active {
-  transform: scale(1.1);
-  box-shadow: 0 0 0 2px rgba(255,255,255,.2),
-              0 0 30px 8px rgba(138,92,246,.35);
+/* Absolute mode: satellites positioned by JS */
+.dest-sat-stack.is-absolute .satellite{
+  position:absolute;
+  left:0;
 }
 
-/* Color accents per platform */
-.sat--yt { background: #ff1f1f; }
-.sat--ig { background: #d2b48c; }
-.sat--tt { background: #a855f7; }
-.sat--rd { background: #ff4500; }
-
-/* Return button */
-.sat-return {
-  margin-top: 20px;
-  padding: .5rem .8rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  cursor: pointer;
-  font-size: .85rem;
-  transition: background .2s ease;
-}
-.sat-return:hover {
-  background: rgba(255,255,255,.1);
+/* Flex fallback (when not absolute) */
+.dest-sat-stack:not(.is-absolute){
+  display:flex;
+  flex-direction:column;
+  gap: var(--sat-gap);
+  align-items:center;
 }
 
-/* Responsive guardrails */
-@media (max-width: 1100px) {
-  .dest-panel {
-    margin-right: 0;
+/* Satellite visuals (keep your palette) */
+.satellite{
+  width: var(--sat-size);
+  height: var(--sat-size);
+  border-radius:999px;
+  border:0;
+  cursor:pointer;
+  background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    filter .18s ease;
+  animation: sat-bob var(--sat-bob-dur) ease-in-out infinite;
+}
+.satellite:hover{ transform: translateY(-2px) scale(1.06); filter:brightness(1.05); }
+.satellite.is-active{
+  transform: translateY(-2px) scale(1.1);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.2), 0 0 30px 8px rgba(138,92,246,.35);
+}
+
+/* gentle cell-like motion */
+@keyframes sat-bob{
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(calc(-1 * var(--sat-bob-amp))); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .satellite{ animation:none !important; }
+}
+
+/* Responsive: collapse to a row under the hub */
+@media (max-width:1100px){
+  .dest-panel{ margin-right: 0; }
+  .dest-sat-rail{
+    position:static; transform:none; right:auto; top:auto;
+    margin-top: 18px;
   }
-  .dest-sat-rail {
-    position: static;
-    transform: none;
-    flex-direction: row;
-    justify-content: center;
-    margin-top: 20px;
-  }
-  .dest-sat-stack {
-    flex-direction: row;
-    gap: 12px;
+  .dest-sat-stack{
+    height:auto !important;
+    display:flex !important;
+    flex-direction:row !important;
+    gap: var(--sat-gap);
   }
 }
+
+/* active nudge closer to hub */
+.dest-panel[data-platform="youtube"]   .sat--yt,
+.dest-panel[data-platform="instagram"] .sat--ig,
+.dest-panel[data-platform="tiktok"]    .sat--tt,
+.dest-panel[data-platform="reddit"]    .sat--rd{
+  margin-right: 2px; /* tiny visual nudge */
+}
+
 
 

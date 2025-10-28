@@ -282,6 +282,9 @@
     const p = platform && PRESETS[platform] ? platform : null;
     hub.dataset.platform = p || "";
     state.activePlatform = p;
+     
+ // notify layout listeners (satellite rail, etc.)
+  document.dispatchEvent(new CustomEvent("hub-platform-changed", { detail: { platform: p } }));
 
     // Reflect preset into visible pills (display-only; true metadata still comes from media)
     const preset = p ? PRESETS[p] : null;
@@ -338,6 +341,82 @@
   // optional: deep-link ?platform=yt
   const urlP = new URLSearchParams(location.search).get("platform");
   if (urlP && PRESETS[urlP]) activatePlatform(urlP);
+})();
+
+/* =========================================================
+   Satellite Layout Controller
+   - Positions satellites as an absolute, vertical stack
+   - Anchored to hub; reacts to resize and platform changes
+   ========================================================= */
+(function SatelliteLayout(){
+  const hub   = document.querySelector(".dest-panel");
+  const rail  = document.querySelector(".dest-sat-rail");
+  const stack = rail?.querySelector(".dest-sat-stack");
+  if (!hub || !rail || !stack) return;
+
+  const sats = () => Array.from(stack.querySelectorAll(".satellite"));
+  const css  = (el) => getComputedStyle(el || document.documentElement);
+
+  function numberVar(el, name, fallback){
+    const v = parseFloat(css(el).getPropertyValue(name));
+    return Number.isFinite(v) ? v : fallback;
+    }
+
+  function applyAbsoluteLayout(){
+    stack.classList.add("is-absolute");
+
+    const list = sats();
+    if (!list.length) return;
+
+    // Measure hub + tokens
+    const hubRect = hub.getBoundingClientRect();
+    const satSize = numberVar(document.documentElement, "--sat-size", 60);
+
+    // We distribute N satellites from top to bottom, centered within hub’s height.
+    const N = list.length;
+    const total = hubRect.height;
+    const usable = Math.max(total - satSize, 0);
+    const step = (N > 1) ? (usable / (N - 1)) : 0;
+
+    // Set stack height to the hub height so we can position children within it
+    stack.style.height = `${Math.round(total)}px`;
+
+    list.forEach((el, i) => {
+      el.style.top = `${Math.round(i * step)}px`;
+      el.style.left = "0px";
+    });
+  }
+
+  function clearAbsolute(){
+    stack.classList.remove("is-absolute");
+    sats().forEach(el => {
+      el.style.top = ""; el.style.left = ""; el.style.position = "";
+    });
+    stack.style.height = "";
+  }
+
+  // pick mode based on viewport (mirror CSS breakpoints)
+  function layout(){
+    const mq = window.matchMedia("(max-width:1100px)");
+    if (mq.matches) clearAbsolute(); else applyAbsoluteLayout();
+  }
+
+  // listen for hub morph + window resize
+  window.addEventListener("resize", layout, { passive: true });
+  document.addEventListener("hub-platform-changed", layout);
+
+  // expose tiny API for dev
+  window.Hub = Object.assign(window.Hub || {}, {
+    satellites: {
+      relayout: layout,
+      setRadius(px){
+        document.documentElement.style.setProperty("--orbit-radius", `${px|0}px`);
+        layout();
+      }
+    }
+  });
+
+  layout();
 })();
 
 
