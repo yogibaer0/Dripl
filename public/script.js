@@ -253,6 +253,172 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") returnToHub();
 });
 
+/* =========================================================
+   DESTINATION HUB KERNEL (robust, idempotent, animation-safe)
+   - Keeps preview nodes persistent (no flicker)
+   - Survives DOM moves/animations (re-queries by IDs/classes)
+   - Satellites + ghost buttons both call the same controller
+   ========================================================= */
+(function initDestinationHubKernel(){
+  if (window.Hub?.__ready) return;           // prevent double init
+
+  // ---- light DOM map (re-read when needed so moving DOM is safe)
+  const Q = {
+    hub()            { return document.querySelector(".dest-panel"); },
+    previewImg()     { return document.getElementById("previewImg"); },
+    previewVideo()   { return document.getElementById("previewVideo"); },
+    previewHint()    { return document.getElementById("previewHint"); },
+    metaFilename()   { return document.getElementById("metaFilename"); },
+    metaDuration()   { return document.getElementById("metaDuration"); },
+    metaResolution() { return document.getElementById("metaResolution"); },
+    metaCodec()      { return document.getElementById("metaCodec"); },
+    satellites()     { return Array.from(document.querySelectorAll(".dest-sat-float .satellite")); },
+    ghostButtons()   { return Array.from(document.querySelectorAll(".dest-buttons [data-target]")); },
+    returnBtn()      { return document.getElementById("satReturn"); },
+  };
+
+  // ---- minimal state (kept in memory)
+  const PRESETS = {
+    tiktok:    { resolution:"1080×1920", codec:"video/h264; mp4" },
+    instagram: { resolution:"1080×1350", codec:"video/h264; mp4" },
+    youtube:   { resolution:"1920×1080", codec:"video/h264; mp4" },
+    reddit:    { resolution:"1920×1080", codec:"video/h264; mp4" }
+  };
+  const state = {
+    activePlatform: null,              // null | 'tiktok' | 'instagram' | 'youtube' | 'reddit'
+    media: { url:null, type:null },    // 'video' | 'image'
+    lastEdits: Object.create(null)     // per-platform user overrides (future)
+  };
+
+  // ---- tiny helpers
+  const setText = (el, v) => { if (el) el.textContent = v ?? "—"; };
+  const fmtTime = (sec) => {
+    if (!isFinite(sec)) return "—";
+    const s = Math.floor(sec%60).toString().padStart(2,"0");
+    const m = Math.floor((sec/60)%60).toString().padStart(2,"0");
+    const h = Math.floor(sec/3600);
+    return h ? `${h}:${m}:${s}` : `${m}:${s}`;
+  };
+  const animOn  = (hub)=>{ if(!hub) return; hub.classList.add("is-switching"); hub.setAttribute("aria-busy","true"); };
+  const animOff = (hub)=>{ if(!hub) return; hub.classList.remove("is-switching"); hub.removeAttribute("aria-busy"); };
+
+  // ---- public: set media once; keeps nodes persistent (no flicker)
+  function setMedia(fileOrUrl){
+    const hub = Q.hub(); if (!hub) return;
+    const v = Q.previewVideo(), i = Q.previewImg(), hint = Q.previewHint();
+
+    const revokeLater = (url)=>{ try{ URL.revokeObjectURL(url); }catch{} };
+
+    // Accept File or URL string
+    let url = null, mime = "";
+    if (typeof fileOrUrl === "string") {
+      url = fileOrUrl;
+    } else if (fileOrUrl && typeof fileOrUrl === "object") {
+      url = URL.createObjectURL(fileOrUrl);
+      mime = fileOrUrl.type || "";
+      setText(Q.metaFilename(), fileOrUrl.name || "—");
+    }
+    if (!url) return;
+
+    if ((mime && mime.startsWith("video")) || (!mime && /\.(mp4|mov|webm|mkv)$/i.test(url))) {
+      if (i){ i.hidden = true; i.src = ""; }
+      if (v){
+        v.hidden = false;
+        v.src = url;
+        v.onloadedmetadata = () => {
+          setText(Q.metaResolution(), `${v.videoWidth}×${v.videoHeight}`);
+          setText(Q.metaDuration(), fmtTime(v.duration));
+          revokeLater(url);
+        };
+      }
+      state.media = { url, type: "video" };
+    } else {
+      if (v){ try{ v.pause?.(); }catch{} v.hidden = true; v.src = ""; }
+      if (i){ i.hidden = false; i.src = url; i.onload = () => revokeLater(url); }
+      state.media = { url, type: "image" };
+    }
+
+    if (hint) hint.hidden = true;
+  }
+
+  // ---- core: platform activation (satellites + ghost buttons)
+  function activatePlatform(platform){                      // platform|null
+    const hub = Q.hub(); if (!hub) return;
+    if (hub.getAttribute("aria-busy")==="true") return;     // ignore spam during transition
+
+    // Begin animated swap
+    animOn(hub);
+
+    // Visual morph via data-attr (CSS handles layout/shape)
+    const p = platform && PRESETS[platform] ? platform : null;
+    hub.dataset.platform = p || "";
+    state.activePlatform = p;
+
+    // Reflect preset into visible pills (display-only; true metadata still comes from media)
+    const preset = p ? PRESETS[p] : null;
+    if (preset){
+      setText(Q.metaResolution(), preset.resolution);
+      setText(Q.metaCodec(),      preset.codec);
+    }
+
+    // Satellites active state + Return button
+    Q.satellites().forEach(btn => {
+      const on = btn.dataset.platform === p;
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-pressed", String(on));
+    });
+    const ret = Q.returnBtn(); if (ret) ret.hidden = !p;
+
+    // Finish transition when CSS completes (fallback timer just in case)
+    let doneCalled = false;
+    const done = () => { if(doneCalled) return; doneCalled = true; animOff(hub); hub.removeEventListener("transitionend", done); };
+    hub.addEventListener("transitionend", done, { once:false });
+    setTimeout(done, 320); // fallback guard if no transitionend fires
+  }
+
+  function returnToHub(){ activatePlatform(null); }
+
+  // ---- wire events (resilient to DOM moves)
+  function bindEventsOnce(){
+    // Satellites
+    Q.satellites().forEach(btn => {
+      btn.addEventListener("click", () => activatePlatform(btn.dataset.platform));
+      btn.addEventListener("dblclick", returnToHub);
+    });
+    // Ghost buttons mirror satellites
+    Q.ghostButtons().forEach(btn => {
+      btn.addEventListener("click", () => activatePlatform(btn.getAttribute("data-target")));
+    });
+    // Return pill
+    const ret = Q.returnBtn(); if (ret) ret.addEventListener("click", returnToHub);
+    // Keyboard escape
+    document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") returnToHub(); });
+  }
+
+  // ---- expose small API for dev tools / future modules
+  window.Hub = Object.freeze({
+    __ready: true,
+    state,
+    setMedia,                  // Hub.setMedia(fileOrUrl)
+    activatePlatform,          // Hub.activatePlatform('youtube')
+    returnToHub                // Hub.returnToHub()
+  });
+
+  // attach once
+  bindEventsOnce();
+  // optional: deep-link ?platform=yt
+  const urlP = new URLSearchParams(location.search).get("platform");
+  if (urlP && PRESETS[urlP]) activatePlatform(urlP);
+})();
+
+// URL
+Hub.setMedia("https://example.com/demo.mp4");
+// or a File from an input element:
+// Hub.setMedia(input.files[0]);
+
+Hub.activatePlatform("youtube"); // morph to YT
+Hub.returnToHub();               // back to default
+
 
   // ---------- boot ----------
   function boot(){

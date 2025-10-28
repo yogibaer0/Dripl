@@ -205,6 +205,30 @@ body{margin:0;color:var(--text);background:
 .dest-panel:not(.is-switching) .meta-grid,
 .dest-panel:not(.is-switching) .dest-actions { opacity:1; transform:none; }
 
+/* ===== Hub switch animation helpers (non-invasive) ===== */
+.dest-panel { transition: box-shadow .22s cubic-bezier(.22,.61,.36,1); }
+.preview-wrap {
+  transition:
+    width .22s cubic-bezier(.22,.61,.36,1),
+    aspect-ratio .22s cubic-bezier(.22,.61,.36,1),
+    border-radius .22s cubic-bezier(.22,.61,.36,1);
+}
+.dest-right .meta-grid,
+.dest-right .dest-actions {
+  transition: opacity .18s ease, transform .18s ease;
+}
+.dest-panel.is-switching .meta-grid,
+.dest-panel.is-switching .dest-actions {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce){
+  .dest-panel, .preview-wrap,
+  .dest-right .meta-grid, .dest-right .dest-actions { transition: none !important; }
+}
+
 
 /* responsive guardrails for morph states */
 @media (max-width:1100px){
