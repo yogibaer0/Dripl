@@ -8,6 +8,9 @@ const app = express();
 app.set("trust proxy", true);
 app.use(express.json({ limit: "2mb" }));
 
+app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+app.get("/health", (_req, res) => res.status(200).send("ok")); // optional alias
+
 // ------- Static assets -------
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 app.use("/vendor", express.static(path.join(PUBLIC_DIR, "vendor"), { immutable: true, maxAge: "365d" }));
@@ -149,11 +152,12 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 // ------- Server -------
-const PORT = Number(process.env.PORT || process.env.RENDER_INTERNAL_PORT || 10000);
-app.listen(PORT, () => {
-  console.log(`[dripl] listening on :${PORT}`);
-});
+const PORT = Number(process.env.PORT) || 10000;
+const HOST = "0.0.0.0";
 
+app.listen(PORT, HOST, () => {
+  console.log(`[ameba] web listening on ${HOST}:${PORT}`);
+});
 
 
 
