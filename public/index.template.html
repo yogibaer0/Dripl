@@ -2,105 +2,171 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AMEBA</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <main class="app">
+    <header class="app-header">
+      <h1>AMEBA</h1>
+      <div class="rule"></div>
+    </header>
 
-  <!-- ====== Your existing top sections (Upload, Import, Storage) remain above ====== -->
+    <!-- =========================================================
+         TOP ROW: Upload • Import • Storage
+         ========================================================= -->
+    <section class="top-row">
+      <!-- Upload -->
+      <aside class="card upload" aria-label="Upload">
+        <h3 class="card-title">Upload</h3>
 
-  <!-- =========================================================
-       DESTINATION HUB (Base Hub stays the same visually)
-       ========================================================= -->
-  <section class="dest-block">
-    <div class="dest-panel" id="destPanel" aria-live="polite" data-platform="">
-      <div class="dest-inner">
-        <!-- Left: Preview -->
-        <div class="dest-left">
-          <div class="preview-wrap" id="previewWrap">
-            <img id="previewImg" alt="" hidden />
-            <video id="previewVideo" hidden controls preload="metadata"></video>
-            <div id="previewHint" class="preview-hint">
-              <div class="preview-hint__label">Preview</div>
-              <small>• 1:1 • drag a file above or paste a link</small>
+        <div id="dropZone" class="dropzone" aria-label="Drag & drop files here">
+          <p>Drag &amp; drop files here or paste a link below</p>
+        </div>
+
+        <label class="sr-only" for="pasteLink">Paste media link</label>
+        <input id="pasteLink" class="input" type="url" placeholder="Paste media link..." />
+
+        <label class="sr-only" for="uploadType">Type</label>
+        <select id="uploadType" class="select">
+          <option value="video/mp4">MP4 (video)</option>
+          <option value="image/jpeg">JPEG (image)</option>
+        </select>
+
+        <button id="btnQuickConvert" class="btn-accent">Convert</button>
+        <small class="hint">Tip: press <kbd>Enter</kbd> to convert instantly.</small>
+      </aside>
+
+      <!-- Import -->
+      <aside class="card import" aria-label="Import">
+        <h3 class="card-title">Import</h3>
+
+        <div class="import-pane">
+          <h4 class="subhead">This device</h4>
+          <label class="file">
+            <input id="fileInput" type="file" multiple />
+            <span>Choose Files</span>
+          </label>
+          <output id="chosenFiles" class="chosen">No file chosen</output>
+        </div>
+
+        <div class="import-pane">
+          <h4 class="subhead">Dropbox</h4>
+          <button class="btn">Connect Dropbox</button>
+          <small>Direct links, multi-select</small>
+        </div>
+
+        <div class="import-pane">
+          <h4 class="subhead">Google Drive</h4>
+          <button class="btn">Connect Google Drive</button>
+          <small>Picker with OAuth</small>
+        </div>
+      </aside>
+
+      <!-- Storage -->
+      <aside class="card storage" aria-label="Storage">
+        <div class="storage-head">
+          <h3 class="card-title">Storage</h3>
+          <div class="btn-row">
+            <button class="btn tiny">+ Folder</button>
+            <button class="btn tiny">Filters</button>
+            <button class="btn tiny">Presets</button>
+          </div>
+        </div>
+
+        <label class="sr-only" for="searchStore">Search files</label>
+        <input id="searchStore" class="input" placeholder="Search files, tags, notes..." />
+
+        <div class="chip-row">
+          <button class="chip is-on">Recent</button>
+          <button class="chip">Saved</button>
+          <button class="chip">In progress</button>
+          <button class="chip">Shared</button>
+          <button class="chip">Trash</button>
+        </div>
+
+        <ul class="store-list" aria-label="Recent files">
+          <li><strong>Jakipz</strong><br/><small>halftone.mp4 • Recent</small></li>
+        </ul>
+      </aside>
+    </section>
+
+    <!-- =========================================================
+         DESTINATION HUB (base hub is the default layout)
+         ========================================================= -->
+    <section class="dest-block">
+      <div class="dest-panel" id="destPanel" aria-live="polite" data-platform="">
+        <header class="dest-head">
+          <h2 class="dest-title">Destination Hub</h2>
+          <p class="dest-sub">Choose a platform preset, then convert</p>
+          <button id="hubReturn" class="pill-return" aria-label="Return to Default Hub" hidden>Return</button>
+        </header>
+
+        <div class="dest-inner">
+          <!-- Preview column -->
+          <div class="dest-left">
+            <div class="preview-wrap" id="previewWrap" aria-label="Preview area" tabindex="0">
+              <img id="previewImg" alt="Image preview" hidden />
+              <video id="previewVideo" hidden controls preload="metadata"></video>
+
+              <div id="previewHint" class="preview-hint">
+                <div class="preview-hint__label">Preview</div>
+                <small>• 1:1 • drag a file above or paste a link</small>
+              </div>
             </div>
           </div>
+
+          <!-- Metadata column -->
+          <div class="dest-right">
+            <div class="meta pills">
+              <span class="key">Filename</span>
+              <output id="metaFilename">—</output>
+            </div>
+            <div class="meta pills">
+              <span class="key">Duration</span>
+              <output id="metaDuration">—</output>
+            </div>
+            <div class="meta pills">
+              <span class="key">Resolution</span>
+              <output id="metaResolution">—</output>
+            </div>
+            <div class="meta pills">
+              <span class="key">Codec</span>
+              <output id="metaCodec">—</output>
+            </div>
+
+            <div class="platform-ghosts" role="group" aria-label="Quick platform presets">
+              <button class="ghost" data-platform="tiktok">TikTok</button>
+              <button class="ghost" data-platform="instagram">Instagram</button>
+              <button class="ghost" data-platform="youtube">YouTube</button>
+              <button class="ghost" data-platform="reddit">Reddit</button>
+            </div>
+
+            <div class="toggles">
+              <label><input id="optWatermark" type="checkbox" /> Watermark</label>
+              <label><input id="optAutofit"   type="checkbox" /> Auto-fit to platform</label>
+              <label><input id="optAutotrim"  type="checkbox" /> Auto-trim</label>
+              <label><input id="optFace"      type="checkbox" /> Face filters</label>
+            </div>
+
+            <button id="btnConvert" class="btn-primary">Convert Selected</button>
+          </div>
         </div>
 
-        <!-- Right: Metadata / controls -->
-        <div class="dest-right">
-          <div class="pills">
-            <label>Filename</label>
-            <output id="metaFilename">—</output>
+        <!-- Satellite rail (outside the hub, hub-relative) -->
+        <div class="dest-sat-rail" role="group" aria-label="Destinations">
+          <div class="dest-sat-stack">
+            <button class="satellite sat--tt" data-platform="tiktok"    aria-pressed="false" aria-label="TikTok"></button>
+            <button class="satellite sat--ig" data-platform="instagram" aria-pressed="false" aria-label="Instagram"></button>
+            <button class="satellite sat--rd" data-platform="reddit"    aria-pressed="false" aria-label="Reddit"></button>
           </div>
-          <div class="pills">
-            <label>Duration</label>
-            <output id="metaDuration">—</output>
-          </div>
-          <div class="pills">
-            <label>Resolution</label>
-            <output id="metaResolution">—</output>
-          </div>
-          <div class="pills">
-            <label>Codec</label>
-            <output id="metaCodec">—</output>
-          </div>
-
-          <div class="platform-ghosts" role="group" aria-label="Quick platform presets">
-            <button class="ghost" data-platform="tiktok">TikTok</button>
-            <button class="ghost" data-platform="instagram">Instagram</button>
-            <button class="ghost" data-platform="youtube">YouTube</button>
-            <button class="ghost" data-platform="reddit">Reddit</button>
-          </div>
-
-          <div class="toggles">
-            <label><input type="checkbox" id="optWatermark" /> Watermark</label>
-            <label><input type="checkbox" id="optAutofit" /> Auto-fit to platform</label>
-            <label><input type="checkbox" id="optAutotrim" /> Auto-trim</label>
-            <label><input type="checkbox" id="optFace" /> Face filters</label>
-          </div>
-
-          <button id="btnConvert" class="btn-primary">Convert Selected</button>
+          <button class="sat-return" id="satReturn" hidden>Return</button>
         </div>
       </div>
-
-      <!-- Satellite rail (outside, hub-relative) -->
-      <div class="dest-sat-rail" role="group" aria-label="Destinations">
-        <div class="dest-sat-stack">
-          <button class="satellite sat--tt" data-platform="tiktok"    aria-pressed="false" aria-label="TikTok"></button>
-          <button class="satellite sat--ig" data-platform="instagram" aria-pressed="false" aria-label="Instagram"></button>
-          <button class="satellite sat--rd" data-platform="reddit"    aria-pressed="false" aria-label="Reddit"></button>
-        </div>
-        <button class="sat-return" id="satReturn" hidden>Return</button>
-      </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
   <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
