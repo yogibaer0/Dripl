@@ -1,11 +1,22 @@
 import { Worker } from 'bullmq';
 import { convertQ } from './queue.js';
-import IORedis from 'ioredis';
+import Redis from "ioredis";
 import { runPreset } from './ff.js';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
-const connection = new IORedis(process.env.REDIS_URL as string, { maxRetriesPerRequest: null });
+const connection = new Redis(process.env.REDIS_URL ?? "", {
+  maxRetriesPerRequest: null
+});
+
+export const amebaWorker = new Worker(
+  "ameba",
+  async job => {
+    // TODO: your job logic
+    return { ok: true };
+  },
+  { connection }
+);
 
 export const worker = new Worker(convertQ.name, async job => {
   const { filePath, preset, outDir, publicBase } = job.data as any;

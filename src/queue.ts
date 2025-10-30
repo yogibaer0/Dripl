@@ -1,7 +1,11 @@
-import { Queue, Worker, QueueEvents, JobsOptions } from 'bullmq';
-import IORedis from 'ioredis';
+import Redis from "ioredis";
+import { Queue } from "bullmq";
 
-const connection = new IORedis(process.env.REDIS_URL as string, { maxRetriesPerRequest: null });
+export const connection = new Redis(process.env.REDIS_URL ?? "", {
+  maxRetriesPerRequest: null
+});
+
+export const amebaQueue = new Queue("ameba", { connection });
 export const convertQ = new Queue('ameba:convert', { connection });
 export const convertQE = new QueueEvents('ameba:convert', { connection });
 

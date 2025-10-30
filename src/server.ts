@@ -1,12 +1,20 @@
 import express from "express";
-import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
 import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 
 const app = express();
 app.set("trust proxy", true);
-app.use(express.json({ limit: "2mb" }));
+app.use(helmet());
+app.use(cors());
+app.use(morgan(isProd ? "combined" : "tiny"));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
 // ------- Static assets -------
 const PUBLIC_DIR = path.join(process.cwd(), "public");
@@ -17,6 +25,20 @@ app.use(express.static(PUBLIC_DIR, { maxAge: "1h" }));
 app.use((req, res, next) => {
   const nonce = crypto.randomBytes(16).toString("base64");
   (res.locals as any).nonce = nonce;
+
+// Resolve __dirname in ESM/TS
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// In production we serve from dist/public (we copy it during build).
+// In dev (ts-node-dev), serve from project/public so hot reload works.
+const staticDir = path.join(process.cwd(), "public");
+const isProd = process.env.NODE_ENV === "production";
+  ? path.join(__dirname, "public")
+  : path.resolve(process.cwd(), "public");
+
+app.use(express.static(staticDir));
+
 
   // If you use a Supabase URL, allow it in connect-src.
   const supabaseUrl = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
@@ -64,19 +86,28 @@ function injectHtml(html: string, nonce: string) {
     .replaceAll("{{SUPABASE_SRI_ATTR}}", sriAttr);
 }
 
-app.get("/", async (_req, res, next) => {
+// SPA entry — inject nonce etc., fall back to plain index.html on error
+app.get("/", async (_req, res) => {
   try {
     const raw = await fs.readFile(TEMPLATE_PATH, "utf8");
     const html = injectHtml(raw, (res.locals as any).nonce);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
+    res.status(200).send(html);
   } catch (err) {
-    next(err);
+    console.error("[root] inject error, sending file:", err);
+    res.sendFile(path.join(staticDir, "index.html"));
   }
 });
 
-// Health
-app.get("/healthz", (_req, res) => res.status(200).json({ ok: true }));
+// Health endpoints
+app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+app.get("/health", (_req, res) =>
+  res.json({
+    status: "ok",
+    env: process.env.NODE_ENV || "development",
+    time: new Date().toISOString()
+  })
+);
 
 // ------- Destination Hub API (minimal demo) -------
 // Presets are hardcoded for now; move to DB/config as needed.
@@ -142,6 +173,15 @@ interface HubState {
   }};
 }
 
+// SPA fallback (if you route on client)
+app.get("*", (req, res, next) => {
+  const accept = req.headers.accept || "";
+  if (accept.includes("text/html")) {
+    return res.sendFile(path.join(staticDir, "index.html"));
+  }
+  return next();
+});
+
 // ------- Error handling -------
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
@@ -149,9 +189,9 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 // ------- Server -------
-const PORT = Number(process.env.PORT || process.env.RENDER_INTERNAL_PORT || 10000);
+const PORT = Number(process.env.PORT || 10000);
 app.listen(PORT, () => {
-  console.log(`[dripl] listening on :${PORT}`);
+  console.log(`[ameba] server listening on ${PORT}, prod=${isProd}`);
 });
 
 
