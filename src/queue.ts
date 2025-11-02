@@ -1,30 +1,31 @@
-import Queue, { type JobOptions, type Job } from "bull";
-import { getRedis } from "./lib/redis.js";
+import Queue from "bull";
+import type { Job, JobOptions, QueueOptions } from "bull";
+import { redisUrl, redisPrefix } from "./lib/redis.js";
 
+/** Single source of truth for the job payload. */
 export type ConvertJobPayload = {
-  inputUrl: string;
-  output: string;
-  preset?: string;
+  inputUrl: string;          // required
+  preset?: "mp3" | "mp4";    // optional output preset
+  filePath?: string;         // optional local/remote path (keep if you use it)
 };
 
-export const conversionQueue = new Queue<ConvertJobPayload>("conversion", {
-  prefix: process.env.REDIS_PREFIX ?? "ameba",
-  redis: getRedis().options
-});
+const qOpts: QueueOptions = {
+  prefix: redisPrefix,
+  // Bull v4 accepts a redis connection string directly
+  redis: redisUrl
+};
 
-// Enqueue helper (with sane defaults)
-export function enqueueConvert(
-  data: ConvertJobPayload,
-  opts: JobOptions = {
+export const convertQ = new Queue<ConvertJobPayload>("convert", qOpts);
+
+/** Enqueue a convert job with sensible defaults. */
+export async function enqueueConvert(
+  payload: ConvertJobPayload,
+  opts: JobOptions = {}
+): Promise<Job<ConvertJobPayload>> {
+  return convertQ.add("convert", payload, {
     attempts: 3,
-    backoff: { type: "exponential", delay: 2000 },
-    removeOnComplete: true
-  }
-) {
-  return conversionQueue.add("convert", data, opts);
+    removeOnComplete: true,
+    removeOnFail: 100,
+    ...opts,
+  });
 }
-
-// Optional: basic log
-conversionQueue.on("error", (err: Error) => {
-  console.error("[Queue error]", err);
-});

@@ -1,30 +1,27 @@
-import { Worker } from 'bullmq';
-import { convertQ } from './queue.js';
-import Redis from "ioredis";
-import { runPreset } from './ff.js';
-import path from 'node:path';
-import fs from 'node:fs/promises';
+import { spawn } from "node:child_process";
+import ffmpegPathRaw from "ffmpeg-static";
+import { convertQ, type ConvertJobPayload } from "./queue.js";
 
-const connection = new Redis(process.env.REDIS_URL ?? "", {
-  maxRetriesPerRequest: null
-});
+const ffmpegPath = ffmpegPathRaw as unknown as string;
 
-export const amebaWorker = new Worker(
-  "ameba",
-  async job => {
-    // TODO: your job logic
-    return { ok: true };
-  },
-  { connection }
-);
+/** Very small processor – expand as you wire real presets */
+convertQ.process("convert", async (job) => {
+  const data: ConvertJobPayload = job.data;
+  if (!data.inputUrl) throw new Error("inputUrl required");
 
-export const worker = new Worker(convertQ.name, async job => {
-  const { filePath, preset, outDir, publicBase } = job.data as any;
-  await fs.mkdir(outDir, { recursive: true });
-  let last = 0;
-  const outPath = await runPreset(filePath, preset, outDir, p => {
-    if (p !== last) { last = p; job.updateProgress(p).catch(()=>{}); }
+  const args = [
+    "-y",
+    "-i", data.inputUrl,
+    // toy preset just to prove execution path
+    ...(data.preset === "mp3" ? ["-vn", "-codec:a", "libmp3lame", "-qscale:a", "2"] : []),
+    "pipe:1"
+  ];
+
+  // Example: run ffmpeg & stream to nowhere just to exercise the worker
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "inherit"] });
+    proc.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`))));
   });
-  const publicUrl = path.posix.join(publicBase, path.basename(outPath)).replace(/\\/g,'/');
-  return { url: publicUrl };
-}, { connection });
+
+  return { ok: true };
+});
