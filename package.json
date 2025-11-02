@@ -11,8 +11,8 @@
     "start": "node dist/server.js",
     "worker": "node dist/worker.js",
     "dev": "tsx watch src/server.ts"
-    "postinstall": "node -e \"try{require('fs').accessSync('./scripts/copy-supabase-umd.cjs');require('child_process').execSync('node scripts/copy-supabase-umd.cjs',{stdio:'inherit'})}catch(e){console.log('skip: copy-supabase-umd.cjs not present')}\""
-    "dependencies": {
+  },
+  "dependencies": {
     "bull": "^4.16.5",
     "bullmq": "^5.12.1",
     "cors": "^2.8.5",
