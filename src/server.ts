@@ -1,66 +1,62 @@
+// ESM + Express production server for Ameba
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
 import morgan from "morgan";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 
-// --- Resolve paths relative to the compiled file (dist/server.js) ---
+// When compiled, this file lives at <repo>/dist/server.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// When running in prod, __dirname === /opt/render/project/dist
 // Project root is one level up from dist
-const projectRoot = path.resolve(__dirname, "..");
+const PROJECT_ROOT = path.resolve(__dirname, "..");
 
-// Prefer <repo>/public. (Do NOT point to src/public in prod.)
-const publicDirCandidates = [
-  path.join(projectRoot, "public"),      // ✅ correct in prod
-  path.join(__dirname, "public"),        // dist/public (rarely used)
-  path.join(projectRoot, "src", "public")// last resort if someone kept files there
-];
+// Public dir sits at repo root alongside /src
+const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 
-const publicDir = publicDirCandidates.find(p => fs.existsSync(path.join(p, "index.html"))) 
-                 ?? path.join(projectRoot, "public");
+// Optional: log & soft-guard if public is missing (still serve /healthz)
+if (!fs.existsSync(PUBLIC_DIR)) {
+  console.warn("[ameba] WARNING: public folder not found at", PUBLIC_DIR);
+}
 
 const app = express();
 
-app.use(helmet());
+// Core middleware
 app.use(cors());
 app.use(express.json());
 app.use(morgan("tiny"));
 
-console.log("[ameba] projectRoot:", projectRoot);
-console.log("[ameba] serving static from:", publicDir);
-
-// 1) Serve static FIRST so CSS/JS get correct MIME
-app.use(express.static(publicDir, { extensions: ["html"] }));
-
-// 2) Health (Render probes this)
+// Health (Render uses this)
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
-// 3) Your API routes (example)
+// --- Your API routes go here (before static & fallback) ---
 // import { postConvert } from "./routes/destHub.js";
 // app.post("/api/convert", postConvert);
 
-// 4) SPA fallback AFTER static & API
+// Serve static assets FIRST so CSS/JS get correct MIME
+app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
+
+// SPA fallback LAST, and skip /api/*
 app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
-  const indexFile = path.join(publicDir, "index.html");
-  fs.readFile(indexFile, (err) => {
+  if (req.path.startsWith("/api")) return next(); // let API 404 normally
+  const indexFile = path.join(PUBLIC_DIR, "index.html");
+  fs.access(indexFile, fs.constants.R_OK, (err) => {
     if (err) return next(err);
     res.sendFile(indexFile);
   });
 });
 
-// 5) Central error handler
+// Centralized error handler (no stack leaks)
 app.use((err: any, _req: express.Request, res: express.Response, _next: any) => {
   console.error("[ameba] server error:", err?.message || err);
   res.status(500).json({ error: "internal_error" });
 });
 
-const port = Number(process.env.PORT || 3000);
-app.listen(port, () => {
-  console.log(`[ameba] web listening on :${port}`);
+// Port from Render (or default)
+const PORT = Number(process.env.PORT || 10000);
+app.listen(PORT, () => {
+  console.log(`[ameba] web listening on :${PORT}`);
+  console.log(`[ameba] serving static from: ${PUBLIC_DIR}`);
 });
