@@ -1,29 +1,30 @@
-import Redis from "ioredis";
-import { Queue } from "bullmq";
+import Queue, { type JobOptions, type Job } from "bull";
+import { getRedis } from "./lib/redis.js";
 
-export const connection = new Redis(process.env.REDIS_URL ?? "", {
-  maxRetriesPerRequest: null
+export type ConvertJobPayload = {
+  inputUrl: string;
+  output: string;
+  preset?: string;
+};
+
+export const conversionQueue = new Queue<ConvertJobPayload>("conversion", {
+  prefix: process.env.REDIS_PREFIX ?? "ameba",
+  redis: getRedis().options
 });
 
-export const amebaQueue = new Queue("ameba", { connection });
-export const convertQ = new Queue('ameba:convert', { connection });
-export const convertQE = new QueueEvents('ameba:convert', { connection });
-
-export type ConvertJob = {
-  filePath: string;          // absolute path of source (or download to temp first)
-  preset: 'tiktok'|'instagram-reel'|'twitter'|'reddit'|'youtube';
-  outDir: string;            // absolute output dir
-  publicBase: string;        // base url used to expose file (e.g. /uploads/converted/123)
-};
-
-export const defaultOpts: JobsOptions = {
-  removeOnComplete: 50,
-  removeOnFail: 100,
-  attempts: 2,
-  backoff: { type: 'exponential', delay: 2000 }
-};
-
-// helper to add job
-export function enqueueConvert(data: ConvertJob) {
-  return convertQ.add('convert', data, defaultOpts);
+// Enqueue helper (with sane defaults)
+export function enqueueConvert(
+  data: ConvertJobPayload,
+  opts: JobOptions = {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 2000 },
+    removeOnComplete: true
+  }
+) {
+  return conversionQueue.add("convert", data, opts);
 }
+
+// Optional: basic log
+conversionQueue.on("error", (err: Error) => {
+  console.error("[Queue error]", err);
+});
