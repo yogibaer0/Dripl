@@ -49,6 +49,12 @@ body{margin:0;color:var(--text);background:
 .card__body{padding:var(--space);display:flex;flex-direction:column;gap:12px;}
 .panel--storage{min-height:520px;} .panel--upload{min-height:420px;} .panel--import{min-height:300px;}
 
+/* Allow satellites to appear adjacent to the destination hub without being clipped */
+.card.dest {
+  overflow: visible;
+  z-index: 20;
+}
+
 /* inputs/buttons */
 .input,.select,.textarea{width:100%;color:var(--text);background:var(--input);
   border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .7rem;outline:none;min-width:0;}

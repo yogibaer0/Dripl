@@ -120,11 +120,15 @@
       <section class="card dest">
         <div id="destHub" class="dest-panel">
           <div class="dest-left">
-            <div id="previewWrap" class="preview-wrap">
-              <img id="previewImg" hidden>
-              <video id="previewVideo" playsinline muted loop controls hidden></video>
-              <div id="previewHint" class="preview-hint"><span>Preview</span></div>
-            </div>
+            <div id="previewWrap" class="preview-wrap" style="position:relative;">
+  <img id="previewImg" hidden>
+  <video id="previewVideo" playsinline muted loop controls hidden></video>
+  <div id="previewHint" class="preview-hint"><span>Preview</span></div>
+
+  <!-- satDock: invisible pixel-accurate docking point for satellites -->
+  <div id="satDock" aria-hidden="true"
+       style="position:absolute; left:18px; top:18px; width:56px; height:56px; pointer-events:none;"></div>
+</div>
           </div>
 
           <div class="dest-right">

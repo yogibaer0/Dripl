@@ -390,65 +390,87 @@
     });
   }
 
-  // top-left docking point inside the previewWrap (pixel coords)
-  function hubTopLeftSlot(){
-    const previewWrap = hubEl.querySelector(".preview-wrap");
-    const slotRect = previewWrap ? previewWrap.getBoundingClientRect() : hubEl.getBoundingClientRect();
-    return {
-      clientX: slotRect.left + 18,
-      clientY: slotRect.top + 18
-    };
+// Top-left docking point: prefer explicit #satDock element if present
+function hubTopLeftSlot(){
+  // Prefer explicit dock element if present (pixel-perfect target)
+  const dock = hubEl.querySelector("#satDock");
+  if (dock) {
+    const r = dock.getBoundingClientRect();
+    // return center of the dock element (so sat centers on it)
+    return { clientX: r.left + r.width / 2 + window.scrollX, clientY: r.top + r.height / 2 + window.scrollY };
+  }
+  // fallback: use a small margin inside previewWrap
+  const previewWrap = hubEl.querySelector(".preview-wrap");
+  const slotRect = previewWrap ? previewWrap.getBoundingClientRect() : hubEl.getBoundingClientRect();
+  return {
+    clientX: slotRect.left + 18 + window.scrollX,
+    clientY: slotRect.top + 18 + window.scrollY
+  };
+}
+
+// animate sats to activeIndex (-1 = none). Place all targets outside the hub so they orbit it.
+function computeAndAnimate(activeIndex){
+  const list = sats();
+  if (!list.length) return;
+
+  // Prepare transitions
+  list.forEach(s => {
+    s.style.transition = "transform .36s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
+    s.style.willChange = "transform, opacity";
+  });
+
+  // No active: return to natural stacked/orbit resting positions (no large offsets)
+  if (activeIndex === -1){
+    list.forEach((s, i) => {
+      // clear transforms — satellites will remain at their DOM stacked positions (JS may still position them)
+      scheduleTransform(s, 0, 0, { clsRem: "is-active", clsRem: "is-parking", z: 0, opacity: 1 });
+    });
+    return;
   }
 
-  // animate sats to activeIndex (-1 = none)
-  function computeAndAnimate(activeIndex){
-    const list = sats();
-    if (!list.length) return;
+  // Active handling: compute a hub exterior anchor (center-based) and build parking slots around it
+  const active = list[activeIndex];
+  const activeCenter = centerOf(active);
 
-    // Prepare transitions
-    list.forEach(s => {
-      s.style.transition = "transform .36s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
-      s.style.willChange = "transform, opacity";
-    });
+  // hub exterior anchor - use center of preview wrap and offset outward to the left/top quadrant so sats remain outside
+  const preview = hubEl.querySelector(".preview-wrap");
+  const pRect = preview ? preview.getBoundingClientRect() : hubEl.getBoundingClientRect();
+  const hubCenterX = pRect.left + pRect.width / 2 + window.scrollX;
+  const hubCenterY = pRect.top + pRect.height / 2 + window.scrollY;
 
-    if (activeIndex === -1){
-      // Clear transforms (return to natural stacked layout)
-      list.forEach((s) => {
-        scheduleTransform(s, 0, 0, { clsRem: "is-active", clsRem: "is-parking", z: 0, opacity: 1 });
-      });
-      return;
-    }
+  // We'll place the active satellite in the upper-left orbital position around the preview.
+  // Compute orbit radius slightly larger than preview half-width so the satellites appear to orbit outside.
+  const ORBIT_PADDING = (pRect.width * 0.58) || 220; // relative to preview width (ensures outside)
+  const activeTargetX = (pRect.left + window.scrollX) - (Math.max(48, ORBIT_PADDING / 2)); // left of preview
+  const activeTargetY = (pRect.top + window.scrollY) - (Math.max(24, ORBIT_PADDING / 4)); // above preview
 
-    const active = list[activeIndex];
-    const activeCenter = centerOf(active);
-    const hubSlot = hubTopLeftSlot();
-    const dxActive = hubSlot.clientX - activeCenter.x;
-    const dyActive = hubSlot.clientY - activeCenter.y;
+  const dxActive = activeTargetX - activeCenter.x;
+  const dyActive = activeTargetY - activeCenter.y;
 
-    scheduleTransform(active, dxActive, dyActive, { clsAdd: "is-active", clsRem: "is-parking", z: 80, opacity: 1 });
+  scheduleTransform(active, dxActive, dyActive, { clsAdd: "is-active", clsRem: "is-parking", z: 80, opacity: 1 });
 
-    // Other satellites: alternate parking above/below the hubSlot
-    const others = list.filter((_, i) => i !== activeIndex);
-    others.sort((a,b) => {
-      const ca = centerOf(a), cb = centerOf(b);
-      const da = Math.hypot(ca.x - activeCenter.x, ca.y - activeCenter.y);
-      const db = Math.hypot(cb.x - activeCenter.x, cb.y - activeCenter.y);
-      return da - db;
-    });
+  // Other satellites: park in positions that form an arc around the preview (alternate above and below active spot)
+  const others = list.filter((_, i) => i !== activeIndex);
 
-    const SPACING = (activeCenter.h * 1.25) || 72;
-    for (let i = 0; i < others.length; i++){
-      const s = others[i];
-      const sign = (i % 2 === 0) ? -1 : 1;
-      const level = Math.ceil((i + 1) / 2);
-      const targetX = hubSlot.clientX - (activeCenter.w * 0.5) + (sign * 6);
-      const targetY = hubSlot.clientY + (sign * SPACING * level);
-      const center = centerOf(s);
-      const dx = targetX - center.x;
-      const dy = targetY - center.y;
-      scheduleTransform(s, dx, dy, { clsAdd: "is-parking", clsRem: "is-active", z: 70, opacity: 0.98 });
-    }
+  // Sort by DOM order (preserve natural ordering) but you can keep distance-based sort if you prefer
+  // others.sort((a,b)=>0); // keep DOM order
+
+  // compute spacing along arc
+  const SPACING_Y = Math.max(activeCenter.h * 1.1, 56); // vertical step between parking slots
+  for (let i = 0; i < others.length; i++){
+    const s = others[i];
+    const sign = (i % 2 === 0) ? -1 : 1; // alternate above/below
+    const level = Math.ceil((i + 1) / 2);
+    // angle-based horizontal offset so parking forms a gentle arc to the left of preview
+    const horizOffset = Math.max(72, pRect.width * 0.35);
+    const targetX = (pRect.left + window.scrollX) - horizOffset + (sign * 8);
+    const targetY = (pRect.top + window.scrollY) + (sign * SPACING_Y * level);
+    const center = centerOf(s);
+    const dx = targetX - center.x;
+    const dy = targetY - center.y;
+    scheduleTransform(s, dx, dy, { clsAdd: "is-parking", clsRem: "is-active", z: 70, opacity: 0.98 });
   }
+}
 
   function indexOfSat(el){ return sats().indexOf(el); }
 
