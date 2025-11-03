@@ -45,7 +45,8 @@
     </div>
   </header>
 
-  <!-- Input for local upload (a11y-friendly, must not be display:none) -->
+  <!-- Accessible file input (kept for keyboard/assistive access) -->
+  <!-- visually hidden but still present for accessibility -->
   <label for="fileInput" class="sr-only">Local file upload</label>
   <input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true">
 
@@ -53,7 +54,7 @@
     <div class="panels">
 
       <!-- ================= UPLOAD PANEL ================= -->
-      <section class="card upload" aria-labelledby="upload-title">
+      <section class="card upload panel--upload" aria-labelledby="upload-title">
         <div class="card__head"><h2 id="upload-title">Upload</h2></div>
         <div class="card__body">
           <div id="dropzone" class="dropzone" aria-label="Drop files here">
@@ -76,7 +77,7 @@
       </section>
 
       <!-- ================= IMPORT GOO PANEL ================= -->
-      <section class="card import" aria-labelledby="import-title">
+      <section class="card import panel--import" aria-labelledby="import-title">
         <div class="card__head"><h2 id="import-title">Import</h2></div>
         <div class="card__body">
           <div class="goo-container">
@@ -93,10 +94,10 @@
         </div>
       </section>
 
-      <!-- ================= STORAGE PANEL ================= -->
-      <section class="card storage">
+      <!-- ================= STORAGE PANEL (satellites live under this panel at base) ================= -->
+      <section class="card storage panel--storage" aria-labelledby="storage-title" style="position:relative;">
         <div class="card__head">
-          <h2>Storage</h2>
+          <h2 id="storage-title">Storage</h2>
           <div class="toolbar">
             <button class="btn secondary">+ Folder</button>
             <button class="btn secondary">Filters</button>
@@ -104,7 +105,7 @@
           </div>
         </div>
         <div class="card__body">
-          <input id="storage-search" type="text" placeholder="Search…">
+          <input id="storage-search" type="text" placeholder="Search files, tags, notes…">
           <div class="chips">
             <button class="chip chip--active">Recent</button>
             <button class="chip">Saved ★</button>
@@ -114,21 +115,34 @@
           </div>
           <div id="storage-list" class="grid"></div>
         </div>
+
+        <!-- ================= SATELLITES (base position under Storage panel) ================= -->
+        <div class="dest-sat-rail" aria-hidden="true">
+          <div class="dest-sat-stack">
+            <button class="satellite sat--tt" data-platform="tiktok" aria-label="TikTok"></button>
+            <button class="satellite sat--ig" data-platform="instagram" aria-label="Instagram"></button>
+            <button class="satellite sat--yt" data-platform="youtube" aria-label="YouTube"></button>
+            <button class="satellite sat--rd" data-platform="reddit" aria-label="Reddit"></button>
+          </div>
+          <button id="satReturn" class="sat-return" hidden>Return</button>
+        </div>
       </section>
 
-      <!-- ================= DESTINATION HUB ================= -->
-      <section class="card dest">
+      <!-- ================= DESTINATION HUB (spans full width below top row) ================= -->
+      <section class="card dest panel--dest" aria-labelledby="dest-title">
+        <div class="card__head"><h2 id="dest-title" class="sr-only">Destination Hub</h2></div>
+
         <div id="destHub" class="dest-panel">
           <div class="dest-left">
             <div id="previewWrap" class="preview-wrap" style="position:relative;">
-  <img id="previewImg" hidden>
-  <video id="previewVideo" playsinline muted loop controls hidden></video>
-  <div id="previewHint" class="preview-hint"><span>Preview</span></div>
+              <img id="previewImg" hidden>
+              <video id="previewVideo" playsinline muted loop controls hidden></video>
+              <div id="previewHint" class="preview-hint"><span>Preview</span></div>
 
-  <!-- satDock: invisible pixel-accurate docking point for satellites -->
-  <div id="satDock" aria-hidden="true"
-       style="position:absolute; left:18px; top:18px; width:56px; height:56px; pointer-events:none;"></div>
-</div>
+              <!-- satDock (optional pixel anchor used by JS when present) -->
+              <div id="satDock" aria-hidden="true"
+                   style="position:absolute; left:18px; top:18px; width:56px; height:56px; pointer-events:none;"></div>
+            </div>
           </div>
 
           <div class="dest-right">
@@ -158,17 +172,6 @@
             </div>
           </div>
         </div>
-
-        <div class="dest-sat-rail">
-          <div class="dest-sat-stack">
-  <!-- data-platform must match the platform keys used in script (youtube, instagram, tiktok, reddit) -->
-  <button class="satellite sat--yt" data-platform="youtube" aria-label="YouTube satellite" title="YouTube"></button>
-  <button class="satellite sat--ig" data-platform="instagram" aria-label="Instagram satellite" title="Instagram"></button>
-  <button class="satellite sat--tt" data-platform="tiktok" aria-label="TikTok satellite" title="TikTok"></button>
-  <button class="satellite sat--rd" data-platform="reddit" aria-label="Reddit satellite" title="Reddit"></button>
-</div>
-          <button id="satReturn" class="sat-return" hidden>Return</button>
-        </div>
       </section>
 
     </div>
@@ -186,15 +189,6 @@
   </script>
 </body>
 </html>
-.
-
-
-
-
-
-
-
-
 
 
 
