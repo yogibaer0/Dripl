@@ -3,6 +3,7 @@
    - Bootstraps Upload / Import / Storage UI
    - Destination Hub kernel (Hub API: setMedia, activatePlatform, returnToHub)
    - Satellite orbital controller (planet-like orbit, fixed radius ring, organic motion)
+   - Import icons + preview hover helpers restored and wired
    - Transform-only, GPU-accelerated animation; never overlaps hub content
    - Safe, idempotent, resilient to DOM moves & responsive
    ========================================================================== */
@@ -121,10 +122,37 @@
     on(els.dropZone, "drop", (e) => { els.dropZone.classList.remove("is-hover"); const files = e.dataTransfer?.files; if (files && files.length) handleFileDrop(files); });
   }
 
+  /* ----------------------
+     Import icons wiring (restored)
+     ---------------------- */
   function initImportIcons() {
-    if (els.impDevice) on(els.impDevice, "click", () => els.fileInput && els.fileInput.click());
-    if (els.impDropbox) on(els.impDropbox, "click", () => { const btn = document.querySelector('[data-action="dropbox"], #btn-dropbox'); if (btn) btn.click(); else log("Dropbox not wired"); });
-    if (els.impDrive) on(els.impDrive, "click", () => { const btn = document.querySelector('[data-action="gdrive"], [data-action="google-drive"], #btn-gdrive'); if (btn) btn.click(); else log("Drive not wired"); });
+    // wire clickable import icons safely (idempotent)
+    const impDevice = document.getElementById('imp-device');
+    const impDropbox = document.getElementById('imp-dropbox');
+    const impDrive = document.getElementById('imp-drive');
+    const fileInput = document.getElementById('fileInput');
+
+    if (impDevice) {
+      impDevice.setAttribute('tabindex', '0');
+      impDevice.addEventListener('click', () => fileInput && fileInput.click());
+      impDevice.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput && fileInput.click(); });
+    }
+    if (impDropbox) {
+      impDropbox.setAttribute('tabindex', '0');
+      impDropbox.addEventListener('click', () => {
+        const btn = document.querySelector('[data-action="dropbox"], #btn-dropbox');
+        if (btn) btn.click(); else log("Dropbox not wired");
+      });
+      impDropbox.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') impDropbox.click(); });
+    }
+    if (impDrive) {
+      impDrive.setAttribute('tabindex', '0');
+      impDrive.addEventListener('click', () => {
+        const btn = document.querySelector('[data-action="gdrive"], [data-action="google-drive"], #btn-gdrive');
+        if (btn) btn.click(); else log("Drive not wired");
+      });
+      impDrive.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') impDrive.click(); });
+    }
     log("import icons ready");
   }
 
@@ -476,14 +504,76 @@
   })();
 
   /* ----------------------
+     Preview hover helpers + Import icon wiring (safeguard)
+     - idempotent, keeps preview glow working and import icons interactive
+     ---------------------- */
+  (function RestorePreviewAndImportHelpers(){
+    if (window.__AMEBA_HELPERS_READY__) return;
+    window.__AMEBA_HELPERS_READY__ = true;
+
+    function wireImportIcons() {
+      const impDevice = document.getElementById('imp-device');
+      const impDropbox = document.getElementById('imp-dropbox');
+      const impDrive = document.getElementById('imp-drive');
+      const fileInput = document.getElementById('fileInput');
+      if (impDevice && fileInput) {
+        impDevice.setAttribute('tabindex','0');
+        impDevice.addEventListener('click', () => fileInput.click());
+        impDevice.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+      }
+      if (impDropbox) {
+        impDropbox.setAttribute('tabindex','0');
+        impDropbox.addEventListener('click', () => {
+          const proxy = document.querySelector('[data-action="dropbox"], #btn-dropbox');
+          if (proxy) proxy.click(); else log("[ameba] Dropbox proxy missing");
+        });
+        impDropbox.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') impDropbox.click(); });
+      }
+      if (impDrive) {
+        impDrive.setAttribute('tabindex','0');
+        impDrive.addEventListener('click', () => {
+          const proxy = document.querySelector('[data-action="gdrive"], [data-action="google-drive"], #btn-gdrive');
+          if (proxy) proxy.click(); else log("[ameba] Drive proxy missing");
+        });
+        impDrive.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') impDrive.click(); });
+      }
+    }
+
+    function wirePreviewHover() {
+      const preview = document.querySelector('.dest-panel .preview-wrap');
+      if (!preview) return;
+      if (preview.__hoverBound__) return;
+      preview.__hoverBound__ = true;
+      preview.addEventListener('mouseenter', () => preview.classList.add('is-hovering'));
+      preview.addEventListener('mouseleave', () => preview.classList.remove('is-hovering'));
+      preview.addEventListener('focusin', () => preview.classList.add('is-hovering'));
+      preview.addEventListener('focusout', () => preview.classList.remove('is-hovering'));
+    }
+
+    function initHelpers(){
+      wireImportIcons();
+      wirePreviewHover();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initHelpers, { once: true });
+    else setTimeout(initHelpers, 40);
+
+    // also expose to window for debug
+    window.__ameba_helpers = { wireImportIcons, wirePreviewHover };
+  })();
+
+  /* ----------------------
      Boot
      ---------------------- */
   function boot() {
     try {
       initUpload();
-      initImportIcons();
+      initImportIcons(); // legacy wiring (keeps previous behavior too)
       initConvert();
-      log("UI ready (orbital satellites enabled)");
+      // make sure helpers run in case of dynamic content
+      if (window.__ameba_helpers?.wireImportIcons) window.__ameba_helpers.wireImportIcons();
+      if (window.__ameba_helpers?.wirePreviewHover) window.__ameba_helpers.wirePreviewHover();
+      log("UI ready (orbital satellites + import/preview helpers enabled)");
     } catch (e) {
       err("boot error:", e);
     }
@@ -492,11 +582,6 @@
   else boot();
 
 })();
-
-
-
-
-
 
 
 

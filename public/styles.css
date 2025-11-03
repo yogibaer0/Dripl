@@ -3,6 +3,7 @@
    - Layout: top row = three equal columns, bottom row = full-width destination hub
    - Storage hosts the satellite base rail; satellites orbit around the hub perimeter
    - Clean, minimal, production-ready with reduced-motion support
+   - Includes preview hover glow + import goo icon visuals
    ========================================================================== */
 
 /* ------------------------
@@ -35,6 +36,10 @@
   --sat-gap: 16px;
   --sat-bob-amp: 4px;
   --sat-bob-dur: 4.8s;
+
+  /* import icon motion */
+  --ameba-bob-amp: 6px;
+  --ameba-bob-dur: 4.8s;
 }
 
 /* ------------------------
@@ -117,10 +122,28 @@ body{
 @keyframes blobPulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.03);opacity:1}}
 @keyframes blobAbsorb{0%{transform:scale(1);background:rgba(139,92,246,.10)}50%{transform:scale(1.05);background:rgba(139,92,246,.25)}100%{transform:scale(1);background:rgba(255,255,255,.02)}}
 
-/* import goo visuals */
-.panel--import .goo-container{margin-top:auto;min-height:220px;border-radius:16px;position:relative;overflow:hidden;background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%)}
+/* import goo visuals (icons float above goo) */
+.panel--import .goo-container{margin-top:auto;min-height:220px;border-radius:16px;position:relative;overflow:visible;background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%)}
 .goo-bg{position:absolute;inset:0;z-index:0;pointer-events:none}
-.icon-row{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;z-index:1}
+.icon-row{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;z-index:60;pointer-events:none}
+
+/* import icons */
+.import-icon{
+  pointer-events:auto;width:56px;height:56px;border:0;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#E6D9FF;transition:transform .18s ease, background-color .18s ease, box-shadow .18s ease;box-shadow:0 6px 18px rgba(0,0,0,0.36);will-change:transform;
+}
+.import-icon:hover,.import-icon:focus{transform:translateY(-6px) scale(1.03);background:rgba(255,255,255,.10);box-shadow:0 18px 36px rgba(0,0,0,0.48),0 0 0 4px rgba(139,92,246,0.06);outline:none}
+.import-icon .icon{width:28px;height:28px;display:block}
+
+/* organic bob + wobble for import icons */
+@keyframes ameba-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1*var(--ameba-bob-amp)))}}
+@keyframes ameba-wobble{0%,100%{transform:rotate(-1deg) translateX(-1px)}50%{transform:rotate(1deg) translateX(1px)}}
+.icon-row .import-icon{animation:ameba-bob var(--ameba-bob-dur) ease-in-out infinite;will-change:transform}
+.icon-row .import-icon .icon{animation:ameba-wobble calc(var(--ameba-bob-dur) * 1.15) ease-in-out infinite;will-change:transform}
+@media (prefers-reduced-motion: reduce){.icon-row .import-icon,.icon-row .import-icon .icon{animation:none!important}}
+
+.icon-row .import-icon:nth-child(1){--dur:4.4s;--wdur:5.2s}
+.icon-row .import-icon:nth-child(2){--dur:5.1s;--wdur:6s}
+.icon-row .import-icon:nth-child(3){--dur:4.7s;--wdur:5.6s}
 
 /* ------------------------
    Destination hub / preview
@@ -132,7 +155,20 @@ body{
 .dest-left{display:grid;align-items:center;justify-items:center;min-width:320px}
 .dest-right{display:grid;grid-template-rows:auto auto auto;gap:18px;max-width:520px;min-width:260px;align-self:start;overflow:visible}
 
-.preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;background:radial-gradient(120% 120% at 20% 10%,#1a1921,#0f0f14);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15),0 10px 30px rgba(0,0,0,.35);overflow:visible}
+/* preview + hover glow */
+.preview-wrap{
+  width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;background:radial-gradient(120% 120% at 20% 10%,#1a1921,#0f0f14);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15),0 10px 30px rgba(0,0,0,.35);overflow:visible;
+  transition: width .22s cubic-bezier(.22,.61,.36,1), aspect-ratio .22s cubic-bezier(.22,.61,.36,1), border-radius .22s cubic-bezier(.22,.61,.36,1), box-shadow .26s cubic-bezier(.2,.9,.3,1);
+  will-change: width, aspect-ratio, border-radius, box-shadow;
+}
+.preview-wrap:hover, .preview-wrap.is-hovering, .preview-wrap:focus-within {
+  border-color: rgba(164,129,255,.95);
+  box-shadow:
+    0 0 0 2px rgba(164,129,255,.18),
+    0 14px 40px rgba(131,94,255,.26),
+    inset 0 0 22px rgba(131,94,255,.18);
+  outline: none;
+}
 #previewImg,#previewVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:12px;display:block}
 #previewImg[hidden],#previewVideo[hidden]{display:none}
 .preview-hint{position:absolute;inset:0;display:grid;place-content:center;gap:6px;text-align:center;color:rgba(255,255,255,.7);font-size:14px}
@@ -163,7 +199,6 @@ body{
 
 /* morph transitions */
 .dest-panel{transition:box-shadow .22s cubic-bezier(.22,.61,.36,1)}
-.preview-wrap{transition:width .22s cubic-bezier(.22,.61,.36,1), aspect-ratio .22s cubic-bezier(.22,.61,.36,1), border-radius .22s cubic-bezier(.22,.61,.36,1)}
 .dest-right .meta-grid, .dest-right .dest-actions{transition:opacity .18s ease, transform .18s ease}
 .dest-panel.is-switching .meta-grid, .dest-panel.is-switching .dest-actions{opacity:0;transform:translateY(6px)}
 
@@ -178,7 +213,7 @@ body{
   left:50%;
   top:calc(100% + 12px);
   transform:translateX(-50%);
-  z-index:60;
+  z-index:30; /* lower than import icons and preview hover glow */
   display:flex;
   flex-direction:column;
   align-items:center;
