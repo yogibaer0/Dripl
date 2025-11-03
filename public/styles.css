@@ -210,6 +210,7 @@ body{margin:0;color:var(--text);background:
 
 /* ==========================================================
    SATELLITES — absolute orbit rail (hub-relative)
+   (REPLACED) transform-driven, z-index-safe, parking + active state
    ========================================================== */
 
 /* Tunables */
@@ -230,55 +231,51 @@ body{margin:0;color:var(--text);background:
   top:50%;
   right: calc(-1 * var(--orbit-radius));
   transform: translateY(-50%);
-  z-index:4;
+  z-index: 60; /* elevated so rail is above background but below hub content when needed */
   display:flex;
   flex-direction:column;
   align-items:center;
+  pointer-events: none; /* interactions enabled on children */
 }
 
 /* Stack becomes a measuring/positioning surface */
 .dest-sat-stack{
   position:relative;
   width: var(--sat-size);
-  /* height is set by JS to match hub height when in absolute mode */
+  /* height is set by JS when needed */
 }
 
-/* Absolute mode: satellites positioned by JS */
+/* Make each satellite promote to its own compositor layer for smooth transforms */
+.dest-sat-stack .satellite{
+  pointer-events: auto; /* enable interactions */
+  will-change: transform, opacity;
+  transform-origin: center;
+  z-index: 0;
+  transition: transform .36s cubic-bezier(.2,.9,.3,1), box-shadow .28s ease, opacity .28s ease;
+  backface-visibility: hidden;
+}
+
+/* absolute-mode visual (JS handles transforms) */
 .dest-sat-stack.is-absolute .satellite{
-  position:absolute;
-  left:0;
+  position: absolute;
+  left: 0;
 }
 
-/* Flex fallback (when not absolute) */
-.dest-sat-stack:not(.is-absolute){
-  display:flex;
-  flex-direction:column;
-  gap: var(--sat-gap);
-  align-items:center;
+/* higher stack for active / moving items */
+.dest-sat-stack .satellite.is-active{
+  z-index: 80; /* highest so it can float over hub */
+  box-shadow: 0 18px 36px rgba(0,0,0,.55), 0 0 0 2px rgba(138,92,246,.28);
+  transform: translateZ(40px) scale(1.08);
 }
 
-/* Satellite visuals (keep your palette) */
-.satellite{
-  width: var(--sat-size);
-  height: var(--sat-size);
-  border-radius:999px;
-  border:0;
-  cursor:pointer;
-  background:rgba(255,255,255,.06);
-  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
-  transition:
-    transform .18s ease,
-    box-shadow .18s ease,
-    filter .18s ease;
-  animation: sat-bob var(--sat-bob-dur) ease-in-out infinite;
-}
-.satellite:hover{ transform: translateY(-2px) scale(1.06); filter:brightness(1.05); }
-.satellite.is-active{
-  transform: translateY(-2px) scale(1.1);
-  box-shadow: 0 0 0 2px rgba(255,255,255,.2), 0 0 30px 8px rgba(138,92,246,.35);
+/* satellites that are in "parking" positions (above/below the active) */
+.dest-sat-stack .satellite.is-parking{
+  z-index: 70;
+  transform: scale(.98);
+  opacity: .98;
 }
 
-/* gentle cell-like motion */
+/* gentle cell-like motion (kept) */
 @keyframes sat-bob{
   0%,100% { transform: translateY(0); }
   50%     { transform: translateY(calc(-1 * var(--sat-bob-amp))); }
@@ -287,6 +284,33 @@ body{margin:0;color:var(--text);background:
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce){
   .satellite{ animation:none !important; }
+}
+
+/* subtle overlay to keep hub from visually covering the rail */
+.dest-panel::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  right: calc(-1 * var(--orbit-radius));
+  width: calc(var(--orbit-radius) + 28px);
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(11,9,14,0.02) 60%, rgba(11,9,14,0.06) 100%);
+  z-index: 50;
+  border-radius: 12px;
+}
+
+/* When the platform is active we want the rail still to be visible and above the hub's visual content */
+.dest-panel[data-platform]:not([data-platform=""]) .dest-sat-rail{
+  z-index: 90;
+}
+
+/* Flex fallback (when not absolute or on narrow screens) */
+.dest-sat-stack:not(.is-absolute){
+  display:flex;
+  flex-direction:column;
+  gap: var(--sat-gap);
+  align-items:center;
 }
 
 /* Responsive: collapse to a row under the hub */
@@ -302,6 +326,15 @@ body{margin:0;color:var(--text);background:
     flex-direction:row !important;
     gap: var(--sat-gap);
   }
+  .dest-panel::after { display:none; }
+}
+
+/* active nudge closer to hub (keeps visual language) */
+.dest-panel[data-platform="youtube"]   .sat--yt,
+.dest-panel[data-platform="instagram"] .sat--ig,
+.dest-panel[data-platform="tiktok"]    .sat--tt,
+.dest-panel[data-platform="reddit"]    .sat--rd{
+  margin-right: 2px; /* tiny visual nudge */
 }
 
 /* active nudge closer to hub */

@@ -348,77 +348,164 @@
    - Positions satellites as an absolute, vertical stack
    - Anchored to hub; reacts to resize and platform changes
    ========================================================= */
-(function SatelliteLayout(){
-  const hub   = document.querySelector(".dest-panel");
-  const rail  = document.querySelector(".dest-sat-rail");
+/* ===== SatelliteLayout: transform-based parking + active placement =====
+   Replaces the prior absolute-positioning step layout with transform animations.
+   Goals:
+   - Only use transforms (no layout thrash)
+   - Active satellite animates into a top-left dock; others park above/below
+   - Responsive fallback clears transforms on narrow viewports
+*/
+(function SatelliteTransformController(){
+  const hubEl = document.querySelector(".dest-panel");
+  const rail = document.querySelector(".dest-sat-rail");
   const stack = rail?.querySelector(".dest-sat-stack");
-  if (!hub || !rail || !stack) return;
+  if (!hubEl || !rail || !stack) return;
 
   const sats = () => Array.from(stack.querySelectorAll(".satellite"));
-  const css  = (el) => getComputedStyle(el || document.documentElement);
 
-  function numberVar(el, name, fallback){
-    const v = parseFloat(css(el).getPropertyValue(name));
-    return Number.isFinite(v) ? v : fallback;
-    }
+  // compute center point of an element (page coords)
+  function centerOf(el){
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width/2 + window.scrollX, y: r.top + r.height/2 + window.scrollY, w: r.width, h: r.height };
+  }
 
-  function applyAbsoluteLayout(){
-    stack.classList.add("is-absolute");
+  // requestAnimationFrame batcher for transforms
+  let rafId = null;
+  const pending = [];
+  function scheduleTransform(node, tx, ty, opts = {}){
+    pending.push({ node, tx, ty, opts });
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      for (const p of pending){
+        const { node, tx, ty, opts } = p;
+        const t = `translate(${tx}px, ${ty}px)`;
+        node.style.transform = t + (opts.extra || "");
+        if (opts.z !== undefined) node.style.zIndex = opts.z;
+        if (opts.clsAdd) node.classList.add(opts.clsAdd);
+        if (opts.clsRem) node.classList.remove(opts.clsRem);
+        if (opts.opacity !== undefined) node.style.opacity = String(opts.opacity);
+      }
+      pending.length = 0;
+    });
+  }
 
+  // top-left docking point inside the previewWrap (pixel coords)
+  function hubTopLeftSlot(){
+    const previewWrap = hubEl.querySelector(".preview-wrap");
+    const slotRect = previewWrap ? previewWrap.getBoundingClientRect() : hubEl.getBoundingClientRect();
+    return {
+      clientX: slotRect.left + 18,
+      clientY: slotRect.top + 18
+    };
+  }
+
+  // animate sats to activeIndex (-1 = none)
+  function computeAndAnimate(activeIndex){
     const list = sats();
     if (!list.length) return;
 
-    // Measure hub + tokens
-    const hubRect = hub.getBoundingClientRect();
-    const satSize = numberVar(document.documentElement, "--sat-size", 60);
-
-    // We distribute N satellites from top to bottom, centered within hub’s height.
-    const N = list.length;
-    const total = hubRect.height;
-    const usable = Math.max(total - satSize, 0);
-    const step = (N > 1) ? (usable / (N - 1)) : 0;
-
-    // Set stack height to the hub height so we can position children within it
-    stack.style.height = `${Math.round(total)}px`;
-
-    list.forEach((el, i) => {
-      el.style.top = `${Math.round(i * step)}px`;
-      el.style.left = "0px";
+    // Prepare transitions
+    list.forEach(s => {
+      s.style.transition = "transform .36s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
+      s.style.willChange = "transform, opacity";
     });
-  }
 
-  function clearAbsolute(){
-    stack.classList.remove("is-absolute");
-    sats().forEach(el => {
-      el.style.top = ""; el.style.left = ""; el.style.position = "";
+    if (activeIndex === -1){
+      // Clear transforms (return to natural stacked layout)
+      list.forEach((s) => {
+        scheduleTransform(s, 0, 0, { clsRem: "is-active", clsRem: "is-parking", z: 0, opacity: 1 });
+      });
+      return;
+    }
+
+    const active = list[activeIndex];
+    const activeCenter = centerOf(active);
+    const hubSlot = hubTopLeftSlot();
+    const dxActive = hubSlot.clientX - activeCenter.x;
+    const dyActive = hubSlot.clientY - activeCenter.y;
+
+    scheduleTransform(active, dxActive, dyActive, { clsAdd: "is-active", clsRem: "is-parking", z: 80, opacity: 1 });
+
+    // Other satellites: alternate parking above/below the hubSlot
+    const others = list.filter((_, i) => i !== activeIndex);
+    others.sort((a,b) => {
+      const ca = centerOf(a), cb = centerOf(b);
+      const da = Math.hypot(ca.x - activeCenter.x, ca.y - activeCenter.y);
+      const db = Math.hypot(cb.x - activeCenter.x, cb.y - activeCenter.y);
+      return da - db;
     });
-    stack.style.height = "";
-  }
 
-  // pick mode based on viewport (mirror CSS breakpoints)
-  function layout(){
-    const mq = window.matchMedia("(max-width:1100px)");
-    if (mq.matches) clearAbsolute(); else applyAbsoluteLayout();
-  }
-
-  // listen for hub morph + window resize
-  window.addEventListener("resize", layout, { passive: true });
-  document.addEventListener("hub-platform-changed", layout);
-
-  // expose tiny API for dev
-  window.Hub = {
-  ...(window.Hub || {}),
-  satellites: {
-    relayout: layout,
-    setRadius(px){
-      document.documentElement.style.setProperty("--orbit-radius", `${px|0}px`);
-      layout();
+    const SPACING = (activeCenter.h * 1.25) || 72;
+    for (let i = 0; i < others.length; i++){
+      const s = others[i];
+      const sign = (i % 2 === 0) ? -1 : 1;
+      const level = Math.ceil((i + 1) / 2);
+      const targetX = hubSlot.clientX - (activeCenter.w * 0.5) + (sign * 6);
+      const targetY = hubSlot.clientY + (sign * SPACING * level);
+      const center = centerOf(s);
+      const dx = targetX - center.x;
+      const dy = targetY - center.y;
+      scheduleTransform(s, dx, dy, { clsAdd: "is-parking", clsRem: "is-active", z: 70, opacity: 0.98 });
     }
   }
-};
 
+  function indexOfSat(el){ return sats().indexOf(el); }
 
-  layout();
+  // wire click events per satellite
+  function bind(){
+    sats().forEach((s) => {
+      s.addEventListener("click", () => {
+        const currentActive = hubEl.dataset.platform || "";
+        const targetPlatform = s.dataset.platform || "";
+        const alreadyActive = currentActive === targetPlatform;
+        hubEl.dataset.platform = alreadyActive ? "" : targetPlatform;
+        const newIndex = alreadyActive ? -1 : indexOfSat(s);
+        computeAndAnimate(newIndex);
+        document.dispatchEvent(new CustomEvent("hub-platform-changed", { detail: { platform: alreadyActive ? null : targetPlatform } }));
+      }, { passive: true });
+    });
+  }
+
+  document.addEventListener("hub-platform-changed", (e) => {
+    const p = e?.detail?.platform || null;
+    const list = sats();
+    if (!list.length) return;
+    if (!p) {
+      computeAndAnimate(-1);
+      return;
+    }
+    const idx = list.findIndex(b => b.dataset.platform === p);
+    computeAndAnimate(idx);
+  });
+
+  let resizeId = null;
+  function relayout(){
+    if (window.matchMedia("(max-width:1100px)").matches){
+      sats().forEach(s => { s.style.transform = ""; s.style.zIndex = ""; s.classList.remove("is-active","is-parking"); });
+      return;
+    }
+    const list = sats();
+    const activePlatform = hubEl.dataset.platform || "";
+    if (!activePlatform) {
+      computeAndAnimate(-1);
+      return;
+    }
+    const activeIdx = list.findIndex(b => b.dataset.platform === activePlatform);
+    computeAndAnimate(activeIdx);
+  }
+
+  window.addEventListener("resize", () => {
+    if (resizeId) cancelAnimationFrame(resizeId);
+    resizeId = requestAnimationFrame(relayout);
+  }, { passive: true });
+
+  bind();
+  setTimeout(() => {
+    const p = hubEl.dataset.platform || "";
+    if (p) document.dispatchEvent(new CustomEvent("hub-platform-changed", { detail: { platform: p } }));
+    else computeAndAnimate(-1);
+  }, 120);
 })();
 
 
