@@ -38,29 +38,26 @@
 <body>
   <header class="hero">
     <h1 class="hero__title">AMEBA</h1>
-    <div class="glow-line">
+    <div class="glow-line" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 10" preserveAspectRatio="none">
         <path d="M0,5 Q200,0 400,5" stroke="#8b5cf6" stroke-width="2" fill="none" opacity=".3"/>
       </svg>
     </div>
   </header>
 
-  <!-- Accessible file input (kept for keyboard/assistive access) -->
-  <!-- visually hidden but still present for accessibility -->
+  <!-- Accessible file input (visually hidden, kept for keyboard/assistive access) -->
   <label for="fileInput" class="sr-only">Local file upload</label>
   <input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true">
 
   <main class="shell">
     <div class="panels">
 
-      <!-- ================= UPLOAD PANEL ================= -->
+      <!-- UPLOAD -->
       <section class="card upload panel--upload" aria-labelledby="upload-title">
         <div class="card__head"><h2 id="upload-title">Upload</h2></div>
         <div class="card__body">
           <div id="dropzone" class="dropzone" aria-label="Drop files here">
-            <div class="dropzone__hint">
-              <p>Drop files or paste a link</p>
-            </div>
+            <div class="dropzone__hint"><p>Drop files or paste a link</p></div>
           </div>
 
           <div class="upload__controls">
@@ -72,11 +69,12 @@
             </select>
             <button id="convert-btn" class="btn btn--primary">Convert</button>
           </div>
+
           <p class="muted">Tip: press <kbd>Enter</kbd> to convert.</p>
         </div>
       </section>
 
-      <!-- ================= IMPORT GOO PANEL ================= -->
+      <!-- IMPORT -->
       <section class="card import panel--import" aria-labelledby="import-title">
         <div class="card__head"><h2 id="import-title">Import</h2></div>
         <div class="card__body">
@@ -94,7 +92,7 @@
         </div>
       </section>
 
-      <!-- ================= STORAGE PANEL (satellites live under this panel at base) ================= -->
+      <!-- STORAGE (satellites base) -->
       <section class="card storage panel--storage" aria-labelledby="storage-title" style="position:relative;">
         <div class="card__head">
           <h2 id="storage-title">Storage</h2>
@@ -113,10 +111,10 @@
             <button class="chip">Shared</button>
             <button class="chip">Trash</button>
           </div>
-          <div id="storage-list" class="grid"></div>
+          <div id="storage-list" class="grid" aria-hidden="true"></div>
         </div>
 
-        <!-- ================= SATELLITES (base position under Storage panel) ================= -->
+        <!-- Satellite rail (base position under Storage) -->
         <div class="dest-sat-rail" aria-hidden="true">
           <div class="dest-sat-stack">
             <button class="satellite sat--tt" data-platform="tiktok" aria-label="TikTok"></button>
@@ -128,7 +126,7 @@
         </div>
       </section>
 
-      <!-- ================= DESTINATION HUB (spans full width below top row) ================= -->
+      <!-- DEST HUB (spans full width below top row) -->
       <section class="card dest panel--dest" aria-labelledby="dest-title">
         <div class="card__head"><h2 id="dest-title" class="sr-only">Destination Hub</h2></div>
 
@@ -139,7 +137,7 @@
               <video id="previewVideo" playsinline muted loop controls hidden></video>
               <div id="previewHint" class="preview-hint"><span>Preview</span></div>
 
-              <!-- satDock (optional pixel anchor used by JS when present) -->
+              <!-- optional satDock (kept for pixel anchor if needed by JS) -->
               <div id="satDock" aria-hidden="true"
                    style="position:absolute; left:18px; top:18px; width:56px; height:56px; pointer-events:none;"></div>
             </div>
@@ -179,17 +177,16 @@
 
   <script src="/script.js" nonce="{{NONCE}}"></script>
 
-  <!-- small dropzone glow helper -->
   <script nonce="{{NONCE}}">
-    const dz=document.getElementById('dropzone');
-    if(dz){
-      ["dragenter","dragover"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add("dropzone--over");}));
-      ["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("dropzone--over");}));
+    // small dropzone glow helper (keeps UX tactile)
+    const dz = document.getElementById('dropzone');
+    if (dz) {
+      ["dragenter","dragover"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add("dropzone--over"); }));
+      ["dragleave","drop"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove("dropzone--over"); }));
     }
   </script>
 </body>
 </html>
-
 
 
 

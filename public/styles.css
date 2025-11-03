@@ -1,11 +1,8 @@
 /* ==========================================================================
-   AMEBA — Production-ready styles (cleaned & organized)
-   - Theme tokens
-   - Layout (top row: equal columns; bottom hub spans full width)
-   - Storage contains satellites base rail
-   - Cards, inputs, buttons
-   - Destination hub + preview
-   - Satellites (transform-driven, parking / active states)
+   AMEBA — production CSS (final)
+   - Layout: top row = three equal columns, bottom row = full-width destination hub
+   - Storage hosts the satellite base rail; satellites orbit around the hub perimeter
+   - Clean, minimal, production-ready with reduced-motion support
    ========================================================================== */
 
 /* ------------------------
@@ -32,7 +29,7 @@
   --gap: 22px; --space: 18px;
   --max: 1100px;
 
-  /* Satellite tunables */
+  /* satellites */
   --orbit-radius: 82px;
   --sat-size: 60px;
   --sat-gap: 16px;
@@ -46,21 +43,15 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;
-  color:var(--text);
+  margin:0;color:var(--text);
   font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter,sans-serif;
-  background:
-    radial-gradient(1200px 500px at 50% -250px, #201b37 0, var(--bg) 40%),
-    var(--bg);
+  background: radial-gradient(1200px 500px at 50% -250px, #201b37 0, var(--bg) 40%), var(--bg);
 }
 .muted{color:var(--muted)}
 .hidden{display:none!important}
 
 /* screen-reader only */
-.sr-only{
-  position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
-  clip:rect(0 0 0 0);white-space:nowrap;border:0;
-}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* ------------------------
    Header
@@ -71,18 +62,16 @@ body{
 .glow-line svg{display:block;width:100%;height:14px}
 
 /* ------------------------
-   Layout: top row equal columns, bottom row hub full width
+   Layout
    ------------------------ */
 .shell{max-width:var(--max);margin:18px auto 120px;padding:0 var(--space)}
 .panels{
-  display:grid;
-  gap:var(--gap);
-  grid-template-columns: repeat(3, 1fr); /* top row: three equal columns */
+  display:grid;gap:var(--gap);
+  grid-template-columns: repeat(3, 1fr);
   grid-template-areas:
     "upload import storage"
-    "dest dest dest"; /* bottom row: destination hub spans all columns */
-  position:relative;
-  align-items:start;
+    "dest dest dest";
+  position:relative;align-items:start;
 }
 
 /* panel helpers */
@@ -94,196 +83,138 @@ body{
 /* card base */
 .card{
   background: linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-height:300px;
+  border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+  overflow:hidden;display:flex;flex-direction:column;min-height:300px;
 }
 .card__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px var(--space) 14px;border-bottom:1px solid var(--border)}
 .card__head h2{margin:0;font-size:16px}
 .card__body{padding:var(--space);display:flex;flex-direction:column;gap:12px}
 
-/* per-panel min-heights (content can vary) */
-.panel--storage{min-height:320px; position:relative} /* storage now anchors the satellites */
+/* per-panel min-heights where helpful */
 .panel--upload{min-height:420px}
 .panel--import{min-height:300px}
+.panel--storage{min-height:320px;position:relative}
 
 /* ------------------------
-   Inputs / Buttons / Chips
+   Inputs / Buttons
    ------------------------ */
-.input,.select,.textarea{
-  width:100%;color:var(--text);background:var(--input);
-  border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:.6rem .7rem;outline:none;min-width:0;
-}
+.input,.select,.textarea{width:100%;color:var(--text);background:var(--input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .7rem;outline:none}
 .input:focus,.select:focus,.textarea:focus{border-color:#4338ca;box-shadow:0 0 0 3px rgba(133,72,244,.14)}
 .btn{color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.58rem .8rem;cursor:pointer}
 .btn:hover{background:rgba(255,255,255,.09)}
 .btn--primary{background:linear-gradient(180deg,var(--brand-2) 0,#7c3aed 100%);border:0}
-.btn-ghost, .btn--ghost{height:36px;padding:0 14px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.9);backdrop-filter:blur(6px)}
+.btn-ghost,.btn--ghost{height:36px;padding:0 14px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.9);backdrop-filter:blur(6px)}
 .btn-ghost:hover{border-color:rgba(164,129,255,.6)}
 .chip{display:inline-flex;align-items:center;gap:.35rem;padding:.4rem .7rem;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer}
 .chip--active{background:rgba(167,139,250,.15);border-color:#6d5bd0}
 
 /* ------------------------
-   Upload / Dropzone
+   Upload / Import UI
    ------------------------ */
 .upload .dropzone{display:flex;align-items:center;justify-content:center;min-height:180px;border:2px dashed #403a6a;border-radius:16px;background:var(--panel-inset);transition:border-color .25s,background .25s,box-shadow .25s,transform .3s;cursor:pointer}
 .upload .dropzone:hover{border-color:var(--brand-2);box-shadow:0 0 12px 2px rgba(139,92,246,.25)}
 .dropzone--over{border-color:var(--brand-2);box-shadow:0 0 16px 4px rgba(139,92,246,.4);background:radial-gradient(circle at center, rgba(139,92,246,.15), rgba(0,0,0,0) 70%);animation:blobPulse 1.5s ease-in-out infinite alternate}
-.dropzone--absorbing{animation:blobAbsorb .6s ease-out forwards;border-color:var(--brand-2);box-shadow:0 0 20px 8px rgba(139,92,246,.45)}
 @keyframes blobPulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.03);opacity:1}}
 @keyframes blobAbsorb{0%{transform:scale(1);background:rgba(139,92,246,.10)}50%{transform:scale(1.05);background:rgba(139,92,246,.25)}100%{transform:scale(1);background:rgba(255,255,255,.02)}}
 
-/* ------------------------
-   Import Goo Tank
-   ------------------------ */
-.panel--import .card__body{display:flex;flex-direction:column}
+/* import goo visuals */
 .panel--import .goo-container{margin-top:auto;min-height:220px;border-radius:16px;position:relative;overflow:hidden;background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%)}
 .goo-bg{position:absolute;inset:0;z-index:0;pointer-events:none}
-.goo-bg path{fill:#9b5cf8;opacity:.18}
 .icon-row{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;z-index:1}
-.import-icon{width:56px;height:56px;border:0;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#E6D9FF;transition:transform .18s ease, background-color .18s ease}
-.import-icon:hover{transform:translateY(-2px);background:rgba(255,255,255,.10)}
-.import-icon .icon{width:28px;height:28px;display:block}
-@keyframes ameba-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1*var(--ameba-bob-amp)))}}
-@keyframes ameba-wobble{0%,100%{transform:rotate(-1deg) translateX(-1px)}50%{transform:rotate(1deg) translateX(1px)}}
-.icon-row .import-icon{animation:ameba-bob var(--ameba-bob-dur) ease-in-out infinite;will-change:transform}
-.icon-row .import-icon .icon{animation:ameba-wobble var(--ameba-wobble-dur) ease-in-out infinite;will-change:transform}
-.icon-row .import-icon:nth-child(1){--dur:4.4s;--wdur:5.2s}
-.icon-row .import-icon:nth-child(2){--dur:5.1s;--wdur:6s}
-.icon-row .import-icon:nth-child(3){--dur:4.7s;--wdur:5.6s}
-@media (prefers-reduced-motion: reduce){.icon-row .import-icon,.icon-row .import-icon .icon{animation:none!important}}
-
-/* ------------------------
-   Storage / grid
-   ------------------------ */
-.storage__search{display:flex;align-items:center;gap:6px;background:var(--input);border:1px solid var(--border);border-radius:999px;padding:2px}
-.storage__search input{background:transparent;border:0;color:var(--text);padding:.45rem .7rem;min-width:260px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:var(--space)}
 
 /* ------------------------
    Destination hub / preview
    ------------------------ */
 .dest-panel{
-  display:grid;
-  grid-template-columns:420px minmax(420px,1fr);
-  gap:24px;
-  padding:16px 18px 20px;
-  border-radius:14px;
-  background:#14131a;
-  border:1px solid rgba(255,255,255,.06);
-  grid-column:1 / span 3; /* spans full width of the panels grid */
-  position:relative;
-  overflow:visible;
+  display:grid;grid-template-columns:420px minmax(420px,1fr);gap:24px;padding:16px 18px 20px;border-radius:14px;background:#14131a;border:1px solid rgba(255,255,255,.06);
+  grid-column:1 / span 3;position:relative;overflow:visible;
 }
-
-/* left / right columns inside dest panel */
 .dest-left{display:grid;align-items:center;justify-items:center;min-width:320px}
 .dest-right{display:grid;grid-template-rows:auto auto auto;gap:18px;max-width:520px;min-width:260px;align-self:start;overflow:visible}
 
-/* preview box */
-.preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;background:radial-gradient(120% 120% at 20% 10%, #1a1921, #0f0f14);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15), 0 10px 30px rgba(0,0,0,.35);overflow:visible}
+.preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;background:radial-gradient(120% 120% at 20% 10%,#1a1921,#0f0f14);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15),0 10px 30px rgba(0,0,0,.35);overflow:visible}
 #previewImg,#previewVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:12px;display:block}
 #previewImg[hidden],#previewVideo[hidden]{display:none}
 .preview-hint{position:absolute;inset:0;display:grid;place-content:center;gap:6px;text-align:center;color:rgba(255,255,255,.7);font-size:14px}
 
-/* meta grid & pills */
+/* meta / pills / actions */
 .meta-grid{display:grid;gap:10px}
 .meta-row{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:12px}
 .pill{height:40px;display:grid;align-items:center;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* dest actions */
 .dest-actions{display:grid;gap:14px;align-content:start}
 .dest-buttons{display:flex;flex-wrap:wrap;gap:10px}
 .dest-toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px}
 .toggle{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.82);font-size:13px}
 .toggle input{transform:translateY(1px)}
 
-/* ------------------------
-   Platform-specific morph states
-   ------------------------ */
+/* platform-specific hub morphs (controlled by Hub.activatePlatform -> data-platform attr) */
 .dest-panel[data-platform="youtube"]{box-shadow:inset 0 0 24px 2px rgba(255,31,31,.15)}
 .dest-panel[data-platform="instagram"]{box-shadow:inset 0 0 24px 2px rgba(210,180,140,.12)}
 .dest-panel[data-platform="tiktok"]{box-shadow:inset 0 0 24px 2px rgba(168,85,247,.16)}
 .dest-panel[data-platform="reddit"]{box-shadow:inset 0 0 24px 2px rgba(255,69,0,.14)}
 
+/* preview variants (morphing) */
 .dest-panel[data-platform="youtube"] .dest-left{grid-column:2}
 .dest-panel[data-platform="youtube"] .dest-right{grid-column:1}
 .dest-panel[data-platform="youtube"] .preview-wrap{width:560px;max-width:100%;aspect-ratio:16/9;border-radius:14px}
-.dest-panel[data-platform="tiktok"] .preview-wrap{width:280px;max-width:100%;aspect-ratio:9/16;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(168,85,247,.22), 0 10px 26px rgba(0,0,0,.35)}
+.dest-panel[data-platform="tiktok"] .preview-wrap{width:280px;max-width:100%;aspect-ratio:9/16;border-radius:22px;box-shadow:inset 0 0 0 1px rgba(168,85,247,.22),0 10px 26px rgba(0,0,0,.35)}
 .dest-panel[data-platform="instagram"] .preview-wrap{width:360px;max-width:100%;aspect-ratio:4/5;border-radius:16px}
 .dest-panel[data-platform="reddit"] .preview-wrap{width:480px;max-width:100%;aspect-ratio:16/9;border-radius:14px}
 
-/* hub switch helpers */
+/* morph transitions */
 .dest-panel{transition:box-shadow .22s cubic-bezier(.22,.61,.36,1)}
 .preview-wrap{transition:width .22s cubic-bezier(.22,.61,.36,1), aspect-ratio .22s cubic-bezier(.22,.61,.36,1), border-radius .22s cubic-bezier(.22,.61,.36,1)}
 .dest-right .meta-grid, .dest-right .dest-actions{transition:opacity .18s ease, transform .18s ease}
 .dest-panel.is-switching .meta-grid, .dest-panel.is-switching .dest-actions{opacity:0;transform:translateY(6px)}
 
 /* ------------------------
-   SATELLITES — orbit rail & cells (base: under Storage panel)
+   SATELLITES: orbital rail & visuals
+   - base rail sits under storage; satellites orbit around the dest-panel preview perimeter
    ------------------------ */
-/* rail anchored to storage panel area (storage card is position:relative) */
+
+/* base rail (visual anchor) placed under storage card */
 .panel--storage .dest-sat-rail{
   position:absolute;
-  left: 50%;
-  top: calc(100% + 12px); /* place satellites under the storage panel */
-  transform: translateX(-50%);
-  z-index:90;
+  left:50%;
+  top:calc(100% + 12px);
+  transform:translateX(-50%);
+  z-index:60;
   display:flex;
   flex-direction:column;
   align-items:center;
   pointer-events:none;
 }
-
-/* measuring surface */
 .dest-sat-stack{position:relative;width:var(--sat-size)}
 
-/* satellites */
+/* satellite visuals (promote to compositor) */
 .satellite{
-  width:var(--sat-size);height:var(--sat-size);border-radius:999px;border:0;
-  cursor:pointer;background:rgba(255,255,255,.06);
-  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.35);
-  transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,filter .18s ease,opacity .28s ease;
+  width:var(--sat-size);height:var(--sat-size);border-radius:999px;border:0;cursor:pointer;
+  background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.08),0 10px 22px rgba(0,0,0,.35);
+  transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,opacity .28s ease;
   animation:sat-bob var(--sat-bob-dur) ease-in-out infinite;
   pointer-events:auto; will-change:transform,opacity; backface-visibility:hidden;
 }
 .satellite:hover{transform:translateY(-2px) scale(1.06);filter:brightness(1.05)}
-.satellite.is-active{transform:translateZ(40px) scale(1.08);z-index:80;box-shadow:0 18px 36px rgba(0,0,0,.55),0 0 0 2px rgba(138,92,246,.28)}
-.satellite.is-parking{z-index:70;transform:scale(.98);opacity:.98}
+.satellite.is-active{z-index:120;box-shadow:0 18px 36px rgba(0,0,0,.55),0 0 0 2px rgba(138,92,246,.28)}
+.satellite.is-parking{z-index:100;opacity:.98;transform:scale(.98)}
 @keyframes sat-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1*var(--sat-bob-amp)))}}
 @media (prefers-reduced-motion: reduce){.satellite{animation:none!important}}
 
-/* absolute-mode (JS may add this class) */
-.dest-sat-stack.is-absolute .satellite{position:absolute;left:0}
-
-/* ------------------------
-   Responsive: small screens
-   ------------------------ */
+/* responsive: stack satellites inline under storage on narrow screens */
 @media (max-width:1100px){
   .shell{padding:0 14px}
   .panels{grid-template-columns:1fr;grid-template-areas:"upload" "import" "storage" "dest"}
   .dest-panel{grid-template-columns:1fr}
   .dest-actions{order:3}
-
-  /* stack satellites inline under storage on narrow screens */
   .panel--storage .dest-sat-rail{position:static;left:auto;transform:none;top:auto;margin-top:18px}
   .dest-sat-stack{display:flex;flex-direction:row;gap:var(--sat-gap)}
 }
 
-/* Accessibility / reduced motion */
+/* Accessibility: reduced motion */
 @media (prefers-reduced-motion: reduce){
   .dest-panel,.preview-wrap,.dest-right .meta-grid,.dest-right .dest-actions{transition:none!important}
   .icon-row .import-icon,.icon-row .import-icon .icon{animation:none!important}
 }
 
-/* ------------------------
-   Hide native file input visually (still accessible)
-   ------------------------ */
+/* Hide native file input visually */
 #fileInput{position:fixed;left:-9999px;top:auto;opacity:0;pointer-events:none}
-
-/* End */
