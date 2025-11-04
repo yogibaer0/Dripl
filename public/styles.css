@@ -1,43 +1,32 @@
 /* ==========================================================================
-   AMEBA — production CSS (final)
-   - Includes orbit resting placement + preview hover glow + import goo visuals
+   AMEBA — production CSS (patched)
+   - Stabilized layout + satellites resting positions + import goo + preview hover
    ========================================================================== */
 
-/* ------------------------
-   Theme tokens
-   ------------------------ */
+/* Tokens */
 :root{
-  --bg: #0b0b12;
-  --panel-1: #161625; --panel-2: #1b1b2e; --panel-inset: rgba(255,255,255,.03);
-  --border: #262640; --text: #e8e7ff; --muted: #a7a7c9;
-  --brand: #a78bfa; --brand-2: #8b5cf6;
-  --input: #141427; --shadow: 0 8px 24px rgba(0,0,0,.35);
-  --radius: 16px; --radius-sm: 10px;
-  --gap: 22px; --space: 18px; --max: 1100px;
-  --orbit-radius: 82px; --sat-size: 60px; --sat-gap: 16px; --sat-bob-amp: 4px; --sat-bob-dur: 4.8s;
-  --ameba-bob-amp: 6px; --ameba-bob-dur: 4.8s;
+  --bg:#0b0b12;--panel-1:#161625;--panel-2:#1b1b2e;--panel-inset:rgba(255,255,255,.03);
+  --border:#262640;--text:#e8e7ff;--muted:#a7a7c9;--brand:#a78bfa;--brand-2:#8b5cf6;
+  --input:#141427;--shadow:0 8px 24px rgba(0,0,0,.35);
+  --radius:16px;--radius-sm:10px;--gap:22px;--space:18px;--max:1100px;
+  --orbit-radius:82px;--sat-size:60px;--sat-gap:16px;--sat-bob-amp:4px;--sat-bob-dur:4.8s;
+  --ameba-bob-amp:6px;--ameba-bob-dur:4.8s;
 }
 
-/* base */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;color:var(--text);
-  font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter,sans-serif;
-  background: radial-gradient(1200px 500px at 50% -250px, #201b37 0, var(--bg) 40%), var(--bg);
-}
+/* Base */
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter,sans-serif;background:radial-gradient(1200px 500px at 50% -250px,#201b37 0,var(--bg) 40%),var(--bg)}
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-/* layout */
+/* Layout */
 .shell{max-width:var(--max);margin:18px auto 120px;padding:0 var(--space)}
-.panels{display:grid;gap:var(--gap);grid-template-columns: repeat(3,1fr);grid-template-areas:"upload import storage" "dest dest dest";position:relative;align-items:start}
+.panels{display:grid;gap:var(--gap);grid-template-columns:repeat(3,1fr);grid-template-areas:"upload import storage" "dest dest dest";position:relative;align-items:start}
 
-/* cards */
+/* Cards */
 .card{background:linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-height:300px}
 .card__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px var(--space) 14px;border-bottom:1px solid var(--border)}
 .card__body{padding:var(--space);display:flex;flex-direction:column;gap:12px}
 
-/* import goo icons (above satellites) */
+/* Import goo */
 .panel--import .goo-container{margin-top:auto;min-height:220px;border-radius:16px;position:relative;overflow:visible;background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%)}
 .goo-bg{position:absolute;inset:0;z-index:0;pointer-events:none}
 .icon-row{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;z-index:60;pointer-events:none}
@@ -45,17 +34,17 @@ body{
 .import-icon:hover,.import-icon:focus{transform:translateY(-6px) scale(1.03);background:rgba(255,255,255,.10);box-shadow:0 18px 36px rgba(0,0,0,0.48),0 0 0 4px rgba(139,92,246,0.06);outline:none}
 .import-icon .icon{width:28px;height:28px;display:block}
 @keyframes ameba-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1*var(--ameba-bob-amp)))}}
-@keyframes ameba-wobble{0%,100%{transform:rotate(-1deg) translateX(-1px)}50%{transform:rotate(1deg) translateX(1px)}}
 .icon-row .import-icon{animation:ameba-bob var(--ameba-bob-dur) ease-in-out infinite;will-change:transform}
-.icon-row .import-icon .icon{animation:ameba-wobble calc(var(--ameba-bob-dur) * 1.15) ease-in-out infinite;will-change:transform}
-@media (prefers-reduced-motion: reduce){.icon-row .import-icon,.icon-row .import-icon .icon{animation:none!important}}
+@media (prefers-reduced-motion: reduce){.icon-row .import-icon{animation:none!important}}
 
-/* dest panel & preview hover glow */
+/* Destination hub + preview */
 .dest-panel{display:grid;grid-template-columns:420px minmax(420px,1fr);gap:24px;padding:16px 18px 20px;border-radius:14px;background:#14131a;border:1px solid rgba(255,255,255,.06);grid-column:1 / span 3;position:relative;overflow:visible}
+.dest-left{display:grid;align-items:center;justify-items:center;min-width:320px}
+.dest-right{display:grid;grid-template-rows:auto auto auto;gap:18px;max-width:520px;min-width:260px;align-self:start;overflow:visible}
 .preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;background:radial-gradient(120% 120% at 20% 10%,#1a1921,#0f0f14);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15),0 10px 30px rgba(0,0,0,.35);overflow:visible;transition:width .22s cubic-bezier(.22,.61,.36,1),aspect-ratio .22s cubic-bezier(.22,.61,.36,1),border-radius .22s cubic-bezier(.22,.61,.36,1),box-shadow .26s cubic-bezier(.2,.9,.3,1);will-change:width,aspect-ratio,border-radius,box-shadow}
 .preview-wrap:hover,.preview-wrap.is-hovering,.preview-wrap:focus-within{border-color:rgba(164,129,255,.95);box-shadow:0 0 0 2px rgba(164,129,255,.18),0 14px 40px rgba(131,94,255,.26),inset 0 0 22px rgba(131,94,255,.18);outline:none}
 
-/* satellites: base rail under storage, orbit visuals */
+/* Satellites (base rail & visuals) */
 .panel--storage .dest-sat-rail{position:absolute;left:50%;top:calc(100% + 12px);transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;align-items:center;pointer-events:none}
 .dest-sat-stack{position:relative;width:var(--sat-size)}
 .satellite{width:var(--sat-size);height:var(--sat-size);border-radius:999px;border:0;cursor:pointer;background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.08),0 10px 22px rgba(0,0,0,.35);transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,opacity .28s ease;animation:sat-bob var(--sat-bob-dur) ease-in-out infinite;pointer-events:auto;will-change:transform,opacity;backface-visibility:hidden}
@@ -65,7 +54,7 @@ body{
 @keyframes sat-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1*var(--sat-bob-amp)))}}
 @media (prefers-reduced-motion: reduce){.satellite{animation:none!important}}
 
-/* responsive behavior */
+/* Responsive */
 @media (max-width:1100px){
   .panels{grid-template-columns:1fr;grid-template-areas:"upload" "import" "storage" "dest"}
   .dest-panel{grid-template-columns:1fr}
@@ -73,5 +62,5 @@ body{
   .dest-sat-stack{display:flex;flex-direction:row;gap:var(--sat-gap)}
 }
 
-/* Hide native file input visually */
+/* hide native file input visually */
 #fileInput{position:fixed;left:-9999px;top:auto;opacity:0;pointer-events:none}

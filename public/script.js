@@ -1,26 +1,19 @@
 /* ==========================================================================
-   AMEBA — app script (production-ready, orbital satellites)
-   - Bootstraps Upload / Import / Storage UI
-   - Destination Hub kernel (Hub API)
-   - OrbitalSatelliteController: improved initialization & visible resting positions
-   - Preview hover + import icon helpers included
+   AMEBA — patched production script
+   - Robust initialization for orbital satellites
+   - Keeps import goo and preview hover helpers intact
+   - Preserves Hub kernel (activatePlatform / returnToHub)
    ========================================================================== */
 
 (function Ameba() {
   "use strict";
 
-  /* ----------------------
-     DOM helpers
-     ---------------------- */
   const $ = (sel, root = document) => (root || document).querySelector(sel);
   const $$ = (sel, root = document) => Array.from((root || document).querySelectorAll(sel));
   const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const log = (...a) => console.log("[ameba]", ...a);
   const err = (...a) => console.error("[ameba]", ...a);
 
-  /* ----------------------
-     Element refs
-     ---------------------- */
   const els = {
     fileInput:  $("#fileInput"),
     dropZone:   $("#dropzone"),
@@ -42,9 +35,6 @@
     impDrive:   $("#imp-drive")
   };
 
-  /* ----------------------
-     Utilities
-     ---------------------- */
   const setText = (el, v) => { if (el) el.textContent = v ?? "—"; };
   const fmtTime = (sec) => {
     if (!isFinite(sec)) return "—";
@@ -54,16 +44,10 @@
     return h ? `${h}:${m}:${s}` : `${m}:${s}`;
   };
 
-  /* ----------------------
-     Upload / preview
-     ---------------------- */
   function handleFileDrop(fileList) {
     const file = fileList && fileList[0];
     if (!file) return;
-    try {
-      if (typeof setBasicMetadataFromFile === "function") setBasicMetadataFromFile(file);
-      else setText($("#metaFilename"), file.name || "—");
-    } catch (e) {}
+    try { if (typeof setBasicMetadataFromFile === "function") setBasicMetadataFromFile(file); else setText($("#metaFilename"), file.name || "—"); } catch (e) {}
     const url = URL.createObjectURL(file);
     if (file.type?.startsWith("video")) showVideo(url); else showImage(url);
     addToStorageList(file);
@@ -92,17 +76,12 @@
     if (!els.storageList || !file) return;
     const item = document.createElement("div");
     item.className = "storage__item";
-    item.style.display = "flex";
-    item.style.alignItems = "center";
-    item.style.gap = "12px";
     item.innerHTML = `
       <div class="storage__thumb" style="background:rgba(255,255,255,.04); width:44px;height:28px;border-radius:6px;"></div>
-      <div class="storage__meta">
-        <div class="storage__name">${file.name}</div>
-        <div class="storage__tags">Recent</div>
-      </div>`;
+      <div class="storage__meta"><div class="storage__name">${file.name}</div><div class="storage__tags">Recent</div></div>`;
     els.storageList.prepend(item);
   }
+
   function initUpload() {
     on(els.fileInput, "change", (e) => { const files = e.target.files; if (files && files.length) handleFileDrop(files); });
     if (!els.dropZone) return;
@@ -113,9 +92,6 @@
     on(els.dropZone, "drop", (e) => { els.dropZone.classList.remove("is-hover"); const files = e.dataTransfer?.files; if (files && files.length) handleFileDrop(files); });
   }
 
-  /* ----------------------
-     Import icons wiring
-     ---------------------- */
   function initImportIcons() {
     const impDevice = document.getElementById('imp-device');
     const impDropbox = document.getElementById('imp-dropbox');
@@ -151,9 +127,6 @@
   }
   function initConvert() { on(els.convertBtn, "click", handleConvertFromLink); on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); }); }
 
-  /* =========================================================================
-     Destination Hub Kernel
-     ========================================================================= */
   (function initDestinationHubKernel() {
     if (window.Hub?.__ready) return;
     const Q = {
@@ -169,14 +142,12 @@
       ghostButtons()   { return Array.from(document.querySelectorAll(".dest-buttons [data-target]")); },
       returnBtn()      { return document.getElementById("satReturn"); },
     };
-
     const PRESETS = {
       tiktok:    { resolution: "1080×1920", codec: "video/h264; mp4" },
       instagram: { resolution: "1080×1350", codec: "video/h264; mp4" },
       youtube:   { resolution: "1920×1080", codec: "video/h264; mp4" },
       reddit:    { resolution: "1920×1080", codec: "video/h264; mp4" }
     };
-
     const state = { activePlatform: null, media: { url: null, type: null }, lastEdits: Object.create(null) };
     const setTextLocal = (el, v) => { if (el) el.textContent = v ?? "—"; };
 
@@ -237,26 +208,15 @@
     const urlP = new URLSearchParams(location.search).get("platform"); if (urlP && PRESETS[urlP]) activatePlatform(urlP);
   })();
 
-  /* =========================================================================
-     OrbitalSatelliteController (improved init & visible positions)
-     ========================================================================= */
   (function OrbitalSatelliteController() {
-    // locate rail
     const storagePanel = document.querySelector(".panel--storage");
     const rail = storagePanel ? storagePanel.querySelector(".dest-sat-rail") : document.querySelector(".dest-sat-rail");
     const stack = rail?.querySelector(".dest-sat-stack");
     if (!rail || !stack) return;
 
-    const SAT_CFG = {
-      baseGap: 26,
-      radiusPadding: 40,
-      wobbleAmp: 6,
-      angularSpeedBase: 0.6,
-      speedJitter: 0.18
-    };
+    const SAT_CFG = { baseGap: 26, radiusPadding: 40, wobbleAmp: 6, angularSpeedBase: 0.6, speedJitter: 0.18 };
 
     let sats = Array.from(stack.querySelectorAll(".satellite"));
-    // create state for each satellite, ensure there is at least an initial spread & visible resting positions
     const satState = sats.map((el, i) => ({
       el,
       angle: (i / Math.max(1, sats.length)) * Math.PI * 2,
@@ -278,56 +238,40 @@
       return { previewRect: r, hubCenter, baseRadius };
     }
 
-    function pointOnOrbit(center, radius, angle) {
-      return { x: center.x + Math.cos(angle)*radius, y: center.y + Math.sin(angle)*radius };
-    }
-
+    function pointOnOrbit(center, radius, angle) { return { x: center.x + Math.cos(angle)*radius, y: center.y + Math.sin(angle)*radius }; }
     function moveSatTo(el, targetX, targetY) {
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2 + window.scrollX;
       const cy = rect.top + rect.height/2 + window.scrollY;
-      const dx = targetX - cx;
-      const dy = targetY - cy;
+      const dx = targetX - cx; const dy = targetY - cy;
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
     }
 
-    // initial placement: place satellites along an arc (left-side) so they are visible and not bunched
     function placeInitialRestingPositions() {
       const geo = computeOrbitGeometry();
-      if (!geo) {
-        // if preview not found yet, try again shortly
-        setTimeout(placeInitialRestingPositions, 120);
-        return;
-      }
+      if (!geo) { setTimeout(placeInitialRestingPositions, 120); return; }
       const ring = geo.baseRadius + SAT_CFG.baseGap;
-      // choose a left-side arc roughly from 210deg to 300deg (in radians) to position satellites along left edge
       const start = (210 * Math.PI)/180;
       const end = (300 * Math.PI)/180;
       const count = Math.max(1, satState.length);
       for (let i=0;i<count;i++){
-        const t = i/(count-1 || 1);
+        const t = count===1?0.5:(i/(count-1 || 1));
         const angle = start + (end - start) * t;
         satState[i].angle = angle;
         const p = pointOnOrbit(geo.hubCenter, ring, angle);
         moveSatTo(satState[i].el, p.x, p.y);
-        // small initial transition
         satState[i].el.style.transition = "transform .4s cubic-bezier(.2,.9,.25,1), opacity .28s ease";
       }
     }
 
-    // animate loop
     let lastT = now();
     let rafId = null;
     function animateLoop() {
-      const t = now();
-      const dt = Math.max(0, t - lastT);
-      lastT = t;
-      const geo = computeOrbitGeometry();
-      if (!geo) { rafId = requestAnimationFrame(animateLoop); return; }
+      const t = now(); const dt = Math.max(0, t - lastT); lastT = t;
+      const geo = computeOrbitGeometry(); if (!geo) { rafId = requestAnimationFrame(animateLoop); return; }
       const ringRadius = geo.baseRadius + SAT_CFG.baseGap;
       for (let i=0;i<satState.length;i++){
         const s = satState[i];
-        // update only if speed > tiny threshold (docked/parked sats have low speed)
         s.angle += s.speed * dt;
         const wobble = Math.sin(t * (0.8 + (i % 3) * 0.12) + s.phase) * (SAT_CFG.wobbleAmp * 0.45);
         const p = pointOnOrbit(geo.hubCenter, ringRadius + wobble, s.angle);
@@ -337,69 +281,29 @@
       rafId = requestAnimationFrame(animateLoop);
     }
 
-    // docking & parking
     function dockSatellite(index) {
-      const geo = computeOrbitGeometry();
-      if (!geo || !satState[index]) return;
+      const geo = computeOrbitGeometry(); if (!geo || !satState[index]) return;
       const dockX = geo.previewRect.right + SAT_CFG.radiusPadding + SAT_CFG.baseGap;
       const dockY = geo.previewRect.top + geo.previewRect.height * 0.18;
-      const dx = dockX - geo.hubCenter.x;
-      const dy = dockY - geo.hubCenter.y;
-      const angle = Math.atan2(dy, dx);
-      satState[index].angle = angle;
-      satState[index].speed = 0.02;
-      const el = satState[index].el;
-      el.style.transition = "transform .42s cubic-bezier(.2,.9,.25,1), box-shadow .28s ease";
-      moveSatTo(el, dockX, dockY);
-      el.classList.add("is-active");
+      const angle = Math.atan2(dockY - geo.hubCenter.y, dockX - geo.hubCenter.x);
+      satState[index].angle = angle; satState[index].speed = 0.02;
+      const el = satState[index].el; el.style.transition = "transform .42s cubic-bezier(.2,.9,.25,1), box-shadow .28s ease";
+      moveSatTo(el, dockX, dockY); el.classList.add("is-active");
     }
-
-    function undockAll() {
-      for (let i=0;i<satState.length;i++){
-        satState[i].speed = SAT_CFG.angularSpeedBase * (1 + (Math.random()-0.5) * SAT_CFG.speedJitter);
-        satState[i].el.style.transition = "transform .36s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
-        satState[i].el.classList.remove("is-active");
-        satState[i].el.classList.remove("is-parking");
-      }
-    }
-
+    function undockAll() { satState.forEach(s => { s.speed = SAT_CFG.angularSpeedBase * (1 + (Math.random()-0.5) * SAT_CFG.speedJitter); s.el.style.transition = "transform .36s cubic-bezier(.2,.9,.3,1), opacity .28s ease"; s.el.classList.remove("is-active"); s.el.classList.remove("is-parking"); }); }
     function parkOthers(activeIndex) {
-      const geo = computeOrbitGeometry();
-      if (!geo) return;
+      const geo = computeOrbitGeometry(); if (!geo) return;
       const biasRadius = geo.baseRadius + SAT_CFG.baseGap + 16;
-      const activeAngle = satState[activeIndex]?.angle ?? 0;
-      let offset = 0;
-      for (let i=0;i<satState.length;i++){
-        if (i === activeIndex) continue;
-        offset++;
-        const sign = (offset % 2 === 0) ? 1 : -1;
-        const level = Math.ceil(offset/2);
-        const angle = activeAngle + sign * (0.28 * level);
-        const target = pointOnOrbit(geo.hubCenter, biasRadius + level*8, angle);
-        satState[i].angle = angle;
-        satState[i].speed = 0.02 + (Math.random()*0.03);
-        satState[i].el.classList.add("is-parking");
-        satState[i].el.style.transition = "transform .38s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
-        moveSatTo(satState[i].el, target.x, target.y);
-      }
+      const activeAngle = satState[activeIndex]?.angle ?? 0; let offset=0;
+      for (let i=0;i<satState.length;i++){ if (i===activeIndex) continue; offset++; const sign = (offset%2===0)?1:-1; const level = Math.ceil(offset/2); const angle = activeAngle + sign*(0.28*level); const target = pointOnOrbit(geo.hubCenter, biasRadius + level*8, angle); satState[i].angle = angle; satState[i].speed = 0.02 + (Math.random()*0.03); satState[i].el.classList.add("is-parking"); satState[i].el.style.transition = "transform .38s cubic-bezier(.2,.9,.3,1), opacity .28s ease"; moveSatTo(satState[i].el, target.x, target.y); }
     }
 
-    // clicks
     function bindClicks() {
       sats = Array.from(stack.querySelectorAll(".satellite"));
-      // rebuild satState if needed
       if (sats.length !== satState.length) {
-        // map existing states where possible
         const newState = sats.map((el,i) => {
           const existing = satState[i];
-          return existing ? Object.assign(existing, { el }) : {
-            el,
-            angle: (i / Math.max(1,sats.length)) * Math.PI*2,
-            speed: SAT_CFG.angularSpeedBase * (1 + (Math.random()-0.5)*SAT_CFG.speedJitter),
-            phase: Math.random()*Math.PI*2,
-            orbitRadius: 0,
-            target:{x:0,y:0}
-          };
+          return existing ? Object.assign(existing, { el }) : { el, angle: (i / Math.max(1,sats.length))*Math.PI*2, speed: SAT_CFG.angularSpeedBase*(1+(Math.random()-0.5)*SAT_CFG.speedJitter), phase: Math.random()*Math.PI*2, orbitRadius:0, target:{x:0,y:0} };
         });
         satState.length = 0; satState.push(...newState);
       }
@@ -408,15 +312,8 @@
           try {
             const platform = s.dataset.platform || "";
             const currentActive = (window.Hub && window.Hub.state && window.Hub.state.activePlatform) || null;
-            if (currentActive === platform) {
-              if (window.Hub && typeof window.Hub.returnToHub === "function") window.Hub.returnToHub();
-              undockAll();
-            } else {
-              if (window.Hub && typeof window.Hub.activatePlatform === "function") window.Hub.activatePlatform(platform);
-              const idx = satState.findIndex(ss => ss.el === s);
-              dockSatellite(idx);
-              parkOthers(idx);
-            }
+            if (currentActive === platform) { if (window.Hub && typeof window.Hub.returnToHub === "function") window.Hub.returnToHub(); undockAll(); }
+            else { if (window.Hub && typeof window.Hub.activatePlatform === "function") window.Hub.activatePlatform(platform); const idx = satState.findIndex(ss => ss.el === s); dockSatellite(idx); parkOthers(idx); }
           } catch (e) { console.error("[sat-click] error", e); }
         }, { passive: true });
       });
@@ -431,42 +328,19 @@
 
     let resizeId = null;
     function relayout() {
-      // ensure state length matches DOM
       sats = Array.from(stack.querySelectorAll(".satellite"));
       if (sats.length !== satState.length) {
-        // rebuild mapping
-        const newState = sats.map((el,i) => ({
-          el,
-          angle: (i / Math.max(1,sats.length)) * Math.PI*2,
-          speed: SAT_CFG.angularSpeedBase * (1 + (Math.random()-0.5)*SAT_CFG.speedJitter),
-          phase: Math.random()*Math.PI*2,
-          orbitRadius: 0,
-          target:{x:0,y:0}
-        }));
+        const newState = sats.map((el,i) => ({ el, angle: (i / Math.max(1,sats.length))*Math.PI*2, speed: SAT_CFG.angularSpeedBase*(1+(Math.random()-0.5)*SAT_CFG.speedJitter), phase: Math.random()*Math.PI*2, orbitRadius:0, target:{x:0,y:0} }));
         satState.length = 0; satState.push(...newState);
       }
       satState.forEach(s => { s.el.style.transition = ""; s.el.classList.remove("is-parking"); });
-      setTimeout(() => {
-        const active = document.querySelector(".dest-panel")?.dataset.platform || null;
-        if (active) document.dispatchEvent(new CustomEvent("hub-platform-changed",{detail:{platform:active}}));
-        else placeInitialRestingPositions();
-      }, 140);
+      setTimeout(() => { const active = document.querySelector(".dest-panel")?.dataset.platform || null; if (active) document.dispatchEvent(new CustomEvent("hub-platform-changed",{detail:{platform:active}})); else placeInitialRestingPositions(); }, 140);
     }
     window.addEventListener("resize", () => { if (resizeId) cancelAnimationFrame(resizeId); resizeId = requestAnimationFrame(relayout); }, { passive: true });
 
-    // start
-    placeInitialRestingPositions();
-    lastT = now();
-    animateLoop();
-    bindClicks();
-
-    // safety nudge after layout settles
-    setTimeout(() => { relayout(); }, 160);
+    placeInitialRestingPositions(); lastT = now(); animateLoop(); bindClicks(); setTimeout(() => { relayout(); }, 160);
   })();
 
-  /* ----------------------
-     Preview hover helpers + Import icon wiring
-     ---------------------- */
   (function RestorePreviewAndImportHelpers(){
     if (window.__AMEBA_HELPERS_READY__) return;
     window.__AMEBA_HELPERS_READY__ = true;
@@ -517,20 +391,15 @@
     window.__ameba_helpers = { wireImportIcons, wirePreviewHover };
   })();
 
-  /* ----------------------
-     Boot
-     ---------------------- */
   function boot() {
     try {
       initUpload();
-      initImportIcons(); // legacy wiring
+      initImportIcons();
       initConvert();
       if (window.__ameba_helpers?.wireImportIcons) window.__ameba_helpers.wireImportIcons();
       if (window.__ameba_helpers?.wirePreviewHover) window.__ameba_helpers.wirePreviewHover();
       log("UI ready (orbital satellites + import/preview helpers enabled)");
-    } catch (e) {
-      err("boot error:", e);
-    }
+    } catch (e) { err("boot error:", e); }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
   else boot();
