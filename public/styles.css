@@ -31,6 +31,47 @@
 .panel--import{grid-area:import;min-height:300px}
 .panel--storage{grid-area:storage;min-height:320px;position:relative}
 
+/* ==========================================================================
+   AMEBA — CSS patch: restore hero centering + ensure hub min size
+   - No renames/moves/deletions of existing selectors or classes
+   - Small, safe additions to re-center hero and protect dest-panel size
+   ========================================================================== */
+
+/* restore hero rules (explicit and specific so they beat accidental resets) */
+.hero{
+  max-width: var(--max, 1100px);
+  margin: 72px auto 20px;
+  text-align: center;
+  display: block;
+  z-index: 1000; /* ensure visible */
+}
+.hero__title{
+  margin: 0;
+  font-size: 56px;
+  letter-spacing: .6px;
+  line-height: 1;
+}
+
+/* ensure destination hub is fixed presence and cannot collapse */
+.dest-panel{
+  min-width: 720px;
+  min-height: 360px;
+  box-sizing: border-box;
+  /* keep rest of styling unchanged; this rule only prevents collapse */
+}
+
+/* ensure rail overlay is not participating in layout */
+.dest-sat-rail{ position: absolute !important; pointer-events: none; }
+
+/* keep preview hover above satellites */
+.preview-wrap{ position: relative; z-index: 80; }
+
+/* keep import icons visually above satellites */
+.icon-row{ z-index: 90; pointer-events: none; }
+.panel--import .import-icon{ pointer-events: auto; }
+
+/* no other changes — preserve your existing CSS (this file is an additive patch) */
+
 /* Destination hub: FORCE full-width presence and minimum size */
 .dest-panel{
   display:grid;
