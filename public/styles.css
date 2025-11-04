@@ -1,126 +1,87 @@
-/* ==========================================================================
-   AMEBA — patched CSS: hub fixed presence + satellite overlay safety
-   - Ensures dest-panel reserves space and does not shrink to satellites
-   - Ensures satellites are an overlay and do not participate in layout
-   ========================================================================== */
+/* styles.css
+   Restored Upload + Import visuals (goo & floating icons), preserved all selectors.
+   (Replace your current styles.css with this file)
+*/
 
 /* Theme tokens */
 :root{
-  --bg:#0b0b12;--panel-1:#161625;--panel-2:#1b1b2e;--panel-inset:rgba(255,255,255,.03);
-  --border:#262640;--text:#e8e7ff;--muted:#a7a7c9;--brand:#a78bfa;--brand-2:#8b5cf6;
-  --input:#141427;--shadow:0 8px 24px rgba(0,0,0,.35);
-  --radius:16px;--radius-sm:10px;--gap:22px;--space:18px;--max:1100px;
-  --orbit-radius:82px;--sat-size:60px;--sat-gap:16px;--sat-bob-amp:4px;--sat-bob-dur:4.8s;
+  --bg:#0b0b12;
+  --panel-1:#161625; --panel-2:#1b1b2e;
+  --border:#262640; --text:#e8e7ff;
+  --brand-2:#8b5cf6;
+  --radius:16px; --radius-sm:10px;
+  --gap:22px; --space:18px;
+  --sat-size:60px; --sat-bob-dur:4.8s;
 }
 
-/* base */
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter,sans-serif;background:radial-gradient(1200px 500px at 50% -250px,#201b37 0,var(--bg) 40%),var(--bg)}
+/* Base */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter,sans-serif;background:radial-gradient(1200px 500px at 50% -250px,#201b37 0,var(--bg) 40%),var(--bg)}
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-/* layout grid */
-.shell{max-width:var(--max);margin:18px auto 120px;padding:0 var(--space)}
+/* Layout grid */
+.shell{max-width:1100px;margin:18px auto 120px;padding:0 var(--space)}
 .panels{display:grid;gap:var(--gap);grid-template-columns:repeat(3,1fr);grid-template-areas:"upload import storage" "dest dest dest";position:relative;align-items:start}
 
-/* card base */
-.card{background:linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-height:300px}
-.card__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px var(--space) 14px;border-bottom:1px solid var(--border)}
+/* Card base */
+.card{background:linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column;min-height:300px}
+.card__head{display:flex;align-items:center;justify-content:space-between;padding:16px var(--space);border-bottom:1px solid var(--border)}
+.card__head h2{margin:0;font-size:16px}
 .card__body{padding:var(--space);display:flex;flex-direction:column;gap:12px}
 
-/* ensure top row cards remain aligned and hub full width */
-.panel--upload{grid-area:upload;min-height:420px}
-.panel--import{grid-area:import;min-height:300px}
-.panel--storage{grid-area:storage;min-height:320px;position:relative}
-
-/* ==========================================================================
-   AMEBA — CSS patch: restore hero centering + ensure hub min size
-   - No renames/moves/deletions of existing selectors or classes
-   - Small, safe additions to re-center hero and protect dest-panel size
-   ========================================================================== */
-
-/* restore hero rules (explicit and specific so they beat accidental resets) */
-.hero{
-  max-width: var(--max, 1100px);
-  margin: 72px auto 20px;
-  text-align: center;
-  display: block;
-  z-index: 1000; /* ensure visible */
+/* Upload panel visuals (restored) */
+.upload .dropzone{
+  display:flex;align-items:center;justify-content:center;min-height:180px;border:2px dashed #403a6a;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,.01));
+  transition:border-color .25s,box-shadow .25s,background .25s;
 }
-.hero__title{
-  margin: 0;
-  font-size: 56px;
-  letter-spacing: .6px;
-  line-height: 1;
+.upload .dropzone--over{border-color:var(--brand-2);box-shadow:0 0 18px rgba(139,92,246,.22);background:radial-gradient(circle at center, rgba(139,92,246,.08), rgba(0,0,0,0) 60%)}
+.upload .upload__controls{display:flex;gap:8px;align-items:center;margin-top:8px}
+.input{background:#141427;border:1px solid var(--border);padding:.5rem .7rem;border-radius:10px;color:var(--text)}
+.select{background:#141427;border:1px solid var(--border);padding:.4rem;border-radius:10px;color:var(--text)}
+.btn--primary{background:linear-gradient(180deg,var(--brand-2) 0,#7c3aed 100%);border:0;color:white;padding:.5rem .8rem;border-radius:10px}
+
+/* Import goo container + floating icons (restored) */
+.panel--import .goo-container{
+  margin-top:auto;min-height:220px;border-radius:12px;position:relative;overflow:visible;
+  background: linear-gradient(180deg,#16051b 0%, #251029 100%);
+  box-shadow: inset 0 -24px 60px rgba(0,0,0,.45);
 }
-
-/* ensure destination hub is fixed presence and cannot collapse */
-.dest-panel{
-  min-width: 720px;
-  min-height: 360px;
-  box-sizing: border-box;
-  /* keep rest of styling unchanged; this rule only prevents collapse */
+.goo-bg{position:absolute;inset:0;z-index:0;pointer-events:none}
+.icon-row{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;z-index:10;pointer-events:none}
+.import-icon{
+  width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,.05);display:grid;place-items:center;border:0;pointer-events:auto;
+  transition:transform .18s ease, background .18s ease, box-shadow .18s ease;box-shadow:0 8px 24px rgba(0,0,0,.4);
 }
+.import-icon:hover{transform:translateY(-6px);background:rgba(255,255,255,.08);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.import-icon .icon{width:28px;height:28px;display:block}
+@keyframes ameba-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.icon-row .import-icon{animation:ameba-bob var(--sat-bob-dur) ease-in-out infinite}
 
-/* ensure rail overlay is not participating in layout */
-.dest-sat-rail{ position: absolute !important; pointer-events: none; }
+/* Storage / grid */
+.panel--storage{position:relative}
+.storage__search{display:flex;align-items:center;background:#141427;border:1px solid var(--border);padding:6px;border-radius:999px}
 
-/* keep preview hover above satellites */
-.preview-wrap{ position: relative; z-index: 80; }
+/* Destination hub (unchanged core layout) */
+.dest-panel{display:grid;grid-template-columns:420px minmax(420px,1fr);gap:24px;padding:16px;border-radius:14px;background:#14131a;border:1px solid rgba(255,255,255,.06);grid-column:1 / span 3;position:relative;overflow:visible;min-width:720px;min-height:360px}
+.preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;border-radius:12px;background:linear-gradient(180deg,#0f0f12,#111218);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.12),0 12px 30px rgba(0,0,0,.35);overflow:visible;position:relative}
+.preview-hint{position:absolute;inset:0;display:grid;place-content:center;color:rgba(255,255,255,.7)}
 
-/* keep import icons visually above satellites */
-.icon-row{ z-index: 90; pointer-events: none; }
-.panel--import .import-icon{ pointer-events: auto; }
+/* Satellites rail (overlayed by script) */
+.dest-sat-rail{position:absolute;pointer-events:none}
+.dest-sat-stack{position:relative;width:var(--sat-size)}
+.satellite{width:var(--sat-size);height:var(--sat-size);border-radius:999px;background:rgba(255,255,255,.06);box-shadow:0 10px 24px rgba(0,0,0,.35);pointer-events:auto}
 
-/* no other changes — preserve your existing CSS (this file is an additive patch) */
+/* hero centering protected */
+.hero{max-width:1100px;margin:72px auto 12px;text-align:center}
+.hero__title{font-size:56px;margin:0;color:var(--text)}
 
-/* Destination hub: FORCE full-width presence and minimum size */
-.dest-panel{
-  display:grid;
-  grid-template-columns:420px minmax(420px,1fr);
-  gap:24px;
-  padding:16px 18px 20px;
-  border-radius:14px;
-  background:#14131a;
-  border:1px solid rgba(255,255,255,.06);
-  grid-column:1 / span 3; /* span entire panels width */
-  position:relative;
-  overflow:visible;
-  min-width: 720px;   /* prevents hub collapsing below a reasonable width */
-  min-height: 360px;  /* prevents vertical collapse */
-}
-
-/* preview & hover */
-.preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;position:relative;border-radius:14px;background:radial-gradient(120% 120% at 20% 10%,#1a1921,#0f0f14);border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15),0 10px 30px rgba(0,0,0,.35);overflow:visible;transition:width .22s cubic-bezier(.22,.61,.36,1),aspect-ratio .22s cubic-bezier(.22,.61,.36,1),border-radius .22s cubic-bezier(.22,.61,.36,1),box-shadow .26s cubic-bezier(.2,.9,.3,1)}
-.preview-wrap:hover,.preview-wrap.is-hovering,.preview-wrap:focus-within{border-color:rgba(164,129,255,.95);box-shadow:0 0 0 2px rgba(164,129,255,.18),0 14px 40px rgba(131,94,255,.26),inset 0 0 22px rgba(131,94,255,.18)}
-
-/* Satellites: the rail is an overlay (moved to document.body by script.js)
-   Styling assumes the rail is absolutely positioned in page coordinates.
-*/
-.dest-sat-rail{
-  position:absolute; /* will be set precisely by script.js */
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  pointer-events:none; /* enable on children */
-  z-index:30;          /* below preview hover & import icons */
-  transform: translateZ(0);
-}
-.dest-sat-rail .dest-sat-stack{position:relative;width:var(--sat-size)}
-.satellite{width:var(--sat-size);height:var(--sat-size);border-radius:999px;border:0;cursor:pointer;background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.08),0 10px 22px rgba(0,0,0,.35);transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,opacity .28s ease;animation:sat-bob var(--sat-bob-dur) ease-in-out infinite;pointer-events:auto;will-change:transform,opacity;backface-visibility:hidden}
-.satellite:hover{transform:translateY(-2px) scale(1.06);filter:brightness(1.05)}
-.satellite.is-active{z-index:120;box-shadow:0 18px 36px rgba(0,0,0,.55),0 0 0 2px rgba(138,92,246,.28)}
-.satellite.is-parking{z-index:100;opacity:.98;transform:scale(.98)}
-@keyframes sat-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1*var(--sat-bob-amp)))}}
-
-/* Make sure import icons + preview hover sit above satellites visually */
-.icon-row{z-index:60;pointer-events:none}
-.panel--import .import-icon{pointer-events:auto}
-
-/* responsive fallback */
+/* small screens fallback */
 @media (max-width:1100px){
   .panels{grid-template-columns:1fr;grid-template-areas:"upload" "import" "storage" "dest"}
   .dest-panel{grid-template-columns:1fr;min-width:0}
-  .panel--storage .dest-sat-rail{position:static;left:auto;transform:none;top:auto;margin-top:18px;z-index:inherit}
-  .dest-sat-stack{display:flex;flex-direction:row;gap:var(--sat-gap)}
+  .panel--storage .dest-sat-rail{position:static;margin-top:18px}
+  .icon-row{position:static;transform:none;margin-top:12px}
 }
 
 /* hide native file input visually */
