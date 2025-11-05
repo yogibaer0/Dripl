@@ -190,8 +190,7 @@
         return anchors.slice(0, count);
       }
 
-      // Position satellites to fixed anchors (no orbit)
-      function placeSatellitesOnce() {
+        function placeSatellitesOnce() {
         const hubRect = dest.getBoundingClientRect();
         const sats = Array.from(stack.querySelectorAll('.satellite'));
         if (!sats.length) return;
