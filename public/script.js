@@ -1,11 +1,10 @@
 /* ==========================================================================
-   AMEBA — patched production script (guarded boot + orbital helpers + upload/import restore)
-   - Bootstraps Upload / Import / Storage UI
-   - Destination Hub kernel (Hub API: setMedia, activatePlatform, returnToHub)
-   - Satellite orbital controller (overlay rail, detached from layout)
-   - Import goo + Upload dropzone restored and interactive
-   - Safe guarded boot to avoid ReferenceErrors; idempotent bindings
-   - No IDs, classes, function names or script order changed; additions are non-destructive
+   AMEBA — production script (fixed satellite anchors, stabilized layout)
+   - Top panels spacing stabilized
+   - Destination hub is fixed, satellites are fixed-position hover nodes outside the hub border
+   - Removed continuous orbit animation; satellites are positioned once and on resize/platform change
+   - Keeps all existing IDs, classes, function names and script order unchanged
+   - Import goo + Upload dropzone behavior preserved
    ========================================================================== */
 
 (function Ameba() {
@@ -40,8 +39,10 @@
     satStack:   () => document.querySelector(".dest-sat-stack")
   };
 
+  const now = () => performance.now() / 1000;
+
   /* ----------------------
-     Utilities
+     Small utilities
      ---------------------- */
   const setText = (el, v) => { if (el) el.textContent = v ?? "—"; };
   const fmtTime = (sec) => {
@@ -51,10 +52,9 @@
     const h = Math.floor(sec / 3600);
     return h ? `${h}:${m}:${s}` : `${m}:${s}`;
   };
-  const now = () => performance.now() / 1000;
 
   /* =========================================================================
-     Upload / Dropzone (restored + idempotent)
+     Upload / Dropzone (restored, idempotent)
      ========================================================================= */
   function initUpload(){
     if (initUpload.__bound) return;
@@ -173,7 +173,7 @@
   }
 
   /* =========================================================================
-     Destination Hub Kernel (unchanged logic)
+     Destination Hub Kernel (unchanged)
      ========================================================================= */
   (function initDestinationHubKernel() {
     if (window.Hub?.__ready) return;
@@ -200,7 +200,6 @@
     };
 
     const state = { activePlatform: null, media: { url: null, type: null }, lastEdits: Object.create(null) };
-
     const setTextLocal = (el, v) => { if (el) el.textContent = v ?? "—"; };
 
     function animOn(hub) { if (!hub) return; hub.classList.add("is-switching"); hub.setAttribute("aria-busy", "true"); }
@@ -288,15 +287,16 @@
   })();
 
   /* =========================================================================
-     OrbitalSatelliteController (overlay rail + orbital motion)
-     - detaches the rail to document.body so satellites never affect layout
+     OrbitalSatelliteController -> FixedSatelliteController
+     - No circular orbiting. Satellites are fixed hover nodes outside hub border.
+     - Rail is detached to document.body so satellites never affect layout.
+     - Satellites positioned on layout changes and when platform changes.
      ========================================================================= */
   (function OrbitalSatelliteController() {
-    // run after DOM ready to ensure elements exist
     const waitFor = () => document.querySelector('.dest-sat-rail') && document.querySelector('.dest-panel');
     function ready(cb) {
       if (waitFor()) return cb();
-      const id = setInterval(() => { if (waitFor()) { clearInterval(id); cb(); }}, 80);
+      const id = setInterval(() => { if (waitFor()) { clearInterval(id); cb(); } }, 80);
     }
 
     ready(() => {
@@ -305,7 +305,7 @@
       const dest = refs.destPanel();
       if (!rail || !stack || !dest) return;
 
-      // detach rail -> overlay
+      // Move rail to overlay (document.body) so it does not participate in layout
       if (!rail.__overlay) {
         rail.style.position = "absolute";
         rail.style.pointerEvents = "none";
@@ -313,153 +313,107 @@
         rail.__overlay = true;
       }
 
-      const SAT_CFG = { baseGap: 26, radiusPadding: 40, wobbleAmp: 6, angularSpeedBase: 0.6, speedJitter: 0.18 };
-
-      let sats = Array.from(stack.querySelectorAll('.satellite'));
-      let satState = sats.map((el, i) => ({
-        el,
-        angle: (i / Math.max(1, sats.length)) * Math.PI * 2,
-        speed: SAT_CFG.angularSpeedBase * (1 + (Math.random() - 0.5) * SAT_CFG.speedJitter),
-        phase: Math.random() * Math.PI * 2,
-        orbitRadius: 0,
-        target: { x: 0, y: 0 }
-      }));
-
-      function computeOrbitGeometry() {
-        const preview = document.querySelector(".dest-panel .preview-wrap");
-        if (!preview) return null;
-        const r = preview.getBoundingClientRect();
-        const hubCenter = { x: r.left + r.width/2 + window.scrollX, y: r.top + r.height/2 + window.scrollY };
-        const baseRadius = Math.max(r.width, r.height)/2 + SAT_CFG.radiusPadding;
-        return { previewRect: r, hubCenter, baseRadius };
-      }
-
-      function pointOnOrbit(center, radius, angle) { return { x: center.x + Math.cos(angle)*radius, y: center.y + Math.sin(angle)*radius }; }
-
-      function moveSatTo(el, tx, ty) {
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width/2 + window.scrollX;
-        const cy = rect.top + rect.height/2 + window.scrollY;
-        const dx = tx - cx, dy = ty - cy;
-        el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+      // Determine fixed anchor positions around the hub.
+      // We'll map satellites to stable anchor slots (left-middle, right-top, right-middle, right-bottom,...).
+      function computeAnchors(count, hubRect) {
+        // prefer left side for first two, right side for remaining (tweakable)
+        const gutter = 18;
+        const anchors = [];
+        const leftX = hubRect.left - gutter;
+        const rightX = hubRect.right + gutter;
+        const centerY = hubRect.top + hubRect.height / 2;
+        // positions on left side (stacked)
+        const leftSlots = Math.ceil(count / 2);
+        for (let i = 0; i < leftSlots && anchors.length < count; i++) {
+          const y = hubRect.top + (hubRect.height * (0.2 + (i * 0.15)));
+          anchors.push({ x: leftX, y });
+        }
+        // remaining on right side
+        for (let i = 0; anchors.length < count; i++) {
+          const y = hubRect.top + (hubRect.height * (0.25 + (i * 0.15)));
+          anchors.push({ x: rightX, y });
+        }
+        return anchors.slice(0, count);
       }
 
       function positionRail() {
-        const d = dest.getBoundingClientRect();
-        const gutter = 28;
-        const top = Math.round(window.scrollY + d.top + (d.height / 2) - (rail.offsetHeight / 2));
-        const left = Math.round(window.scrollX + d.right + gutter);
-        rail.style.top = `${top}px`;
-        rail.style.left = `${left}px`;
+        const hubRect = dest.getBoundingClientRect();
+        // place the rail container vertically centered to the hub for visual alignment,
+        // left value is just a starting point — we'll position satellites precisely.
+        const railLeft = Math.round(window.scrollX + hubRect.right + 16);
+        const railTop = Math.round(window.scrollY + hubRect.top);
+        rail.style.left = `${railLeft}px`;
+        rail.style.top = `${railTop}px`;
+        // ensure satellites interactive
         rail.querySelectorAll('.satellite').forEach(s => s.style.pointerEvents = 'auto');
       }
 
-      function placeInitialRestingPositions() {
-        const geo = computeOrbitGeometry();
-        if (!geo) { setTimeout(placeInitialRestingPositions, 120); return; }
-        const ring = geo.baseRadius + SAT_CFG.baseGap;
-        const start = (210 * Math.PI)/180;
-        const end = (300 * Math.PI)/180;
-        const count = Math.max(1, satState.length);
-        for (let i=0;i<count;i++){
-          const t = count===1?0.5:(i/(count-1 || 1));
-          const angle = start + (end - start) * t;
-          satState[i].angle = angle;
-          const p = pointOnOrbit(geo.hubCenter, ring, angle);
-          moveSatTo(satState[i].el, p.x, p.y);
-          satState[i].el.style.transition = "transform .36s cubic-bezier(.2,.9,.25,1), opacity .28s ease";
-        }
-        positionRail();
-      }
-
-      let lastT = now();
-      function animateLoop() {
-        const t = now(); const dt = Math.max(0, t - lastT); lastT = t;
-        const geo = computeOrbitGeometry(); if (!geo) { requestAnimationFrame(animateLoop); return; }
-        const ringRadius = geo.baseRadius + SAT_CFG.baseGap;
-        for (let i=0;i<satState.length;i++){
-          const s = satState[i];
-          s.angle += s.speed * dt;
-          const wobble = Math.sin(t * (0.8 + (i % 3) * 0.12) + s.phase) * (SAT_CFG.wobbleAmp * 0.45);
-          const p = pointOnOrbit(geo.hubCenter, ringRadius + wobble, s.angle);
-          s.target.x = p.x; s.target.y = p.y; s.orbitRadius = ringRadius;
-          moveSatTo(s.el, p.x, p.y);
-        }
-        requestAnimationFrame(animateLoop);
-      }
-
-      function dockSatellite(index) {
-        const geo = computeOrbitGeometry(); if (!geo || !satState[index]) return;
-        const dockX = geo.previewRect.right + SAT_CFG.radiusPadding + SAT_CFG.baseGap;
-        const dockY = geo.previewRect.top + geo.previewRect.height * 0.18;
-        const angle = Math.atan2(dockY - geo.hubCenter.y, dockX - geo.hubCenter.x);
-        satState[index].angle = angle; satState[index].speed = 0.02;
-        const el = satState[index].el; el.style.transition = "transform .42s cubic-bezier(.2,.9,.25,1), box-shadow .28s ease";
-        moveSatTo(el, dockX, dockY); el.classList.add("is-active");
-        positionRail();
-      }
-
-      function undockAll() {
-        satState.forEach(s => {
-          s.speed = SAT_CFG.angularSpeedBase * (1 + (Math.random()-0.5) * SAT_CFG.speedJitter);
-          s.el.style.transition = "transform .36s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
-          s.el.classList.remove("is-active"); s.el.classList.remove("is-parking");
+      function positionSatellites() {
+        const hubRect = dest.getBoundingClientRect();
+        const sats = Array.from(stack.querySelectorAll('.satellite'));
+        if (!sats.length) return;
+        const anchors = computeAnchors(sats.length, hubRect);
+        sats.forEach((s, i) => {
+          const anchor = anchors[i];
+          // translate so satellite center sits at anchor.x/y
+          const rect = s.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2 + window.scrollX;
+          const cy = rect.top + rect.height / 2 + window.scrollY;
+          const dx = anchor.x - cx;
+          const dy = anchor.y - cy;
+          // apply one-off transform (no continuous animation)
+          s.style.transition = "transform .22s cubic-bezier(.22,.61,.36,1)";
+          s.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
         });
+        // keep rail container near right of hub so absolute coords are valid
+        positionRail();
       }
 
-      function parkOthers(activeIndex) {
-        const geo = computeOrbitGeometry(); if (!geo) return;
-        const biasRadius = geo.baseRadius + SAT_CFG.baseGap + 16;
-        const activeAngle = satState[activeIndex]?.angle ?? 0; let offset = 0;
-        for (let i=0;i<satState.length;i++){
-          if (i===activeIndex) continue;
-          offset++; const sign = (offset%2===0)?1:-1; const level = Math.ceil(offset/2);
-          const angle = activeAngle + sign*(0.28*level);
-          const target = pointOnOrbit(geo.hubCenter, biasRadius + level*8, angle);
-          satState[i].angle = angle; satState[i].speed = 0.02 + (Math.random()*0.03);
-          satState[i].el.classList.add("is-parking");
-          satState[i].el.style.transition = "transform .38s cubic-bezier(.2,.9,.3,1), opacity .28s ease";
-          moveSatTo(satState[i].el, target.x, target.y);
-        }
-      }
-
+      // Click handlers: do not move satellites on click, only activate hub
       function bindClicks() {
-        sats = Array.from(stack.querySelectorAll('.satellite'));
-        if (sats.length !== satState.length) {
-          const newState = sats.map((el,i) => {
-            const existing = satState[i];
-            return existing ? Object.assign(existing, { el }) : {
-              el, angle:(i / Math.max(1,sats.length))*Math.PI*2,
-              speed: SAT_CFG.angularSpeedBase*(1+(Math.random()-0.5)*SAT_CFG.speedJitter),
-              phase: Math.random()*Math.PI*2, orbitRadius:0, target:{x:0,y:0}
-            };
-          });
-          satState.length = 0; satState.push(...newState);
-        }
-        sats.forEach((s,i) => {
+        const sats = Array.from(stack.querySelectorAll('.satellite'));
+        sats.forEach((s) => {
           s.addEventListener('click', () => {
             try {
               const platform = s.dataset.platform || "";
               const currentActive = (window.Hub && window.Hub.state && window.Hub.state.activePlatform) || null;
-              if (currentActive === platform) { if (window.Hub && typeof window.Hub.returnToHub === "function") window.Hub.returnToHub(); undockAll(); }
-              else { if (window.Hub && typeof window.Hub.activatePlatform === "function") window.Hub.activatePlatform(platform); const idx = satState.findIndex(ss=>ss.el===s); dockSatellite(idx); parkOthers(idx); }
+              if (currentActive === platform) {
+                if (window.Hub && typeof window.Hub.returnToHub === "function") window.Hub.returnToHub();
+              } else {
+                if (window.Hub && typeof window.Hub.activatePlatform === "function") window.Hub.activatePlatform(platform);
+              }
             } catch (e) { console.error("[sat-click] error", e); }
           }, { passive: true });
         });
       }
 
-      // expose reposition helper
-      window.__ameba_reposition_sat_rail = positionRail;
+      // Run once and on layout changes
+      function relayout() {
+        // ensure rail overlay in place
+        if (!rail.__overlay) {
+          rail.style.position = "absolute";
+          document.body.appendChild(rail);
+          rail.__overlay = true;
+        }
+        positionSatellites();
+      }
 
-      // initialize
-      placeInitialRestingPositions();
-      animateLoop();
+      // initial placement
+      relayout();
       bindClicks();
 
-      // reposition listeners
-      document.addEventListener("hub-platform-changed", () => { positionRail(); });
-      window.addEventListener("resize", () => { positionRail(); });
-      window.addEventListener("scroll", () => { positionRail(); });
+      // reposition on window resize, scroll, and hub-platform-changed
+      let rafId = 0;
+      function scheduleRelayout() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => { rafId = 0; relayout(); });
+      }
+      window.addEventListener("resize", scheduleRelayout, { passive: true });
+      window.addEventListener("scroll", scheduleRelayout, { passive: true });
+      document.addEventListener("hub-platform-changed", scheduleRelayout);
+
+      // expose API for manual reposition if needed
+      window.__ameba_reposition_sat_rail = relayout;
     });
   })();
 
@@ -481,8 +435,8 @@
      ---------------------- */
   function safeBoot() {
     try {
-      initUpload();       // restored upload
-      initImportIcons();  // restored import goo
+      initUpload();
+      initImportIcons();
       initConvert && initConvert();
     } catch (e) {
       console.error("[ameba] safeBoot error:", e);
@@ -490,19 +444,20 @@
     if (window.__ameba_helpers?.wireImportIcons) window.__ameba_helpers.wireImportIcons && window.__ameba_helpers.wireImportIcons();
     if (window.__ameba_helpers?.wirePreviewHover) window.__ameba_helpers.wirePreviewHover && window.__ameba_helpers.wirePreviewHover();
     wirePreviewHover();
-    log("safeBoot complete");
+    // ensure satellites positioned after everything
+    setTimeout(() => { if (typeof window.__ameba_reposition_sat_rail === "function") window.__ameba_reposition_sat_rail(); }, 160);
+    log("safeBoot complete (fixed satellite anchors)");
   }
+
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", safeBoot, { once: true });
   else safeBoot();
 
-  /* expose debug helpers */
+  /* Expose debug hooks */
   window.__ameba_debug = {
-    initUpload, initImportIcons, handleFileDrop, showImage, showVideo
+    initUpload, initImportIcons, handleFileDrop, showImage, showVideo, repositionSatellites: window.__ameba_reposition_sat_rail
   };
 
 })();
-
-
 
 
 
