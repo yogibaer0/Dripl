@@ -1,63 +1,73 @@
 /* ==========================================================================
-   AMEBA — production styles (panel sizes + import icon layering fixes)
-   - Only layout/size/layering touched (panels, hub span, import icon stacking)
-   - Preserves all IDs/classes/selectors used by JS (no renames)
+   AMEBA — production styles (panels + destination hub span)
+   - Purpose: ensure Destination Hub spans full width (Upload -> Storage)
+   - Only layout/size/layering touched. No IDs/classes renamed.
+   - Keep satellites feature-flagged and import icons interactive.
    ========================================================================== */
 
 /* Theme tokens */
 :root{
-  --bg:#0b0b12;
-  --panel-1:#161625;
-  --panel-2:#1b1b2e;
-  --border:#262640;
-  --text:#e8e7ff;
-  --brand-2:#8b5cf6;
-  --radius:16px;
-  --gap:32px;
-  --space:20px;
-  --sat-size:60px;
-  --halo-gutter:112px;
+  --bg: #0b0b12;
+  --panel-1: #161625;
+  --panel-2: #1b1b2e;
+  --border: #262640;
+  --text: #e8e7ff;
+  --brand-2: #8b5cf6;
+  --radius: 16px;
+  --gap: 32px;
+  --space: 20px;
+  --sat-size: 60px;
+  --halo-gutter: 112px;
 }
 
 /* Base */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;color:var(--text);
-  font:14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  background: radial-gradient(1200px 500px at 50% -250px,#201b37 0,var(--bg) 40%), var(--bg);
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  color: var(--text);
+  font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:
+    radial-gradient(1200px 500px at 50% -250px, #201b37 0, var(--bg) 40%),
+    var(--bg);
 }
 
-/* HERO (center) */
-.hero{max-width:1200px;margin:64px auto 20px;text-align:center;z-index:1000}
-.hero__title{margin:0;font-size:56px;letter-spacing:.6px;line-height:1}
+/* Hero (center) */
+.hero {
+  max-width: 1200px;
+  margin: 64px auto 20px;
+  text-align: center;
+  z-index: 1000;
+}
+.hero__title { margin: 0; font-size: 56px; letter-spacing: .6px; line-height: 1; }
 
-/* Panels grid: top row = 3 equal columns; bottom = dest full width */
-.shell{max-width:1200px;margin:0 auto 120px;padding:0 var(--space)}
-.panels{
-  display:grid;
-  gap:var(--gap);
+/* Panels grid - top row 3 equal columns; second row dest full width */
+.shell { max-width: 1200px; margin: 0 auto 120px; padding: 0 var(--space); }
+.panels {
+  display: grid;
+  gap: var(--gap);
   grid-template-columns: repeat(3, 1fr);
   grid-template-areas:
     "upload import storage"
     "dest dest dest";
-  align-items:start; /* TOP-ALIGN so bottoms intentionally differ */
-  position:relative;
+  align-items: start; /* top align so bottoms intentionally differ */
+  position: relative;
+  overflow: visible; /* allow hub to span visually */
 }
 
 /* Card base */
-.card{
-  background: linear-gradient(180deg,var(--panel-1) 0%,var(--panel-2) 100%);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:0 12px 32px rgba(0,0,0,.45);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
+.card {
+  background: linear-gradient(180deg, var(--panel-1) 0%, var(--panel-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0,0,0,.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.card__head{display:flex;align-items:center;justify-content:space-between;padding:16px var(--space);border-bottom:1px solid var(--border)}
-.card__head h2{margin:0;font-size:16px}
-.card__body{padding:var(--space);display:flex;flex-direction:column;gap:12px}
+.card__head { display:flex; align-items:center; justify-content:space-between; padding:16px var(--space); border-bottom:1px solid var(--border); }
+.card__head h2 { margin:0; font-size:16px; }
+.card__body { padding: var(--space); display:flex; flex-direction:column; gap:12px; }
 
 /* -------------------------
    Top panels sizing priorities (only these sizes changed)
@@ -65,112 +75,135 @@ body{
    - upload: medium
    - storage: largest
    ------------------------- */
-.panel--import{grid-area:import;min-height:300px}    /* smallest (import) */
-.panel--upload{grid-area:upload;min-height:380px}    /* medium (upload) */
-.panel--storage{grid-area:storage;min-height:560px}  /* largest (storage - most content) */
+.panel--import { grid-area: import; min-height: 300px; }   /* smallest (import) */
+.panel--upload { grid-area: upload; min-height: 380px; }   /* medium (upload) */
+.panel--storage { grid-area: storage; min-height: 560px; } /* largest (storage - most content) */
 
 /* Keep top-card internals top-aligned so bottoms differ naturally */
 .panel--upload .card__body,
 .panel--import .card__body,
 .panel--storage .card__body {
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 /* Upload dropzone visuals */
-.upload .dropzone{
-  display:flex;align-items:center;justify-content:center;min-height:180px;
-  border:2px dashed rgba(132,98,255,.25);
-  border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,.01));
+.upload .dropzone {
+  display:flex; align-items:center; justify-content:center; min-height:180px;
+  border: 2px dashed rgba(132,98,255,.25);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,.01));
   transition: box-shadow .22s ease, border-color .18s ease, transform .18s ease, background .18s ease;
-  cursor:pointer;padding:18px;
+  cursor:pointer; padding: 18px;
 }
-.upload .dropzone__hint{color:rgba(255,255,255,.65);text-align:center;font-size:14px}
-.upload .dropzone--over, .upload .dropzone:hover{
+.upload .dropzone__hint { color: rgba(255,255,255,.65); text-align:center; font-size:14px; }
+.upload .dropzone--over, .upload .dropzone:hover {
   border-color: var(--brand-2);
   box-shadow: 0 10px 36px rgba(139,92,246,.18), inset 0 0 14px rgba(139,92,246,.06);
   background: radial-gradient(circle at center, rgba(139,92,246,.06), rgba(0,0,0,0) 60%);
 }
 
 /* Upload controls */
-.upload .upload__controls{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.upload .input{flex:1 1 60%;background:#141427;border:1px solid var(--border);padding:.55rem .7rem;border-radius:10px;color:var(--text);min-width:0}
-.upload .select{flex:0 0 160px;background:#141427;border:1px solid var(--border);padding:.45rem;border-radius:10px;color:var(--text)}
-.upload .btn--primary{display:inline-block;padding:.55rem .9rem;border-radius:10px;background:linear-gradient(180deg,var(--brand-2) 0,#7c3aed 100%);border:0;color:#fff}
+.upload .upload__controls { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+.upload .input { flex:1 1 60%; background:#141427; border:1px solid var(--border); padding:.55rem .7rem; border-radius:10px; color:var(--text); min-width:0; }
+.upload .select { flex:0 0 160px; background:#141427; border:1px solid var(--border); padding:.45rem; border-radius:10px; color:var(--text); }
+.upload .btn--primary { display:inline-block; padding:.55rem .9rem; border-radius:10px; background: linear-gradient(180deg, var(--brand-2) 0, #7c3aed 100%); border:0; color:#fff; }
 
-/* Import goo: position context and icon layering fixed */
-.panel--import{position:relative;z-index:20} /* create stacking context so icons sit above overlays */
-.panel--import .goo-container{
-  margin-top:auto;min-height:220px;border-radius:14px;position:relative;overflow:visible;
-  background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%);padding:18px;box-shadow:inset 0 -40px 80px rgba(18,6,20,.45);
+/* Import goo: ensure icons are interactive and sit above overlays */
+.panel--import { position: relative; z-index: 20; } /* stacking context */
+.panel--import .goo-container {
+  margin-top: auto; min-height: 220px; border-radius:14px; position:relative; overflow:visible;
+  background: linear-gradient(180deg,#12051c 0%,#1a0f27 100%); padding:18px; box-shadow: inset 0 -40px 80px rgba(18,6,20,.45);
 }
-.goo-bg{position:absolute;left:0;top:0;right:0;bottom:0;z-index:0;pointer-events:none;border-radius:12px}
-.icon-row{
-  position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;
-  z-index:90; /* above satellites and preview */
-  pointer-events:none; /* keep container non-interactive; icons will be interactive */
+.goo-bg { position:absolute; left:0; top:0; right:0; bottom:0; z-index:0; pointer-events:none; border-radius:12px; }
+.icon-row {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display:flex;
+  justify-content:center;
+  gap:18px;
+  z-index: 90; /* above satellites/preview */
+  pointer-events: none; /* container non-interactive */
 }
-.import-icon{
-  pointer-events:auto; /* interactive */
-  width:56px;height:56px;border-radius:14px;display:grid;place-items:center;border:0;
-  background:rgba(255,255,255,.05);color:#E6D9FF;box-shadow:0 6px 18px rgba(0,0,0,.36);
-  transition:transform .18s,box-shadow .18s,background .18s;
+.import-icon {
+  pointer-events: auto; /* icons themselves interactive */
+  width: 56px; height: 56px; border-radius: 14px; display:grid; place-items:center; border:0;
+  background: rgba(255,255,255,.05); color:#E6D9FF; box-shadow:0 6px 18px rgba(0,0,0,.36);
+  transition: transform .18s, box-shadow .18s, background .18s;
 }
-.import-icon:hover,.import-icon:focus{transform:translateY(-6px);background:rgba(255,255,255,.10);box-shadow:0 18px 36px rgba(0,0,0,.48);outline:none}
+.import-icon:hover, .import-icon:focus { transform: translateY(-6px); background: rgba(255,255,255,.10); box-shadow:0 18px 36px rgba(0,0,0,.48); outline:none; }
 
 /* Storage: allow internal scrolling & long content */
-.panel--storage .card__body{overflow:auto;padding-bottom:18px}
+.panel--storage .card__body { overflow: auto; padding-bottom: 18px; }
 
-/* Destination Hub — FULL WIDTH (only size/layout change here) */
-.dest-panel{
-  grid-area:dest;
-  grid-column: 1 / -1; /* full width across grid */
-  padding:22px;
-  border-radius:18px;
-  background:#14131a;
-  border:1px solid rgba(255,255,255,.06);
-  min-height:420px;
-  position:relative;
-  overflow:visible;
-  box-shadow:0 12px 40px rgba(0,0,0,.5);
+/* ----------------------------
+   DESTINATION HUB: FULL WIDTH
+   - ensure the hub spans from the left edge of Upload to the right edge of Storage
+   - minimal, surgical overrides so it can't be constrained by stray max-width/margins
+   ---------------------------- */
+.panels > .dest-panel,
+.dest-panel {
+  grid-area: dest;
+  grid-column: 1 / -1 !important;   /* span the whole panels grid (upload -> storage) */
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 22px;
+  border-radius: 18px;
+  background: #14131a;
+  border: 1px solid rgba(255,255,255,.06);
+  min-height: 420px !important;
+  position: relative !important;
+  overflow: visible !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
 }
 
-/* Halo inside hub for later anchors (non-layout affecting) */
-.dest-halo{
-  position:absolute;
-  inset:-40px calc(-1 * var(--halo-gutter)) -40px -40px;
-  pointer-events:none;
-  z-index:10;
+/* Halo inside hub (non-layout-affecting) */
+.dest-halo {
+  position: absolute;
+  inset: -40px calc(-1 * var(--halo-gutter)) -40px -40px;
+  pointer-events: none;
+  z-index: 10;
 }
-.dest-halo.debug{outline:2px dashed rgba(138,92,246,.6);box-shadow:0 0 0 6px rgba(138,92,246,.06)}
+.dest-halo.debug { outline: 2px dashed rgba(138,92,246,.6); box-shadow: 0 0 0 6px rgba(138,92,246,.06); }
 
-/* Inner inset meta area in hub (unchanged layout) */
-.dest-inner{
-  width:100%;
+/* Inner inset meta area inside hub */
+.dest-inner {
+  width: 100%;
   background: rgba(0,0,0,0.16);
-  border-radius:12px;
-  padding:26px;
+  border-radius: 12px;
+  padding: 26px;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-  display:flex;
-  gap:28px;
-  align-items:flex-start;
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
 }
-.preview-wrap{width:360px;max-width:100%;aspect-ratio:1/1;border-radius:14px;border:1px dashed rgba(132,98,255,.35);box-shadow:inset 0 0 0 1px rgba(132,98,255,.15),0 10px 30px rgba(0,0,0,.35);overflow:hidden}
-.dest-meta{flex:1;display:flex;flex-direction:column;gap:12px}
-.meta-row{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center}
-.pill{height:40px;display:grid;align-items:center;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.preview-wrap {
+  width: 360px; max-width: 100%; aspect-ratio: 1/1; border-radius: 14px;
+  border: 1px dashed rgba(132,98,255,.35);
+  box-shadow: inset 0 0 0 1px rgba(132,98,255,.15), 0 10px 30px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+.dest-meta { flex:1; display:flex; flex-direction:column; gap:12px; }
+.meta-row { display:grid; grid-template-columns:130px 1fr; gap:12px; align-items:center; }
+.pill { height:40px; display:grid; align-items:center; padding:0 12px; border-radius:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); }
 
 /* Satellites overlay (unchanged) */
-.dest-sat-rail{position:absolute;pointer-events:none;z-index:30;transform:translateZ(0)}
-.dest-sat-stack{position:relative;width:var(--sat-size)}
-.satellite{width:var(--sat-size);height:var(--sat-size);border-radius:999px;background:rgba(255,255,255,.06);box-shadow:0 10px 24px rgba(0,0,0,.35);pointer-events:auto;transition:transform .18s,box-shadow .18s}
+.dest-sat-rail { position: absolute; pointer-events: none; z-index: 30; transform: translateZ(0); }
+.dest-sat-stack { position: relative; width: var(--sat-size); }
+.satellite { width: var(--sat-size); height: var(--sat-size); border-radius: 999px; background: rgba(255,255,255,.06); box-shadow: 0 10px 24px rgba(0,0,0,.35); pointer-events: auto; transition: transform .18s, box-shadow .18s; }
 
 /* Responsive fallback */
-@media (max-width:1100px){
-  .panels{grid-template-columns:1fr;grid-template-areas:"upload" "import" "storage" "dest";gap:18px}
-  .dest-panel{grid-column:1 / -1;min-width:0}
-  .icon-row{position:static;margin-top:12px}
-  .panel--storage .card__body{overflow:auto}
-  .dest-sat-rail{position:static;margin-top:18px}
+@media (max-width: 1100px) {
+  .panels { grid-template-columns: 1fr; grid-template-areas: "upload" "import" "storage" "dest"; gap: 18px; }
+  .panels > .dest-panel,
+  .dest-panel { grid-column: 1 / -1 !important; width: 100% !important; min-width: 0 !important; }
+  .icon-row { position: static; margin-top: 12px; }
+  .panel--storage .card__body { overflow:auto; }
+  .dest-sat-rail { position: static; margin-top: 18px; }
 }
