@@ -1,14 +1,10 @@
 /* ==========================================================================
-   AMEBA — layout adjustments (top-row sizing priorities)
-   - Top row: three equal-width columns (upload / import / storage)
-   - Cards are top-aligned (different bottoms intentionally)
-   - Height priority (visual): import = smallest, upload = medium, storage = largest
-   - Destination Hub spans full width beneath the top row
-   - Hero centered
-   - Additive patch: keep existing selectors/IDs in place
+   AMEBA — production styles (panel sizes + import icon layering fixes)
+   - Only layout/size/layering touched (panels, hub span, import icon stacking)
+   - Preserves all IDs/classes/selectors used by JS (no renames)
    ========================================================================== */
 
-/* Theme tokens (kept consistent) */
+/* Theme tokens */
 :root{
   --bg:#0b0b12;
   --panel-1:#161625;
@@ -27,32 +23,26 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;
-  color:var(--text);
+  margin:0;color:var(--text);
   font:14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   background: radial-gradient(1200px 500px at 50% -250px,#201b37 0,var(--bg) 40%), var(--bg);
 }
 
-/* HERO: keep centered */
-.hero{
-  max-width:1200px;
-  margin:64px auto 20px;
-  text-align:center;
-  z-index:1000;
-}
+/* HERO (center) */
+.hero{max-width:1200px;margin:64px auto 20px;text-align:center;z-index:1000}
 .hero__title{margin:0;font-size:56px;letter-spacing:.6px;line-height:1}
 
-/* Panels grid: top row = 3 equal columns; second row = dest full width */
+/* Panels grid: top row = 3 equal columns; bottom = dest full width */
 .shell{max-width:1200px;margin:0 auto 120px;padding:0 var(--space)}
 .panels{
   display:grid;
   gap:var(--gap);
-  grid-template-columns:repeat(3,1fr); /* equal widths */
+  grid-template-columns: repeat(3, 1fr);
   grid-template-areas:
     "upload import storage"
     "dest dest dest";
+  align-items:start; /* TOP-ALIGN so bottoms intentionally differ */
   position:relative;
-  align-items:start; /* IMPORTANT: top-align so bottoms differ intentionally */
 }
 
 /* Card base */
@@ -70,22 +60,22 @@ body{
 .card__body{padding:var(--space);display:flex;flex-direction:column;gap:12px}
 
 /* -------------------------
-   Top panels sizing (explicit priorities)
+   Top panels sizing priorities (only these sizes changed)
    - import: smallest
-   - upload: mid
-   - storage: largest (holds most content)
+   - upload: medium
+   - storage: largest
    ------------------------- */
-.panel--upload{grid-area:upload;min-height:380px}   /* medium */
-.panel--import{grid-area:import;min-height:300px}   /* smallest */
-.panel--storage{grid-area:storage;min-height:560px} /* largest - plenty of room for storage lists */
+.panel--import{grid-area:import;min-height:300px}    /* smallest (import) */
+.panel--upload{grid-area:upload;min-height:380px}    /* medium (upload) */
+.panel--storage{grid-area:storage;min-height:560px}  /* largest (storage - most content) */
 
-/* Keep card bodies top-aligned so bottoms differ naturally */
+/* Keep top-card internals top-aligned so bottoms differ naturally */
 .panel--upload .card__body,
 .panel--import .card__body,
 .panel--storage .card__body {
   display:flex;
   flex-direction:column;
-  justify-content:flex-start; /* top-aligned content inside each card */
+  justify-content:flex-start;
 }
 
 /* Upload dropzone visuals */
@@ -103,26 +93,39 @@ body{
   background: radial-gradient(circle at center, rgba(139,92,246,.06), rgba(0,0,0,0) 60%);
 }
 
-/* Upload controls alignment */
+/* Upload controls */
 .upload .upload__controls{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .upload .input{flex:1 1 60%;background:#141427;border:1px solid var(--border);padding:.55rem .7rem;border-radius:10px;color:var(--text);min-width:0}
 .upload .select{flex:0 0 160px;background:#141427;border:1px solid var(--border);padding:.45rem;border-radius:10px;color:var(--text)}
 .upload .btn--primary{display:inline-block;padding:.55rem .9rem;border-radius:10px;background:linear-gradient(180deg,var(--brand-2) 0,#7c3aed 100%);border:0;color:#fff}
 
-/* Import goo visuals */
-.panel--import .goo-container{margin-top:auto;min-height:220px;border-radius:14px;position:relative;overflow:visible;background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%);padding:18px;box-shadow:inset 0 -40px 80px rgba(18,6,20,.45)}
+/* Import goo: position context and icon layering fixed */
+.panel--import{position:relative;z-index:20} /* create stacking context so icons sit above overlays */
+.panel--import .goo-container{
+  margin-top:auto;min-height:220px;border-radius:14px;position:relative;overflow:visible;
+  background:linear-gradient(180deg,#12051c 0%,#1a0f27 100%);padding:18px;box-shadow:inset 0 -40px 80px rgba(18,6,20,.45);
+}
 .goo-bg{position:absolute;left:0;top:0;right:0;bottom:0;z-index:0;pointer-events:none;border-radius:12px}
-.icon-row{position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;z-index:12;pointer-events:none}
-.import-icon{pointer-events:auto;width:56px;height:56px;border-radius:14px;display:grid;place-items:center;border:0;background:rgba(255,255,255,.05);color:#E6D9FF;box-shadow:0 6px 18px rgba(0,0,0,.36);transition:transform .18s,box-shadow .18s,background .18s}
+.icon-row{
+  position:absolute;left:16px;right:16px;bottom:16px;display:flex;justify-content:center;gap:18px;
+  z-index:90; /* above satellites and preview */
+  pointer-events:none; /* keep container non-interactive; icons will be interactive */
+}
+.import-icon{
+  pointer-events:auto; /* interactive */
+  width:56px;height:56px;border-radius:14px;display:grid;place-items:center;border:0;
+  background:rgba(255,255,255,.05);color:#E6D9FF;box-shadow:0 6px 18px rgba(0,0,0,.36);
+  transition:transform .18s,box-shadow .18s,background .18s;
+}
 .import-icon:hover,.import-icon:focus{transform:translateY(-6px);background:rgba(255,255,255,.10);box-shadow:0 18px 36px rgba(0,0,0,.48);outline:none}
 
-/* Storage: often long lists - keep content scrollable inside card */
+/* Storage: allow internal scrolling & long content */
 .panel--storage .card__body{overflow:auto;padding-bottom:18px}
 
-/* Destination hub - full width below top row */
+/* Destination Hub — FULL WIDTH (only size/layout change here) */
 .dest-panel{
   grid-area:dest;
-  grid-column: 1 / -1; /* full width */
+  grid-column: 1 / -1; /* full width across grid */
   padding:22px;
   border-radius:18px;
   background:#14131a;
@@ -142,7 +145,7 @@ body{
 }
 .dest-halo.debug{outline:2px dashed rgba(138,92,246,.6);box-shadow:0 0 0 6px rgba(138,92,246,.06)}
 
-/* Inner inset meta area inside dest-panel */
+/* Inner inset meta area in hub (unchanged layout) */
 .dest-inner{
   width:100%;
   background: rgba(0,0,0,0.16);
@@ -158,18 +161,16 @@ body{
 .meta-row{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center}
 .pill{height:40px;display:grid;align-items:center;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
 
-/* Satellites overlay (still gated) */
-.dest-sat-rail{position:absolute;pointer-events:none;z-index:30}
+/* Satellites overlay (unchanged) */
+.dest-sat-rail{position:absolute;pointer-events:none;z-index:30;transform:translateZ(0)}
 .dest-sat-stack{position:relative;width:var(--sat-size)}
 .satellite{width:var(--sat-size);height:var(--sat-size);border-radius:999px;background:rgba(255,255,255,.06);box-shadow:0 10px 24px rgba(0,0,0,.35);pointer-events:auto;transition:transform .18s,box-shadow .18s}
 
 /* Responsive fallback */
 @media (max-width:1100px){
-  .panels{grid-template-columns:1fr;grid-template-areas:"upload" "import" "storage" "dest"}
+  .panels{grid-template-columns:1fr;grid-template-areas:"upload" "import" "storage" "dest";gap:18px}
   .dest-panel{grid-column:1 / -1;min-width:0}
   .icon-row{position:static;margin-top:12px}
   .panel--storage .card__body{overflow:auto}
   .dest-sat-rail{position:static;margin-top:18px}
 }
-
-/* End of patch */
