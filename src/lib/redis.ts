@@ -8,11 +8,11 @@ const Redis = ((IORedisNS as any).default ?? IORedisNS) as unknown as RedisCtor;
 
 // === exports used across the app ===
 export const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
-export const redisPrefix = process.env.REDIS_PREFIX ?? "dripl-prod";
+export const redisPrefix = process.env.REDIS_PREFIX ?? "ameba-prod";
 
 declare global {
   // eslint-disable-next-line no-var
-  var __DRIPL_REDIS__: import("ioredis").default | undefined;
+  var __AMEBA_REDIS__: import("ioredis").default | undefined;
 }
 
 function buildOptions(): RedisOptions {
@@ -37,6 +37,6 @@ function createRedis() {
 
 /** Use this for health checks or anywhere you need a client. */
 export function getRedis() {
-  if (!global.__DRIPL_REDIS__) global.__DRIPL_REDIS__ = createRedis();
-  return global.__DRIPL_REDIS__!;
+  if (!global.__AMEBA_REDIS__) global.__AMEBA_REDIS__ = createRedis();
+  return global.__AMEBA_REDIS__!;
 }

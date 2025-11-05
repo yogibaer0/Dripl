@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: dripl-a42m
+    name: ameba-a42m
     env: node
     rootDir: .
     buildCommand: "npm ci && npm run build"

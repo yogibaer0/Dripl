@@ -4,13 +4,13 @@
    No renames/deletions of existing ids/classes/functions.
 */
 
-(function Dripl(){
+(function Ameba(){
   "use strict";
 
   const $ = (sel, root = document) => (root || document).querySelector(sel);
   const $$ = (sel, root = document) => Array.from((root || document).querySelectorAll(sel));
   const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
-  const log = (...a) => console.log("[dripl]", ...a);
+  const log = (...a) => console.log("[ameba]", ...a);
 
   // --- existing helpers and preserved code (initUpload, initImportIcons, Hub, satellites, etc.)
   // For brevity we assume the rest of your production JS remains present below (unchanged).
@@ -26,13 +26,13 @@
 
       // reposition satellites/halo after a short delay so CSS layout settles
       setTimeout(() => {
-        if (typeof window.__dripl_reposition_sat_rail === "function") {
-          try { window.__dripl_reposition_sat_rail(); } catch (e) { /* ignore */ }
+        if (typeof window.__ameba_reposition_sat_rail === "function") {
+          try { window.__ameba_reposition_sat_rail(); } catch (e) { /* ignore */ }
         }
       }, 180);
-      console.info("[dripl] safeBootPatch complete (layout stabilized)");
+      console.info("[ameba] safeBootPatch complete (layout stabilized)");
     } catch (e) {
-      console.error("[dripl] safeBootPatch error", e);
+      console.error("[ameba] safeBootPatch error", e);
     }
   }
 
@@ -40,11 +40,11 @@
   else safeBootPatch();
 
   // Expose small debug helper (no-op if already present)
-  window.__dripl_force_layout_recalc = function () {
-    if (typeof window.__dripl_reposition_sat_rail === "function") window.__dripl_reposition_sat_rail();
+  window.__ameba_force_layout_recalc = function () {
+    if (typeof window.__ameba_reposition_sat_rail === "function") window.__ameba_reposition_sat_rail();
     // force a reflow
     document.body.getBoundingClientRect();
-    console.info("[dripl] forced layout recompute");
+    console.info("[ameba] forced layout recompute");
   };
 
 })();
