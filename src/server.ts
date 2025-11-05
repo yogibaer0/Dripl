@@ -12,8 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const CWD        = process.cwd();
 
-console.log("[ameba] __dirname :", __dirname);
-console.log("[ameba] process.cwd():", CWD);
+console.log("[dripl] __dirname :", __dirname);
+console.log("[dripl] process.cwd():", CWD);
 
 // Where can public/ live in prod?
 const candidates = [
@@ -31,8 +31,8 @@ if (!PUBLIC_DIR) {
 }
 
 const INDEX_HTML = path.join(PUBLIC_DIR, "index.html");
-console.log("[ameba] public candidates:", candidates);
-console.log("[ameba] PUBLIC_DIR chosen:", PUBLIC_DIR, fs.existsSync(INDEX_HTML) ? "(index.html OK)" : "(index.html MISSING)");
+console.log("[dripl] public candidates:", candidates);
+console.log("[dripl] PUBLIC_DIR chosen:", PUBLIC_DIR, fs.existsSync(INDEX_HTML) ? "(index.html OK)" : "(index.html MISSING)");
 
 app.use(cors());
 app.use(express.json());
@@ -57,11 +57,11 @@ app.get("*", (req, res, next) => {
 
 // Central error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: any) => {
-  console.error("[ameba] server error:", err?.message || err);
+  console.error("[dripl] server error:", err?.message || err);
   res.status(500).json({ error: "internal_error" });
 });
 
 const PORT = Number(process.env.PORT || 10000);
 app.listen(PORT, () => {
-  console.log(`[ameba] web listening on :${PORT}`);
+  console.log(`[dripl] web listening on :${PORT}`);
 });
