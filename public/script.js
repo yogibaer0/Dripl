@@ -1,9 +1,9 @@
 /* ==========================================================================
-   AMEBA — Phase0-safe production script
-   - Feature-flag for satellites via body[data-flag="satellites"]
-   - Halo layer created inside the dest-panel (for Phase 2)
-   - Satellites controller will early-exit if flag is off (no layout coupling)
-   - Preserves all existing ids, classes, function names, and script order
+   AMEBA — production script (Phase0-safe)
+   - Preserves all IDs/classes/functions and script load order
+   - Satellites remain feature-flagged (body[data-flag="satellites"]) and
+     do not influence layout when disabled
+   - Upload / Import / Hub kernel unchanged
    ========================================================================== */
 
 (function Ameba() {
@@ -14,20 +14,16 @@
   const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const log = (...a) => console.log("[ameba]", ...a);
 
-  // Feature flag (data attribute on <body>) -- Phase 0: default OFF
   function satellitesEnabled() {
     const v = document.body.getAttribute("data-flag");
     return v === "satellites";
   }
 
-  // tiny public helpers for dev toggling
   window.__ameba_set_satellites_enabled = function (enabled) {
     try {
       if (enabled) document.body.setAttribute("data-flag", "satellites");
       else document.body.removeAttribute("data-flag");
-      // reposition / re-init or teardown satellite layer
       if (typeof window.__ameba_reposition_sat_rail === "function") window.__ameba_reposition_sat_rail();
-      // when disabling we hide rail container (it remains detached and non-layout affecting)
       const rail = document.querySelector(".dest-sat-rail");
       if (rail) rail.style.display = enabled ? "" : "none";
       console.info("[ameba] satellites enabled:", !!enabled);
@@ -41,9 +37,6 @@
     console.info("[ameba] halo debug toggled:", halo.classList.contains("debug"));
   };
 
-  /* ----------------------
-     Element refs (re-query when needed)
-     ---------------------- */
   const refs = {
     fileInput:  () => document.getElementById("fileInput"),
     dropZone:   () => document.getElementById("dropzone"),
@@ -60,9 +53,6 @@
     satStack:   () => document.querySelector(".dest-sat-stack")
   };
 
-  /* ----------------------
-     Minimal Upload import wiring (idempotent)
-     ---------------------- */
   function initUpload(){
     if (initUpload.__bound) return; initUpload.__bound = true;
     const fileInput = refs.fileInput(); const dropZone = refs.dropZone(); const pasteLink = refs.pasteLink(); const convertBtn = refs.convertBtn();
@@ -98,9 +88,6 @@
     log("import icons wired");
   }
 
-  /* =========================================================================
-     Hub kernel (unchanged)
-     ========================================================================= */
   (function initDestinationHubKernel(){
     if (window.Hub?.__ready) return;
     const Q = {
@@ -130,14 +117,6 @@
     const urlP = new URLSearchParams(location.search).get("platform"); if (urlP && PRESETS[urlP]) activatePlatform(urlP);
   })();
 
-  /* =========================================================================
-     FixedSatelliteController (Phase 0/1 behavior)
-     - If satellites are disabled (body[data-flag] !== "satellites"):
-       - Do not run slot assignment or continuous movement.
-       - Create Halo element inside hub for Phase 2 (debuggable)
-       - Hide rail visually so it doesn't interfere
-     - If enabled, place satellites at named anchors (no orbit math)
-     ========================================================================= */
   (function FixedSatelliteController() {
     const waitFor = () => document.querySelector('.dest-panel') && document.querySelector('.dest-sat-rail');
     function ready(cb){
@@ -151,18 +130,14 @@
       const stack = refs.satStack();
       if (!dest || !rail || !stack) return;
 
-      // 1) HALO: create the halo element INSIDE the dest-panel if not present
       let halo = dest.querySelector(".dest-halo");
       if (!halo) {
         halo = document.createElement("div");
         halo.className = "dest-halo";
-        // the halo element sits inside the hub but visually outside using negative inset
-        // content is pointer-events:none; slots will be clickable later (they are children)
         halo.setAttribute("aria-hidden", "true");
         dest.appendChild(halo);
       }
 
-      // Ensure rail is overlayed and not in layout
       if (!rail.__overlay) {
         rail.style.position = 'absolute';
         rail.style.pointerEvents = 'none';
@@ -170,17 +145,14 @@
         rail.__overlay = true;
       }
 
-      // named anchors generator (data-first approach)
       function computeNamedAnchors(hubRect, count) {
         const anchors = [];
         const rightX = hubRect.right + 16 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sat-size")) || 60) / 2;
         const leftX = hubRect.left - 16 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sat-size")) || 60) / 2;
-        // signature right cluster percentages
         const rightPercents = [0.18, 0.36, 0.54, 0.72, 0.88];
         for (let i = 0; i < rightPercents.length && anchors.length < count; i++) {
           anchors.push({ x: rightX, y: window.scrollY + hubRect.top + hubRect.height * rightPercents[i] });
         }
-        // fill left cluster if needed
         let leftIdx = 0;
         while (anchors.length < count) {
           const pct = 0.2 + (leftIdx * 0.14);
@@ -190,7 +162,7 @@
         return anchors.slice(0, count);
       }
 
-        function placeSatellitesOnce() {
+      function placeSatellitesOnce() {
         const hubRect = dest.getBoundingClientRect();
         const sats = Array.from(stack.querySelectorAll('.satellite'));
         if (!sats.length) return;
@@ -204,10 +176,8 @@
           const dy = a.y - cy;
           s.style.transition = "transform .22s cubic-bezier(.22,.61,.36,1)";
           s.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
-          // clickable
           s.style.pointerEvents = "auto";
         });
-        // rail container: position it near right of hub for consistent base
         const railLeft = Math.round(window.scrollX + hubRect.right + 8);
         const railTop  = Math.round(window.scrollY + hubRect.top);
         rail.style.left = `${railLeft}px`;
@@ -231,36 +201,26 @@
         });
       }
 
-      // Main entry: decide based on feature flag
       function applyState() {
         const enabled = satellitesEnabled();
-        // hide rail if disabled
         if (!enabled) {
           rail.style.display = "none";
-          // ensure halo is visible for dev verification
-          halo.classList.add("debug-hidden"); // not visually outlined by default
+          halo.classList.add("debug-hidden");
         } else {
           rail.style.display = "";
           halo.classList.remove("debug-hidden");
         }
-        // always create halo bounds (visual debugging toggled by user)
-        halo.classList.remove("debug"); // default off
-        // If satellites enabled, place them, else keep halo only
+        halo.classList.remove("debug");
         if (enabled) {
           placeSatellitesOnce();
           bindClicks();
         } else {
-          // place halo (no satellites influence layout)
           positionHalo();
         }
       }
 
-      function positionHalo() {
-        // halo sits inside hub but visually outside using negative inset; CSS handles look
-        // update halo size/position if required (we use CSS absolute inset, so no need for JS)
-      }
+      function positionHalo() {}
 
-      // Relayout watchers
       let raf = 0;
       function scheduleApply() {
         if (raf) cancelAnimationFrame(raf);
@@ -270,17 +230,12 @@
       window.addEventListener("scroll", scheduleApply, { passive: true });
       document.addEventListener("hub-platform-changed", scheduleApply);
 
-      // expose reposition helper
       window.__ameba_reposition_sat_rail = function(){ applyState(); };
 
-      // init
       applyState();
     });
   })();
 
-  /* ----------------------
-     Preview hover helper
-     ---------------------- */
   function wirePreviewHover() {
     const preview = document.querySelector('.dest-panel .preview-wrap');
     if (!preview || preview.__hoverBound__) return;
@@ -291,9 +246,6 @@
     preview.addEventListener('focusout', () => preview.classList.remove('is-hovering'));
   }
 
-  /* ----------------------
-     Safe boot
-     ---------------------- */
   function safeBoot() {
     try {
       initUpload();
@@ -310,7 +262,6 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", safeBoot, { once: true });
   else safeBoot();
 
-  /* Expose debug hooks */
   window.__ameba_debug = { initUpload, initImportIcons, handleFileDrop, showImage, showVideo, toggleSatellites: window.__ameba_set_satellites_enabled, toggleHalo: window.__ameba_toggle_halo_debug };
 
 })();
