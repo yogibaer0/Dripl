@@ -1,192 +1,129 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AMEBA</title>
-
-  <!-- ===== Dynamic Environment Config (injected by script & server) ===== -->
-  <meta name="supabase-url" content="{{SUPABASE_URL}}">
-  <meta name="supabase-anon-key" content="{{SUPABASE_ANON_KEY}}">
-  <meta name="api-base" content="{{API_BASE}}">
-  <meta name="page-nonce" content="{{NONCE}}">
-
-  <!-- ===== Optional SEO ===== -->
-  <meta name="description" content="Ameba — the creative engine, media converter and digital goo workspace built for creators.">
-  <meta name="theme-color" content="#8b5cf6">
-
-  <!-- ===== Styles ===== -->
-  <link rel="stylesheet" href="/styles.css">
-
-  <!-- ===== Supabase UMD (with SRI + nonce inserted at build time) ===== -->
-  <script {{SUPABASE_SRI_ATTR}} src="/vendor/supabase.min.js" nonce="{{NONCE}}"></script>
-
-  <!-- ===== Bootstrap Config for Window Globals ===== -->
-  <script nonce="{{NONCE}}">
-    (function () {
-      const getMeta = n => document.querySelector(`meta[name="${n}"]`)?.content?.trim() || "";
-      window.__APP__ = {
-        NONCE: getMeta("page-nonce"),
-        API_BASE: getMeta("api-base"),
-        SUPABASE_URL: getMeta("supabase-url"),
-        SUPABASE_ANON_KEY: getMeta("supabase-anon-key")
-      };
-    })();
-  </script>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
   <header class="hero">
-    <h1 class="hero__title">AMEBA</h1>
-    <div class="glow-line" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 10" preserveAspectRatio="none">
-        <path d="M0,5 Q200,0 400,5" stroke="#8b5cf6" stroke-width="2" fill="none" opacity=".3"/>
-      </svg>
-    </div>
+    <h1 class="logo">AMEBA</h1>
+    <div class="hero_rule"></div>
   </header>
 
-  <!-- Accessible file input (visually hidden, kept for keyboard/assistive access) -->
-  <label for="fileInput" class="sr-only">Local file upload</label>
-  <input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true">
-
+  <!-- Top row: leave exactly as you have it if it’s already working -->
   <main class="shell">
     <div class="panels">
-
-      <!-- UPLOAD -->
-      <section class="card upload panel--upload" aria-labelledby="upload-title">
-        <div class="card__head"><h2 id="upload-title">Upload</h2></div>
-        <div class="card__body">
-          <div id="dropzone" class="dropzone" aria-label="Drop files here">
-            <div class="dropzone__hint"><p>Drop files or paste a link</p></div>
-          </div>
-
-          <div class="upload__controls">
-            <input id="paste-input" class="input" placeholder="Paste media link…">
-            <select id="format" class="select" aria-label="Output format">
-              <option value="mp4">MP4</option>
-              <option value="mp3">MP3</option>
-              <option value="gif">GIF</option>
+      <section class="card panel upload" aria-labelledby="h-upload">
+        <h2 id="h-upload" class="card_head">Upload</h2>
+        <div class="card_body">
+          <!-- your existing dropzone / input remains -->
+          <div class="dropzone" aria-label="Drag & drop files here or paste a link below"></div>
+          <div class="form_row">
+            <input class="link_input" type="text" placeholder="Paste media link..." />
+            <select class="fmt_select">
+              <option>MP4 (video)</option>
             </select>
-            <button id="convert-btn" class="btn btn--primary">Convert</button>
+            <button class="btn convert">Convert</button>
           </div>
-
-          <p class="muted">Tip: press <kbd>Enter</kbd> to convert.</p>
+          <p class="tip">Tip: press Enter to convert instantly.</p>
         </div>
       </section>
 
-      <!-- IMPORT -->
-      <section class="card import panel--import" aria-labelledby="import-title">
-        <div class="card__head"><h2 id="import-title">Import</h2></div>
-        <div class="card__body">
-          <div class="goo-container">
+      <section class="card panel import" aria-labelledby="h-import">
+        <h2 id="h-import" class="card_head">Import</h2>
+        <div class="card_body">
+          <div class="goo_container">
             <svg class="goo-bg" viewBox="0 0 1000 320" preserveAspectRatio="none">
-              <path id="importGoo" d="M0,140 Q500,210 1000,140 L1000,320 L0,320 Z"></path>
+              <path d="M0,140 C500,210 1000,140 1000,320 L0,320 Z"></path>
             </svg>
-
-            <div class="icon-row">
-              <button class="import-icon" id="imp-device" aria-label="This device"></button>
-              <button class="import-icon" id="imp-dropbox" aria-label="Dropbox"></button>
-              <button class="import-icon" id="imp-drive" aria-label="Google Drive"></button>
+            <div class="icon-row" role="group" aria-label="Import sources">
+              <button class="ico i-folder"  title="Folder"></button>
+              <button class="ico i-grid"    title="Grid"></button>
+              <button class="ico i-drive"   title="Drive"></button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- STORAGE (satellites base) -->
-      <section class="card storage panel--storage" aria-labelledby="storage-title" style="position:relative;">
-        <div class="card__head">
-          <h2 id="storage-title">Storage</h2>
-          <div class="toolbar">
-            <button class="btn secondary">+ Folder</button>
-            <button class="btn secondary">Filters</button>
-            <button class="btn secondary">Presets</button>
-          </div>
-        </div>
-        <div class="card__body">
-          <input id="storage-search" type="text" placeholder="Search files, tags, notes…">
-          <div class="chips">
-            <button class="chip chip--active">Recent</button>
+      <section class="card panel storage" aria-labelledby="h-storage">
+        <h2 id="h-storage" class="card_head">Storage</h2>
+        <div class="card_body">
+          <input class="search" placeholder="Search files, tags, notes..." />
+          <div class="tags">
+            <button class="chip">Recent</button>
             <button class="chip">Saved ★</button>
             <button class="chip">In progress</button>
             <button class="chip">Shared</button>
             <button class="chip">Trash</button>
           </div>
-          <div id="storage-list" class="grid" aria-hidden="true"></div>
-        </div>
-
-        <!-- Satellite rail (base position under Storage) -->
-        <div class="dest-sat-rail" aria-hidden="true">
-          <div class="dest-sat-stack">
-            <button class="satellite sat--tt" data-platform="tiktok" aria-label="TikTok"></button>
-            <button class="satellite sat--ig" data-platform="instagram" aria-label="Instagram"></button>
-            <button class="satellite sat--yt" data-platform="youtube" aria-label="YouTube"></button>
-            <button class="satellite sat--rd" data-platform="reddit" aria-label="Reddit"></button>
-          </div>
-          <button id="satReturn" class="sat-return" hidden>Return</button>
+          <div class="storage_list" aria-label="Items"></div>
         </div>
       </section>
-
-      <!-- DEST HUB (spans full width below top row) -->
-      <section class="card dest panel--dest" aria-labelledby="dest-title">
-        <div class="card__head"><h2 id="dest-title" class="sr-only">Destination Hub</h2></div>
-
-        <div id="destHub" class="dest-panel">
-          <div class="dest-left">
-            <div id="previewWrap" class="preview-wrap" style="position:relative;">
-              <img id="previewImg" hidden>
-              <video id="previewVideo" playsinline muted loop controls hidden></video>
-              <div id="previewHint" class="preview-hint"><span>Preview</span></div>
-
-              <!-- optional satDock (kept for pixel anchor if needed by JS) -->
-              <div id="satDock" aria-hidden="true"
-                   style="position:absolute; left:18px; top:18px; width:56px; height:56px; pointer-events:none;"></div>
-            </div>
-          </div>
-
-          <div class="dest-right">
-            <div class="meta-grid">
-              <div class="meta-row"><span>Filename</span><div id="metaFilename" class="pill">—</div></div>
-              <div class="meta-row"><span>Duration</span><div id="metaDuration" class="pill">—</div></div>
-              <div class="meta-row"><span>Resolution</span><div id="metaResolution" class="pill">—</div></div>
-              <div class="meta-row"><span>Codec</span><div id="metaCodec" class="pill">—</div></div>
-            </div>
-
-            <div class="dest-actions">
-              <div class="dest-buttons">
-                <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
-                <button class="btn btn-ghost" data-target="instagram">Instagram</button>
-                <button class="btn btn-ghost" data-target="youtube">YouTube</button>
-                <button class="btn btn-ghost" data-target="reddit">Reddit</button>
-              </div>
-
-              <div class="dest-toggles">
-                <label><input type="checkbox" id="optWatermark"> Watermark</label>
-                <label><input type="checkbox" id="optAutotrim"> Auto-trim</label>
-                <label><input type="checkbox" id="optAutofit"> Auto-fit</label>
-                <label><input type="checkbox" id="optFaceFilters"> Face filters</label>
-              </div>
-
-              <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
     </div>
+
+    <!-- Destination row (independent) -->
+    <section class="card dest" aria-label="Destination Hub">
+      <div id="destHub" class="dest-panel" data-mode="base">
+        <!-- content that belongs to the hub -->
+        <div class="dest-content">
+          <div class="preview">
+            <div class="preview-box" aria-label="Preview • 1:1 • drag a file above or paste a link"></div>
+          </div>
+
+          <form class="meta">
+            <label>Filename <input class="m-filename" placeholder="—" readonly /></label>
+            <label>Duration <input class="m-duration" placeholder="—" readonly /></label>
+            <label>Resolution <input class="m-resolution" placeholder="—" readonly /></label>
+            <label>Codec <input class="m-codec" placeholder="—" readonly /></label>
+
+            <div class="platforms" role="group" aria-label="Platforms">
+              <button class="chip pbtn" data-platform="tiktok">TikTok</button>
+              <button class="chip pbtn" data-platform="instagram">Instagram</button>
+              <button class="chip pbtn" data-platform="youtube">YouTube</button>
+              <button class="chip pbtn" data-platform="reddit">Reddit</button>
+            </div>
+
+            <div class="opts">
+              <label><input type="checkbox" class="opt-watermark"> Watermark</label>
+              <label><input type="checkbox" class="opt-fit"> Auto-fit to platform</label>
+              <label><input type="checkbox" class="opt-trim"> Auto-trim</label>
+              <label><input type="checkbox" class="opt-faces"> Face filters</label>
+            </div>
+
+            <button type="button" class="btn cta convert-selected">Convert Selected</button>
+          </form>
+        </div>
+
+        <!-- Satellite rail (reserved lane outside the hub) -->
+        <div class="dest-sat-rail" aria-hidden="false">
+          <button class="satellite sat--tt" data-platform="tiktok"    title="TikTok"></button>
+          <button class="satellite sat--ig" data-platform="instagram" title="Instagram"></button>
+          <button class="satellite sat--yt" data-platform="youtube"   title="YouTube"></button>
+          <button class="satellite sat--rd" data-platform="reddit"    title="Reddit"></button>
+        </div>
+
+        <!-- Optional absolute layer for future morph placements -->
+        <div class="dest-sat-layer" aria-hidden="true"></div>
+      </div>
+    </section>
   </main>
 
-  <script src="/script.js" nonce="{{NONCE}}"></script>
-
-  <script nonce="{{NONCE}}">
-    // small dropzone glow helper (keeps UX tactile)
-    const dz = document.getElementById('dropzone');
-    if (dz) {
-      ["dragenter","dragover"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add("dropzone--over"); }));
-      ["dragleave","drop"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove("dropzone--over"); }));
-    }
-  </script>
+  <script src="script.js" defer></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
 
 
 
