@@ -203,12 +203,13 @@ body{
   display:flex;flex-direction:column;align-items:center;
   pointer-events:none; /* buttons remain clickable */
 }
-.dest-sat-stack{position:relative;width:var(--sat-size);}
-.dest-sat-stack:not(.is-absolute){display:flex;flex-direction:column;gap:var(--sat-gap);align-items:center;}
-.dest-sat-stack.is-absolute{position:absolute;top:0;left:0;height:100vh;width:var(--sat-size);pointer-events:none;}
+.dest-sat-stack{
+  position:relative;width:var(--sat-size);
+  display:flex;flex-direction:column;gap:var(--sat-gap);align-items:center;
+}
 
 .dest-sat-stack .satellite{
-  position:absolute;left:0;width:60px;height:60px;border-radius:9999px;
+  position:relative;width:60px;height:60px;border-radius:9999px;
   pointer-events:auto;backface-visibility:hidden;will-change:transform,opacity;
   transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,opacity .28s ease;
   border:2px solid rgba(255,255,255,.12);
