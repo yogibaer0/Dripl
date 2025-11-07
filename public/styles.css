@@ -197,15 +197,25 @@ body{
 .dest-panel[data-platform="reddit"]    .preview-wrap{width:480px;aspect-ratio:16/9;border-radius:14px;}
 
 /* ======================= Satellite Rail (outside hub) ====================== */
-.dest-sat-rail{
-  position:absolute; top:50%; right:calc(-1 * var(--orbit-radius));
-  transform:translateY(-50%); z-index:60;
-  display:flex;flex-direction:column;align-items:center;
+.dest-panel .dest-sat-rail{
+  position:absolute; 
+  top:50%; 
+  right:calc(-1 * var(--orbit-radius));
+  transform:translateY(-50%); 
+  z-index:60;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
   pointer-events:none; /* buttons remain clickable */
 }
 .dest-sat-stack{
-  position:relative;width:var(--sat-size);
-  display:flex;flex-direction:column;gap:var(--sat-gap);align-items:center;
+  position:relative;
+  width:var(--sat-size);
+  display:flex;
+  flex-direction:column;
+  gap:var(--sat-gap);
+  align-items:center;
+  height:auto !important; /* Override JS inline styles */
 }
 
 .dest-sat-stack .satellite{
