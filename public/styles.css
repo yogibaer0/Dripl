@@ -215,7 +215,7 @@ body{
   flex-direction:column;
   gap:var(--sat-gap);
   align-items:center;
-  height:auto !important; /* Override JS inline styles */
+  height:auto !important; /* Override JS inline styles that set viewport height */
 }
 
 .dest-sat-stack .satellite{
