@@ -57,7 +57,11 @@ body{
   overflow:hidden;display:flex;flex-direction:column;min-height:300px;
 }
 /* Reserve space so the destination hub stops before the satellite rail */
-.panel--dest{margin-right:var(--orbit-reserve);overflow:visible;}
+.panel--dest{
+  margin-right:var(--orbit-reserve);
+  overflow:visible;
+  position:relative; /* Rail positioned relative to this */
+}
 
 .card__head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -197,9 +201,9 @@ body{
 .dest-panel[data-platform="reddit"]    .preview-wrap{width:480px;aspect-ratio:16/9;border-radius:14px;}
 
 /* ======================= Satellite Rail (outside hub) ====================== */
-.dest-panel .dest-sat-rail{
+.panel--dest .dest-sat-rail{
   position:absolute; 
-  top:50%; 
+  top:calc(50% + 25px); /* Offset to account for card header */
   right:calc(-1 * var(--orbit-radius));
   transform:translateY(-50%); 
   z-index:60;
