@@ -64,6 +64,12 @@ body{
   position:relative; /* Satellites positioned relative to this */
 }
 
+/* Wrapper to constrain hub content width */
+.dest-inner{
+  width:calc(100% - var(--orbit-reserve));
+  position:relative;
+}
+
 .card__head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:16px var(--space) 14px;border-bottom:1px solid var(--border);
@@ -147,9 +153,7 @@ body{
   display:grid;grid-template-columns:420px minmax(520px,1fr);
   gap:24px;padding:16px 18px 20px;border-radius:14px;
   background:#14131a;border:1px solid rgba(255,255,255,.06);
-  /* Real reserved width so content never sits under satellites */
-  padding-right:calc(18px + var(--orbit-reserve));
-  overflow:visible; /* keep inner glow without clipping the rail */
+  overflow:visible; /* keep inner glow without clipping */
 }
 .dest-left{display:grid;align-items:center;justify-items:center;}
 .preview-wrap{
@@ -272,6 +276,7 @@ body{
 /* Responsive */
 @media (max-width:1100px){
   .panel--dest{padding-right:var(--space);}    /* restore normal padding */
+  .dest-inner{width:100%;}    /* full width on narrow screens */
   .dest-panel{padding-right:18px;}
   /* Satellites become horizontal row below hub */
   .panel--dest .satellite{
