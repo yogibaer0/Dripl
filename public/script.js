@@ -554,6 +554,158 @@
   }, 120);
 })();
 
+/* =========================================================
+   SATELLITE DYNAMIC POSITIONING (JS-based slot system)
+   ========================================================= */
+(function SatelliteDynamicPositioning() {
+  "use strict";
+
+  const hubPanel = document.querySelector(".dest-panel");
+  const panelDest = document.querySelector(".panel--dest");
+  const satellites = Array.from(document.querySelectorAll(".panel--dest .satellite"));
+  
+  if (!hubPanel || !panelDest || satellites.length === 0) return;
+
+  // Fixed slot percentages for 4 satellites
+  const SLOT_PERCENTAGES = [0.25, 0.45, 0.65, 0.85];
+  const DEBOUNCE_MS = 150;
+
+  let resizeTimeout = null;
+  let activeSatellite = null;
+  const satelliteSlots = new Map(); // Store original slot positions
+
+  /**
+   * Calculate and set satellite positions based on hub height
+   */
+  function positionSatellites() {
+    const hubRect = hubPanel.getBoundingClientRect();
+    const panelRect = panelDest.getBoundingClientRect();
+    
+    // Calculate hub content height (accounting for header and padding)
+    const hubTop = hubRect.top;
+    const panelTop = panelRect.top;
+    const offsetFromPanelTop = hubTop - panelTop;
+    const hubHeight = hubRect.height;
+
+    satellites.forEach((sat, index) => {
+      const slotIndex = parseInt(sat.dataset.slotIndex || index, 10);
+      const slotPercent = SLOT_PERCENTAGES[slotIndex] || SLOT_PERCENTAGES[0];
+      
+      // Calculate position in pixels relative to panel-dest
+      const slotPosition = offsetFromPanelTop + (hubHeight * slotPercent);
+      
+      // Store the slot position for animations
+      satelliteSlots.set(sat, slotPosition);
+      
+      // Apply position unless satellite is actively docked
+      if (!sat.classList.contains('is-docked')) {
+        sat.style.setProperty('--slot', `${slotPosition}px`);
+      }
+    });
+  }
+
+  /**
+   * Debounced resize handler
+   */
+  function handleResize() {
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      positionSatellites();
+    }, DEBOUNCE_MS);
+  }
+
+  /**
+   * Handle satellite click for docking/undocking
+   */
+  function handleSatelliteClick(event) {
+    const satellite = event.currentTarget;
+    const platform = satellite.dataset.platform;
+    
+    if (satellite.classList.contains('is-docked')) {
+      // Return to slot
+      undockSatellite(satellite);
+    } else {
+      // Dock satellite
+      dockSatellite(satellite, platform);
+    }
+  }
+
+  /**
+   * Dock a satellite (move to dock area)
+   */
+  function dockSatellite(satellite, platform) {
+    // Undock any currently docked satellite first
+    if (activeSatellite && activeSatellite !== satellite) {
+      undockSatellite(activeSatellite);
+    }
+
+    satellite.classList.add('is-docked', 'is-active');
+    activeSatellite = satellite;
+    
+    // Trigger platform change event
+    document.dispatchEvent(new CustomEvent('hub-platform-changed', {
+      detail: { platform },
+      bubbles: true
+    }));
+  }
+
+  /**
+   * Undock a satellite (return to slot)
+   */
+  function undockSatellite(satellite) {
+    const originalSlot = satelliteSlots.get(satellite);
+    if (originalSlot !== undefined) {
+      satellite.style.setProperty('--slot', `${originalSlot}px`);
+    }
+    
+    satellite.classList.remove('is-docked', 'is-active');
+    if (activeSatellite === satellite) {
+      activeSatellite = null;
+    }
+    
+    // Trigger platform clear event
+    document.dispatchEvent(new CustomEvent('hub-platform-changed', {
+      detail: { platform: null },
+      bubbles: true
+    }));
+  }
+
+  /**
+   * Initialize positioning and event listeners
+   */
+  function init() {
+    // Initial positioning
+    positionSatellites();
+
+    // Set up resize observer for hub changes
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(hubPanel);
+    
+    // Also observe panel-dest for size changes
+    resizeObserver.observe(panelDest);
+
+    // Window resize for orientation changes
+    window.addEventListener('resize', handleResize, { passive: true });
+
+    // Satellite click handlers
+    satellites.forEach(sat => {
+      sat.addEventListener('click', handleSatelliteClick);
+    });
+
+    console.log('[satellite-positioning] Initialized with', satellites.length, 'satellites');
+  }
+
+  // Initialize on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+
 
 
 
