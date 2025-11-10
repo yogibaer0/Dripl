@@ -1,23 +1,44 @@
-# Ameba
+# Ameba 🌿
 
-Ameba is a modular, living platform I’m building for creators.
+Ameba is a modular, living platform I’m building for creators.  
 It’s designed to feel organic — like something alive — where each part of the interface acts like a cell, working together to power creative tools.
 
-At its core sits the **Destination Hub** — the main control center — surrounded by **satellites** that each represent different creative tools or connected platforms.
-Every piece works together but remains visually and structurally independent. It’s not a template. It’s an evolving ecosystem.
+At its core sits the **Destination Hub** — the main control center — surrounded by **satellites** that each represent different creative tools or connected platforms. Every piece works together but remains visually and structurally independent. It’s not a template. It’s an evolving ecosystem.
 
-## The Vision
+---
 
-Ameba isn’t just another site. It’s a creative environment.
-The idea is that creators can work in a space that adapts to them, not the other way around.
-The visuals are fluid — inspired by motion, liquid, and cell growth — and every module (or “satellite”) can evolve independently over time.
+## Dripl Engine (inside Ameba)
+The first flagship service inside Ameba is **Dripl Engine**, a media conversion and management tool for link-based MP3/MP4 conversions and other creator utilities.
 
-Right now, the focus is on getting the **Destination Hub** and its **satellites** to interact properly:
-- The **hub** houses everything essential — like previews, controls, or upload logic.
-- The **satellites** float *outside* of it, each acting as a quick access point for platforms like TikTok, YouTube, Reddit, and Instagram.
-- They don’t orbit or move around — they simply exist in a space *around* the hub, slightly hovering and responsive to user interaction.
+---
 
-Everything about Ameba is designed to feel connected, but not restricted.
+## 🔧 Current Features
+
+- **Modular Hub System**: Cell-like UI with satellites beside (not inside) the hub  
+- **Dripl Engine**: Convert YouTube, TikTok, Reddit, MP4  
+- **Platform Presets**: Optimized output for TikTok, Instagram, YouTube, Reddit  
+- **Queue + Worker System** (design/roadmap): Prevents overload for smooth conversions  
+- **Glow/UX**: Dark theme with platform-specific glows  
+- **Mobile-Friendly( WIP )**: Responsive design that reflows cleanly below 1100px  
+- **Render Deployment**: Production build pipeline with health checks
+
+---
+
+## 🛰️ Satellite Placement (Destination Hub)
+
+**Goal:** Satellites live in fixed vertical slots **outside** the hub’s right edge, never overlapping hub content.  
+They are hoverable, clickable, and can “dock” temporarily near the hub action row, then return to their slot.
+
+**Rules:**
+- Slots are computed relative to the destination hub (**`.panel--dest`**), not the storage panel.  
+- Hub content is constrained by an inner wrapper (**`.dest-inner`**) so metadata rows and the convert button never spill into the satellite lane.  
+- A right-side gutter (e.g., `--orbit-reserve: 166px`) is always reserved for satellites.  
+- Below **1100px**, satellites reflow to a row **beneath** the hub (still grouped; no overlap).
+
+---
+
+## 🗂️ Project Structure (high-level)
+
 
 ## Structure
 

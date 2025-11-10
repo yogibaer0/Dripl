@@ -140,81 +140,80 @@
       <section class="card panel--dest" aria-label="Destination Hub">
         <div class="card__head"><h2 class="hidden">Destination Hub</h2></div>
         <div class="card__body">
-          <section id="destHub" class="dest-panel" aria-label="Preview, metadata and actions">
-            <div class="dest-left">
-              <div class="preview-wrap" id="previewWrap" aria-live="polite">
-                <!-- preview media (one visible at a time) -->
-                <img id="previewImg" alt="" hidden>
-                <video id="previewVideo" playsinline muted loop controls hidden></video>
+          <!-- Hub content wrapper to constrain width -->
+          <div class="dest-inner">
+            <section id="destHub" class="dest-panel" aria-label="Preview, metadata and actions">
+              <div class="dest-left">
+                <div class="preview-wrap" id="previewWrap" aria-live="polite">
+                  <!-- preview media (one visible at a time) -->
+                  <img id="previewImg" alt="" hidden>
+                  <video id="previewVideo" playsinline muted loop controls hidden></video>
 
-                <div class="preview-hint" id="previewHint">
-                  <span>Preview</span>
-                  <span class="muted">• 1:1 • drag a file above or paste a link</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="dest-right">
-              <div class="meta-grid" role="list">
-                <div class="meta-row" role="listitem">
-                  <span id="lblMetaFilename" class="meta-label">Filename</span>
-                  <div class="pill" id="metaFilename" role="text" aria-labelledby="lblMetaFilename">—</div>
-                </div>
-
-                <div class="meta-row" role="listitem">
-                  <span id="lblMetaDuration" class="meta-label">Duration</span>
-                  <div class="pill" id="metaDuration" role="text" aria-labelledby="lblMetaDuration">—</div>
-                </div>
-
-                <div class="meta-row" role="listitem">
-                  <span id="lblMetaResolution" class="meta-label">Resolution</span>
-                  <div class="pill" id="metaResolution" role="text" aria-labelledby="lblMetaResolution">—</div>
-                </div>
-
-                <div class="meta-row" role="listitem">
-                  <span id="lblMetaCodec" class="meta-label">Codec</span>
-                  <div class="pill" id="metaCodec" role="text" aria-labelledby="lblMetaCodec">—</div>
+                  <div class="preview-hint" id="previewHint">
+                    <span>Preview</span>
+                    <span class="muted">• 1:1 • drag a file above or paste a link</span>
+                  </div>
                 </div>
               </div>
 
-              <div class="dest-actions">
-                <!-- Ghost buttons (mirror satellites) -->
-                <div class="dest-buttons">
-                  <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
-                  <button class="btn btn-ghost" data-target="instagram">Instagram</button>
-                  <button class="btn btn-ghost" data-target="youtube">YouTube</button>
-                  <button class="btn btn-ghost" data-target="reddit">Reddit</button>
+              <div class="dest-right">
+                <div class="meta-grid" role="list">
+                  <div class="meta-row" role="listitem">
+                    <span id="lblMetaFilename" class="meta-label">Filename</span>
+                    <div class="pill" id="metaFilename" role="text" aria-labelledby="lblMetaFilename">—</div>
+                  </div>
+
+                  <div class="meta-row" role="listitem">
+                    <span id="lblMetaDuration" class="meta-label">Duration</span>
+                    <div class="pill" id="metaDuration" role="text" aria-labelledby="lblMetaDuration">—</div>
+                  </div>
+
+                  <div class="meta-row" role="listitem">
+                    <span id="lblMetaResolution" class="meta-label">Resolution</span>
+                    <div class="pill" id="metaResolution" role="text" aria-labelledby="lblMetaResolution">—</div>
+                  </div>
+
+                  <div class="meta-row" role="listitem">
+                    <span id="lblMetaCodec" class="meta-label">Codec</span>
+                    <div class="pill" id="metaCodec" role="text" aria-labelledby="lblMetaCodec">—</div>
+                  </div>
                 </div>
 
-                <!-- SR-only labels kept for a11y -->
-                <label class="sr-only" for="optWatermark">Watermark</label>
-                <label class="sr-only" for="optAutotrim">Auto-trim</label>
-                <label class="sr-only" for="optAutofit">Auto-fit to platform</label>
-                <label class="sr-only" for="optFaceFilters">Face filters</label>
+                <div class="dest-actions">
+                  <!-- Ghost buttons (mirror satellites) -->
+                  <div class="dest-buttons">
+                    <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
+                    <button class="btn btn-ghost" data-target="instagram">Instagram</button>
+                    <button class="btn btn-ghost" data-target="youtube">YouTube</button>
+                    <button class="btn btn-ghost" data-target="reddit">Reddit</button>
+                  </div>
 
-                <div class="dest-toggles">
-                  <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
-                  <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
-                  <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
-                  <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
+                  <!-- SR-only labels kept for a11y -->
+                  <label class="sr-only" for="optWatermark">Watermark</label>
+                  <label class="sr-only" for="optAutotrim">Auto-trim</label>
+                  <label class="sr-only" for="optAutofit">Auto-fit to platform</label>
+                  <label class="sr-only" for="optFaceFilters">Face filters</label>
+
+                  <div class="dest-toggles">
+                    <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
+                    <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
+                    <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
+                    <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
+                  </div>
+
+                  <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
                 </div>
-
-                <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
 
-          <!-- Satellite Rail: vertically stacked orbiters -->
-<div class="dest-sat-rail" role="group" aria-label="Destinations">
-  <div class="dest-sat-stack">
-    <button class="satellite sat--yt" data-platform="youtube" aria-pressed="false" aria-label="YouTube" title="YouTube"></button>
-    <button class="satellite sat--ig" data-platform="instagram" aria-pressed="false" aria-label="Instagram" title="Instagram"></button>
-    <button class="satellite sat--tt" data-platform="tiktok" aria-pressed="false" aria-label="TikTok" title="TikTok"></button>
-    <button class="satellite sat--rd" data-platform="reddit" aria-pressed="false" aria-label="Reddit" title="Reddit"></button>
-  </div>
-  <button class="sat-return" id="satReturn" hidden>Return</button>
-</div>
-
+          <!-- Individual Satellites: positioned dynamically by JS, siblings of dest-inner -->
+          <button class="satellite sat--yt" data-platform="youtube" data-slot-index="0" aria-pressed="false" aria-label="YouTube" title="YouTube"></button>
+          <button class="satellite sat--ig" data-platform="instagram" data-slot-index="1" aria-pressed="false" aria-label="Instagram" title="Instagram"></button>
+          <button class="satellite sat--tt" data-platform="tiktok" data-slot-index="2" aria-pressed="false" aria-label="TikTok" title="TikTok"></button>
+          <button class="satellite sat--rd" data-platform="reddit" data-slot-index="3" aria-pressed="false" aria-label="Reddit" title="Reddit"></button>
+          <button class="sat-return" id="satReturn" hidden>Return</button>
+        </div>
       </section>
 
     </div>
