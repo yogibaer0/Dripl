@@ -56,11 +56,12 @@ body{
   border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
   overflow:hidden;display:flex;flex-direction:column;min-height:300px;
 }
-/* Reserve space so the destination hub stops before the satellite rail */
+/* Reserve space so satellites don't overlap hub content */
 .panel--dest{
-  margin-right:var(--orbit-reserve);
+  margin-right:0;
+  padding-right:var(--orbit-reserve);
   overflow:visible;
-  position:relative; /* Rail positioned relative to this */
+  position:relative; /* Satellites positioned relative to this */
 }
 
 .card__head{
@@ -200,38 +201,22 @@ body{
 .dest-panel[data-platform="instagram"] .preview-wrap{width:360px;aspect-ratio:4/5;border-radius:16px;}
 .dest-panel[data-platform="reddit"]    .preview-wrap{width:480px;aspect-ratio:16/9;border-radius:14px;}
 
-/* ======================= Satellite Rail (outside hub) ====================== */
-.panel--dest .dest-sat-rail{
-  position:absolute; 
-  top:calc(50% + 25px); /* Offset to account for card header */
+/* ======================= Individual Satellites (no rail wrapper) ====================== */
+.panel--dest .satellite{
+  position:absolute;
+  top:var(--slot); /* Custom property for vertical position */
   right:calc(-1 * var(--orbit-radius));
-  transform:translateY(-50%); 
-  z-index:60;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  pointer-events:none; /* buttons remain clickable */
-}
-.dest-sat-stack{
-  position:relative;
   width:var(--sat-size);
-  display:flex;
-  flex-direction:column;
-  gap:var(--sat-gap);
-  align-items:center;
-  height:auto !important; /* Override JS inline styles that set viewport height */
-}
-
-.dest-sat-stack .satellite{
-  position:relative;width:var(--sat-size);height:var(--sat-size);border-radius:9999px;
-  pointer-events:auto;backface-visibility:hidden;will-change:transform,opacity;
-  transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,opacity .28s ease;
+  height:var(--sat-size);
+  border-radius:9999px;
   border:2px solid rgba(255,255,255,.12);
   background:rgba(30,30,45,.85);
   backdrop-filter:blur(8px);
   cursor:pointer;
   display:grid;
   place-items:center;
+  z-index:60;
+  transition:transform .36s cubic-bezier(.2,.9,.3,1),box-shadow .28s ease,opacity .28s ease;
 }
 /* Platform-specific satellite colors */
 .satellite.sat--yt{
@@ -264,17 +249,11 @@ body{
 .satellite.sat--ig::before{content:"◉";font-size:20px;font-weight:600;color:rgba(255,255,255,.85);font-family:system-ui,sans-serif;}
 .satellite.sat--tt::before{content:"♪";font-size:20px;font-weight:600;color:rgba(255,255,255,.85);font-family:system-ui,sans-serif;}
 .satellite.sat--rd::before{content:"◆";font-size:20px;font-weight:600;color:rgba(255,255,255,.85);font-family:system-ui,sans-serif;}
-.dest-sat-stack .satellite.is-active{
+.satellite.is-active{
   z-index:80;box-shadow:0 18px 36px rgba(0,0,0,.55),0 0 0 2px rgba(138,92,246,.28);
   transform:translateZ(40px) scale(1.08);
 }
-.dest-sat-stack .satellite.is-parking{z-index:70;transform:scale(.98);opacity:.98;}
-.dest-panel::after{
-  content:"";position:absolute;top:0;right:calc(-1 * var(--orbit-radius));
-  width:calc(var(--orbit-radius) + 28px);height:100%;pointer-events:none;
-  background:linear-gradient(90deg,transparent 0%,rgba(11,9,14,0.02) 60%,rgba(11,9,14,0.06) 100%);
-  z-index:50;border-radius:12px;
-}
+.satellite.is-parking{z-index:70;transform:scale(.98);opacity:.98;}
 
 /* Subtle nudge to the active platform’s satellite */
 .dest-panel[data-platform="youtube"]   .sat--yt,
@@ -283,12 +262,15 @@ body{
 .dest-panel[data-platform="reddit"]    .sat--rd{margin-right:2px;}
 
 /* Responsive */
+/* Responsive */
 @media (max-width:1100px){
-  .panel--dest{margin-right:0;}              /* don’t reserve rail space on narrow screens */
+  .panel--dest{padding-right:var(--space);}    /* restore normal padding */
   .dest-panel{padding-right:18px;}
-  .dest-sat-rail{position:static;transform:none;right:auto;top:auto;margin-top:18px;}
-  .dest-sat-stack{height:auto!important;display:flex!important;flex-direction:row!important;gap:var(--sat-gap);}
-  .dest-panel::after{display:none;}
+  /* Satellites become horizontal row below hub */
+  .panel--dest .satellite{
+    position:static;
+    display:inline-flex;
+    margin-right:var(--sat-gap);
+    margin-top:18px;
+  }
 }
-
-
