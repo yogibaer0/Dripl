@@ -18,6 +18,7 @@
   --sat-gap: 16px;                      /* gap between satellites */
   --orbit-reserve: calc(var(--orbit-radius) + var(--sat-size) + 24px); /* panel stops before this */
   --panel-right-offset: 36px;  /* how much sooner the panel stops before the satellites */
+  --panel-frame-bias: 22px;
 }
 
 /* Base */
@@ -85,6 +86,10 @@ body{
 /* The outer destination card can extend a little past the hub, but
    still stay short of the satellites for breathing room. */
 .panel--dest .card{
+  /* The card (outer panel) trims a little more than the hub,
+     without affecting the hub’s width/position. */
+  max-width: calc(100% - var(--orbit-reserve) + var(--panel-right-offset) - var(--panel-frame-bias));
+  margin-right: auto;          /* pull the right edge left */
   padding-right:18px;          /* subtle frame on the right edge */
 }
 
