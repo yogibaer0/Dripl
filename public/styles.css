@@ -17,6 +17,7 @@
   --sat-size: 60px;                     /* satellite diameter */
   --sat-gap: 16px;                      /* gap between satellites */
   --orbit-reserve: calc(var(--orbit-radius) + var(--sat-size) + 24px); /* panel stops before this */
+  --panel-right-offset: 28px;  /* how much sooner the panel stops before the satellites */
 }
 
 /* Base */
@@ -59,7 +60,7 @@ body{
 /* Reserve space so satellites don't overlap hub content */
 .panel--dest{
   margin-right:0;
-  padding-right:var(--orbit-reserve);
+  padding-right: calc(var(--orbit-reserve) - var(--panel-right-offset));
   overflow:visible;
   position:relative; /* Satellites positioned relative to this */
 }
@@ -68,15 +69,15 @@ body{
 
 /* Wrapper to constrain hub content width */
 .dest-inner{
-  width:calc(100% - var(--orbit-reserve));
+  width: calc(100% - var(--orbit-reserve) + var(--panel-right-offset));
   position:relative;
 }
 
 /* Hard stop: even if .dest-panel is not wrapped exactly how we expect,
    force the hub content to stay clear of the satellite lane. */
 .panel--dest .dest-panel{
-  width:calc(100% - var(--orbit-reserve));
-  max-width:calc(100% - var(--orbit-reserve));
+  width: calc(100% - var(--orbit-reserve) + var(--panel-right-offset));
+  max-width: calc(100% - var(--orbit-reserve) + var(--panel-right-offset));
   margin-right:auto;           /* hub edge pulls back from satellites */
   box-sizing:border-box;
 }
