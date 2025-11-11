@@ -18,7 +18,7 @@
   --sat-gap: 16px;                      /* gap between satellites */
   --orbit-reserve: calc(var(--orbit-radius) + var(--sat-size) + 24px); /* panel stops before this */
   --panel-right-offset: 36px;  /* how much sooner the panel stops before the satellites */
-  --panel-frame-bias: 22px;
+  --panel-frame-bias: 36px;
 }
 
 /* Base */
