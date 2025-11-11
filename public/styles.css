@@ -64,10 +64,27 @@ body{
   position:relative; /* Satellites positioned relative to this */
 }
 
+=====HUB CONTENT CONSTRAINTS=====
+
 /* Wrapper to constrain hub content width */
 .dest-inner{
   width:calc(100% - var(--orbit-reserve));
   position:relative;
+}
+
+/* Hard stop: even if .dest-panel is not wrapped exactly how we expect,
+   force the hub content to stay clear of the satellite lane. */
+.panel--dest .dest-panel{
+  width:calc(100% - var(--orbit-reserve));
+  max-width:calc(100% - var(--orbit-reserve));
+  margin-right:auto;           /* hub edge pulls back from satellites */
+  box-sizing:border-box;
+}
+
+/* The outer destination card can extend a little past the hub, but
+   still stay short of the satellites for breathing room. */
+.panel--dest .card{
+  padding-right:18px;          /* subtle frame on the right edge */
 }
 
 .card__head{
@@ -180,7 +197,21 @@ body{
 
 .dest-right{display:grid;grid-template-rows:auto auto auto;gap:18px;}
 .meta-grid{display:grid;gap:10px;}
-.meta-row{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:12px;}
+/* tighter label column + safe input width */
+.meta-row{display:grid;grid-template-columns:116px minmax(0,1fr);align-items:center;gap:12px;}
+
+/* never let the right stuff drift into the lane reserved for satellites */
+.panel--dest .dest-right,
+.panel--dest .meta-grid,
+.panel--dest .dest-actions{
+  max-width:calc(100% - 22px); /* internal padding guard */
+}
+
+/* inputs/pills get a soft cap so they end before the satellite lane */
+.meta-row .pill{
+  max-width:min(520px, 100%);
+}
+
 .meta-label{color:rgba(255,255,255,.7);font-size:13px;}
 .pill{
   height:40px;display:grid;align-items:center;padding:0 12px;border-radius:10px;
@@ -190,6 +221,11 @@ body{
 .dest-actions{display:grid;gap:14px;align-content:start;}
 .dest-buttons{display:flex;flex-wrap:wrap;gap:10px;}
 .dest-toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px;}
+/* keep the primary button inside the hub; not drastic, just a nudge */
+.dest-actions .btn--primary{
+  width:clamp(260px, 52%, 520px);
+  align-self:start;
+}
 .toggle{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.82);font-size:13px;}
 .toggle input{transform:translateY(1px);}
 
