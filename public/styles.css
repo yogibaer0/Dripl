@@ -200,6 +200,11 @@ body{
 /* tighter label column + safe input width */
 .meta-row{display:grid;grid-template-columns:116px minmax(0,1fr);align-items:center;gap:12px;}
 
+/* Put near the other layout rules */
+.panel--dest .card__body { 
+  width: calc(100% - var(--orbit-reserve));
+}
+
 /* never let the right stuff drift into the lane reserved for satellites */
 .panel--dest .dest-right,
 .panel--dest .meta-grid,
