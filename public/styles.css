@@ -13,7 +13,7 @@
   --max:1100px;
 
   /* Satellite rail sizing + reserved layout width */
-  --orbit-radius: 40px;                 /* rail distance from hub border */
+  --orbit-radius: 30px;                 /* rail distance from hub border */
   --sat-size: 60px;                     /* satellite diameter */
   --sat-gap: 16px;                      /* gap between satellites */
   --orbit-reserve: calc(var(--orbit-radius) + var(--sat-size) + 24px); /* panel stops before this */
