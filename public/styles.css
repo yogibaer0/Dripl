@@ -165,12 +165,17 @@ body{
 .storage__search input{background:transparent;border:0;color:var(--text);padding:.45rem .7rem;min-width:260px;}
 
 /* ====================== Destination Hub (panel + hub) ====================== */
-.dest-panel{
-  position:relative;
-  display:grid;grid-template-columns:420px minmax(520px,1fr);
-  gap:24px;padding:16px 18px 20px;border-radius:14px;
-  background:#14131a;border:1px solid rgba(255,255,255,.06);
-  overflow:visible; /* keep inner glow without clipping */
+.dest-panel {
+  display: grid;
+  /* Wider hub: increase the right column max-width */
+  grid-template-columns: 360px minmax(520px, 760px);
+  gap: 2rem;
+  padding: 2rem;
+  padding-right: calc(2rem + var(--orbit-reserve));
+  border-radius: 20px;
+  background: #0d0d18;
+  position: relative;
+  overflow: hidden;
 }
 .dest-left{display:grid;align-items:center;justify-items:center;}
 .preview-wrap{
@@ -200,10 +205,6 @@ body{
 /* tighter label column + safe input width */
 .meta-row{display:grid;grid-template-columns:116px minmax(0,1fr);align-items:center;gap:12px;}
 
-/* Put near the other layout rules */
-.panel--dest .card__body { 
-  width: calc(100% - var(--orbit-reserve));
-}
 
 /* never let the right stuff drift into the lane reserved for satellites */
 .panel--dest .dest-right,
