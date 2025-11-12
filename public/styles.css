@@ -18,7 +18,7 @@
   --sat-gap: 16px;                      /* gap between satellites */
   --orbit-reserve: calc(var(--orbit-radius) + var(--sat-size) + 24px); /* panel stops before this */
   --panel-right-offset: 36px;  /* how much sooner the panel stops before the satellites */
-  --panel-frame-bias: 36px;
+  --panel-frame-trim: 28px;     /* visually crop ONLY the outer panel on the right */
 }
 
 /* Base */
@@ -92,6 +92,18 @@ body{
   margin-right: auto;          /* pull the right edge left */
   padding-right:18px;          /* subtle frame on the right edge */
 }
+
+.panel--dest .card{
+  /* keep existing padding if you like */
+  padding-right:18px;
+
+  /* ensure rounded cropping looks clean */
+  overflow: hidden;
+
+  /* VISUAL CROP: right side of the outer panel only */
+  clip-path: inset(0 var(--panel-frame-trim) 0 0 round 18px);
+}
+
 
 .card__head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
