@@ -39,7 +39,7 @@
   --panel-right-offset: 36px;
 
   /* How much to visually crop ONLY the outer dest panel on the right */
-  --panel-frame-trim: 28px;
+  --panel-frame-trim: 60px;
 }
 
 /* ==========================================================================
