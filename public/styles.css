@@ -36,10 +36,10 @@
   );
 
   /* How far the hub pulls back from the reserved rail */
-  --panel-right-offset: 12px;
+  --panel-right-offset: 36px;
 
   /* How much to visually crop ONLY the outer dest panel on the right */
-  --panel-frame-trim: 28x;
+  --panel-frame-trim: 28px;
 }
 
 /* ==========================================================================
@@ -563,7 +563,20 @@ body{
    Satellites (JS-positioned)
    ========================================================================== */
 
-.panel--dest .satellite{
+/* Invisible rail the satellites are positioned against */
+.sat-rail{
+  position:absolute;
+  inset:0;
+  pointer-events:none; /* rail itself doesn't block clicks */
+}
+
+/* All satellite positioning is now relative to the rail */
+.sat-rail .satellite{
+  pointer-events:auto;
+}
+
+
+.sat-rail .satellite{
   position:absolute;
   top:var(--slot,50%);              /* JS sets this based on hub height */
   right:calc(-1 * var(--orbit-radius));
@@ -685,11 +698,16 @@ body{
     padding-right:18px;
   }
 
-  .panel--dest .satellite{
+  .sat-rail{
+    position:static;
+    margin-top:18px;
+  }
+
+  .sat-rail .satellite{
     position:static;
     display:inline-flex;
     margin-right:var(--sat-gap);
-    margin-top:18px;
+    margin-top:0;
     transform:none;
   }
 }
