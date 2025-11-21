@@ -43,7 +43,7 @@
 }
 
 :root{
-  --hub-card-width-offset: 180px; /* how much narrower than the full container */
+  --hub-card-width-offset: 100px; /* how much narrower than the full container */
 }
 
 
