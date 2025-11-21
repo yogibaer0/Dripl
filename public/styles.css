@@ -36,10 +36,10 @@
   );
 
   /* How far the hub pulls back from the reserved rail */
-  --panel-right-offset: 36px;
+  --panel-right-offset: 12px;
 
   /* How much to visually crop ONLY the outer dest panel on the right */
-  --panel-frame-trim: 120x;
+  --panel-frame-trim: 28x;
 }
 
 /* ==========================================================================
