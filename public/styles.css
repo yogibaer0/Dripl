@@ -42,6 +42,11 @@
   --panel-frame-trim: 28px;
 }
 
+:root{
+  --hub-card-width-offset: 180px; /* how much narrower than the full container */
+}
+
+
 /* ==========================================================================
    Base / Utilities
    ========================================================================== */
@@ -149,9 +154,7 @@ body{
 /* Destination card: visual crop on the right edge only */
 .panel--dest .card{
   /* Outer panel width trims a bit more than the hub itself */
-  max-width: calc(
-    100% - var(--orbit-reserve) + var(--panel-right-offset) - var(--panel-frame-trim)
-  );
+  width: calc(100% - var(--hub-card-width-offset));
   margin-right:auto;
   padding-right:18px;
   overflow:hidden;
