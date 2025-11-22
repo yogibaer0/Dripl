@@ -137,26 +137,33 @@
       </section>
 
       <!-- Destination Hub -->
-      <section class="card panel--dest" aria-label="Destination Hub">
-  <div class="card__head"><h2 class="hidden">Destination Hub</h2></div>
-  <div class="card__body">
-    <!-- Hub content wrapper to constrain width -->
-    <div class="dest-inner">
-      <section id="destHub" class="dest-panel" aria-label="Preview, metadata and actions">
-        <!-- left + right hub content stays exactly the same -->
-        <div class="dest-left">
-          <div class="preview-wrap" id="previewWrap" aria-live="polite">
-            <img id="previewImg" alt="" hidden>
-            <video id="previewVideo" playsinline muted loop controls hidden></video>
+<section class="panel--dest" aria-label="Destination Hub">
+  <!-- Hub card (the cell) -->
+  <section class="card dest-card">
+    <div class="card__head">
+      <h2 class="hidden">Destination Hub</h2>
+    </div>
 
-            <div class="preview-hint" id="previewHint">
-              <span>Preview</span>
-              <span class="muted">• 1:1 • drag a file above or paste a link</span>
+    <div class="card__body">
+      <!-- Hub content wrapper to constrain width -->
+      <div class="dest-inner">
+        <section id="destHub"
+                 class="dest-panel"
+                 aria-label="Preview, metadata and actions">
+
+          <div class="dest-left">
+            <div class="preview-wrap" id="previewWrap" aria-live="polite">
+              <img id="previewImg" alt="" hidden>
+              <video id="previewVideo" playsinline muted loop controls hidden></video>
+
+              <div class="preview-hint" id="previewHint">
+                <span>Preview</span>
+                <span class="muted">• 1:1 • drag a file above or paste a link</span>
+              </div>
             </div>
           </div>
-        </div>
 
-              <div class="dest-right">
+          <div class="dest-right">
                 <div class="meta-grid" role="list">
                   <div class="meta-row" role="listitem">
                     <span id="lblMetaFilename" class="meta-label">Filename</span>
@@ -204,29 +211,31 @@
                   <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
                 </div>
               </div>
-            </section>
-          </div>
+        </section>
+      </div>
 
-           <!-- Satellite rail: invisible positioning layer, not part of hub layout -->
-    <div class="sat-rail" aria-hidden="true">
-      <button class="satellite sat--yt"
-              data-platform="youtube" data-slot-index="0"
-              aria-pressed="false" aria-label="YouTube" title="YouTube"></button>
-
-      <button class="satellite sat--ig"
-              data-platform="instagram" data-slot-index="1"
-              aria-pressed="false" aria-label="Instagram" title="Instagram"></button>
-
-      <button class="satellite sat--tt"
-              data-platform="tiktok" data-slot-index="2"
-              aria-pressed="false" aria-label="TikTok" title="TikTok"></button>
-
-      <button class="satellite sat--rd"
-              data-platform="reddit" data-slot-index="3"
-              aria-pressed="false" aria-label="Reddit" title="Reddit"></button>
+      <!-- Return button stays with the hub UI -->
+      <button class="sat-return" id="satReturn" hidden>Return</button>
     </div>
+  </section>
 
-    <button class="sat-return" id="satReturn" hidden>Return</button>
+  <!-- Proteins: satellites live OUTSIDE the card, in their own rail -->
+  <div class="dest-sat-rail" aria-hidden="true">
+    <button class="satellite sat--yt"
+            data-platform="youtube" data-slot-index="0"
+            aria-pressed="false" aria-label="YouTube" title="YouTube"></button>
+
+    <button class="satellite sat--ig"
+            data-platform="instagram" data-slot-index="1"
+            aria-pressed="false" aria-label="Instagram" title="Instagram"></button>
+
+    <button class="satellite sat--tt"
+            data-platform="tiktok" data-slot-index="2"
+            aria-pressed="false" aria-label="TikTok" title="TikTok"></button>
+
+    <button class="satellite sat--rd"
+            data-platform="reddit" data-slot-index="3"
+            aria-pressed="false" aria-label="Reddit" title="Reddit"></button>
   </div>
 </section>
 

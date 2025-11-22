@@ -152,7 +152,7 @@ body{
 }
 
 /* Destination card: visual crop on the right edge only */
-.panel--dest .card{
+.card.panel--dest{
   /* Outer panel width trims a bit more than the hub itself */
   width: calc(100% - var(--hub-card-width-offset));
   margin-right:auto;
@@ -566,6 +566,18 @@ body{
    Satellites (JS-positioned)
    ========================================================================== */
 
+/* Invisible positioning layer for satellites */
+.dest-sat-rail{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.dest-sat-rail .satellite{
+  pointer-events:auto;
+}
+
+
 /* Invisible rail the satellites are positioned against */
 .sat-rail{
   position:absolute;
@@ -579,9 +591,10 @@ body{
 }
 
 
-.sat-rail .satellite{
+/* Satellites (JS-positioned) */
+.dest-sat-rail .satellite{
   position:absolute;
-  top:var(--slot,50%);              /* JS sets this based on hub height */
+  top:var(--slot,50%);
   right:calc(-1 * var(--orbit-radius));
   width:var(--sat-size);
   height:var(--sat-size);
@@ -688,7 +701,6 @@ body{
    ========================================================================== */
 
 @media (max-width:1100px){
-  /* Restore normal padding; satellites drop into a row below hub */
   .panel--dest{
     padding-right:var(--space);
   }
@@ -701,12 +713,12 @@ body{
     padding-right:18px;
   }
 
-  .sat-rail{
+  .dest-sat-rail{
     position:static;
     margin-top:18px;
   }
 
-  .sat-rail .satellite{
+  .dest-sat-rail .satellite{
     position:static;
     display:inline-flex;
     margin-right:var(--sat-gap);
@@ -714,4 +726,3 @@ body{
     transform:none;
   }
 }
-
