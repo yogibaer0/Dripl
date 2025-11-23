@@ -360,6 +360,27 @@ body{
    Storage Panel
    ========================================================================== */
 
+.panel--storage{
+  min-height:520px;
+  position:relative;
+}
+
+/* Let storage content breathe; plumes can scale without clipping each other */
+.card.panel--storage{
+  overflow:visible;
+}
+
+.storage-body{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+/* Search row */
+.storage__search-row{
+  margin-bottom:4px;
+}
+
 .storage__search{
   display:flex;
   align-items:center;
@@ -376,6 +397,197 @@ body{
   color:var(--text);
   padding:.45rem .7rem;
   min-width:260px;
+}
+
+/* Plumes container: vertical lava-lamp tracks */
+.storage-plumes{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  position:relative;
+  padding:4px 2px 6px;
+  overflow:visible; /* plumes can enlarge + overlap each other */
+}
+
+/* Base plume button */
+.storage-plume{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  width:100%;
+  border-radius:999px;
+  padding:14px 18px;
+  border:1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at 0% 50%, rgba(167,139,250,.22), transparent 48%),
+    linear-gradient(90deg, #15132e 0%, #18152f 36%, #151226 100%);
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:0 10px 24px rgba(0,0,0,.55);
+  transform-origin:center;
+  transform:translateY(0) scale(1);
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease,
+    background .22s ease,
+    border-color .22s ease,
+    opacity .18s ease;
+}
+
+/* Subtle inner goo highlight */
+.storage-plume::before{
+  content:"";
+  position:absolute;
+  inset:4px 12px;
+  border-radius:999px;
+  background:radial-gradient(circle at 20% 30%, rgba(255,255,255,.08), transparent 55%);
+  opacity:.7;
+  pointer-events:none;
+}
+
+/* Active plume floats slightly above neighbors */
+.storage-plume.is-active{
+  transform:translateY(-1px) scale(1.03);
+  box-shadow:0 14px 32px rgba(0,0,0,.7);
+  border-color:rgba(167,139,250,.8);
+  background:
+    radial-gradient(circle at 0% 50%, rgba(189,158,255,.45), transparent 50%),
+    linear-gradient(90deg, #1d1742 0%, #20194b 40%, #18122f 100%);
+  z-index:5;
+}
+
+/* Slight hover without fighting active state */
+.storage-plume:hover{
+  transform:translateY(-1px) scale(1.02);
+  box-shadow:0 12px 28px rgba(0,0,0,.65);
+}
+
+/* Text chunk inside plumes */
+.plume-labels{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.plume-title{
+  font-size:14px;
+  font-weight:600;
+}
+
+.plume-subtitle{
+  font-size:12px;
+  color:rgba(231,231,255,.76);
+}
+
+/* Recent preview thumbnails */
+.plume-previews{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:90px;
+}
+
+.plume-thumb{
+  width:54px;
+  height:34px;
+  border-radius:8px;
+  background:radial-gradient(circle at 20% 10%, rgba(255,255,255,.18), rgba(26,18,64,1));
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.06),
+    0 6px 14px rgba(0,0,0,.6);
+  opacity:.9;
+}
+
+/* Library orbit: 5 + 3 orbs, just aesthetic for now */
+.plume-orbit{
+  position:relative;
+  width:96px;
+  height:60px;
+}
+
+.plume-orb{
+  position:absolute;
+  width:16px;
+  height:16px;
+  border-radius:999px;
+  background:radial-gradient(circle at 30% 20%, #fff, #a78bfa);
+  opacity:.9;
+}
+
+.plume-orbit .orb-1{ top:6px; left:32px; }
+.plume-orbit .orb-2{ top:20px; left:10px; }
+.plume-orbit .orb-3{ top:20px; right:10px; }
+.plume-orbit .orb-4{ bottom:4px; left:28px; }
+.plume-orbit .orb-5{ bottom:16px; right:32px; }
+.plume-orbit .orb-6{ bottom:-8px; left:4px; opacity:.65; }
+.plume-orbit .orb-7{ bottom:-10px; right:24px; opacity:.65; }
+.plume-orbit .orb-8{ top:-10px; right:18px; opacity:.65; }
+
+/* Queue bubbles (simple motion hint) */
+.plume-bubbles{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding-right:2px;
+}
+
+.plume-bubbles span{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:radial-gradient(circle at 30% 20%, #fff, #22d3ee);
+  opacity:.8;
+}
+
+/* Storage content area, driven by plumes */
+.storage__content{
+  margin-top:10px;
+  min-height:160px;
+}
+
+.storage__section{
+  display:none;
+}
+
+.storage__section.is-visible{
+  display:block;
+}
+
+/* Items inside Recent list */
+.storage__item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:6px 4px;
+}
+
+.storage__thumb{
+  width:44px;
+  height:28px;
+  border-radius:6px;
+  background:rgba(255,255,255,.04);
+  box-shadow:0 6px 12px rgba(0,0,0,.5);
+}
+
+.storage__meta{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.storage__name{
+  font-size:13px;
+  max-width:260px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.storage__tags{
+  font-size:11px;
+  color:var(--muted);
 }
 
 /* ==========================================================================

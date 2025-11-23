@@ -116,25 +116,121 @@
         <div class="card__head">
           <h2 id="h-storage">Storage</h2>
           <div class="toolbar">
-            <button class="btn secondary">+ Folder</button>
-            <button class="btn secondary">Filters</button>
-            <button class="btn secondary">Presets</button>
+            <button class="btn secondary" type="button">+ Folder</button>
+            <button class="btn secondary" type="button">Filters</button>
+            <button class="btn secondary" type="button">Presets</button>
           </div>
         </div>
-        <div class="card__body">
-          <div class="storage__search">
-            <input id="storage-search" type="text" placeholder="Search files, tags, notes…" />
+
+        <div class="card__body storage-body">
+          <!-- Search row -->
+          <div class="storage__search-row">
+            <div class="storage__search">
+              <input
+                id="storage-search"
+                type="text"
+                placeholder="Search files, tags, notes…"
+                aria-label="Search files, tags, notes"
+              />
+            </div>
           </div>
-          <div class="chips">
-            <button class="chip chip--active">Recent</button>
-            <button class="chip">Saved ★</button>
-            <button class="chip">In progress</button>
-            <button class="chip">Shared</button>
-            <button class="chip">Trash</button>
+
+          <!-- Plumes (1–4 buttons) -->
+          <div class="storage-plumes" role="list">
+            <!-- 1. Recent conversions -->
+            <button
+              class="storage-plume storage-plume--recent is-active"
+              data-section="recent"
+              type="button"
+              role="listitem"
+            >
+              <div class="plume-labels">
+                <span class="plume-title">Recent conversions</span>
+                <span class="plume-subtitle">See what you just converted</span>
+              </div>
+              <div class="plume-previews" id="recent-previews" aria-hidden="true">
+                <!-- thumbnails injected by JS -->
+              </div>
+            </button>
+
+            <!-- 2. Library -->
+            <button
+              class="storage-plume storage-plume--library"
+              data-section="library"
+              type="button"
+              role="listitem"
+            >
+              <div class="plume-labels">
+                <span class="plume-title">Library</span>
+                <span class="plume-subtitle">Saved, pinned &amp; favorites</span>
+              </div>
+              <div class="plume-orbit" aria-hidden="true">
+                <span class="plume-orb orb-1"></span>
+                <span class="plume-orb orb-2"></span>
+                <span class="plume-orb orb-3"></span>
+                <span class="plume-orb orb-4"></span>
+                <span class="plume-orb orb-5"></span>
+                <span class="plume-orb orb-6"></span>
+                <span class="plume-orb orb-7"></span>
+                <span class="plume-orb orb-8"></span>
+              </div>
+            </button>
+
+            <!-- 3. Queued -->
+            <button
+              class="storage-plume storage-plume--queue"
+              data-section="queue"
+              type="button"
+              role="listitem"
+            >
+              <div class="plume-labels">
+                <span class="plume-title">Queued</span>
+                <span class="plume-subtitle">In progress &amp; upcoming</span>
+              </div>
+              <div class="plume-bubbles" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </button>
+
+            <!-- 4. Shared -->
+            <button
+              class="storage-plume storage-plume--shared"
+              data-section="shared"
+              type="button"
+              role="listitem"
+            >
+              <div class="plume-labels">
+                <span class="plume-title">Shared with me</span>
+                <span class="plume-subtitle">Team links &amp; collab</span>
+              </div>
+            </button>
           </div>
-          <div class="grid" id="storage-list"></div>
+
+          <!-- Content area driven by which plume is active -->
+          <div class="storage__content" id="storageContent">
+            <!-- Recent = uses existing storage list -->
+            <div class="storage__section storage__section--recent is-visible">
+              <div class="grid" id="storage-list"></div>
+            </div>
+
+            <!-- Library placeholder for now -->
+            <div class="storage__section storage__section--library">
+              <p class="muted">Your Ameba library will collect saved &amp; pinned items here.</p>
+            </div>
+
+            <!-- Queue placeholder -->
+            <div class="storage__section storage__section--queue">
+              <p class="muted">Queued conversions will show up here with progress soon.</p>
+            </div>
+
+            <!-- Shared placeholder -->
+            <div class="storage__section storage__section--shared">
+              <p class="muted">Links shared with you will live here.</p>
+            </div>
+          </div>
         </div>
       </section>
+
 
       <!-- Destination Hub -->
 <section class="panel--dest" aria-label="Destination Hub">

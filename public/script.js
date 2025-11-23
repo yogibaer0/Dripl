@@ -30,7 +30,7 @@
 
     // Storage list
     storageList: $("#storage-list"),
-
+    recentPreviewRow: $("#recent-previews"),
     // Import icons
     impDevice:  $("#imp-device"),
     impDropbox: $("#imp-dropbox"),
@@ -74,23 +74,62 @@
     if (els.previewHint) els.previewHint.hidden = true;
   }
 
-  // ---------- Storage UI (stub) ----------
+   // ---------- Storage UI (stub) ----------
   function addToStorageList(file){
     if (!els.storageList || !file) return;
+
     const item = document.createElement("div");
     item.className = "storage__item";
-    item.style.display = "flex";
-    item.style.alignItems = "center";
-    item.style.gap = "12px";
     item.innerHTML = `
-      <div class="storage__thumb" style="background:rgba(255,255,255,.04);
-           width:44px;height:28px;border-radius:6px;"></div>
+      <div class="storage__thumb"></div>
       <div class="storage__meta">
         <div class="storage__name">${file.name}</div>
         <div class="storage__tags">Recent</div>
-      </div>`;
+      </div>
+    `;
     els.storageList.prepend(item);
+
+    pushRecentPreview(file);
   }
+ 
+ function pushRecentPreview(file){
+    if (!els.recentPreviewRow) return;
+    const thumb = document.createElement("div");
+    thumb.className = "plume-thumb";
+    thumb.title = file.name || "Recent item";
+    els.recentPreviewRow.prepend(thumb);
+
+    // Keep only the three most recent previews
+    while (els.recentPreviewRow.children.length > 3){
+      els.recentPreviewRow.removeChild(els.recentPreviewRow.lastElementChild);
+    }
+  }
+
+  // ---------- Storage plumes (lane switching) ----------
+  function initStoragePlumes(){
+    const plumes = Array.from(document.querySelectorAll(".storage-plume"));
+    const sections = Array.from(document.querySelectorAll(".storage__section"));
+    if (!plumes.length || !sections.length) return;
+
+    const showSection = (key) => {
+      sections.forEach(sec => {
+        const isMatch = sec.classList.contains(`storage__section--${key}`);
+        sec.classList.toggle("is-visible", isMatch);
+      });
+    };
+
+    plumes.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.section || "recent";
+        plumes.forEach(b => b.classList.toggle("is-active", b === btn));
+        showSection(key);
+      });
+    });
+
+    // Default state
+    showSection("recent");
+  }
+
 
   // ---------- single intake ----------
   function handleFileDrop(fileList){
@@ -177,12 +216,14 @@
   }
 
   // expose minimal init (call once from inline script)
-  window.AmebaInit = function AmebaInit(){
+    window.AmebaInit = function AmebaInit(){
     initUpload();
     initImportIcons();
     initConvert();
+    initStoragePlumes();
   };
 })();
+
 
 /* =========================================================
    DESTINATION HUB KERNEL (robust, idempotent, animation-safe)
