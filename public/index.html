@@ -355,6 +355,11 @@
         setTimeout(()=>dz.classList.remove('dropzone--absorbing'), 600);
       });
     }());
+    
+    // Initialize Ameba components
+    if (typeof window.AmebaInit === 'function') {
+      window.AmebaInit();
+    }
   </script>
 </body>
 </html>
