@@ -358,7 +358,11 @@
     
     // Initialize Ameba components
     if (typeof window.AmebaInit === 'function') {
-      window.AmebaInit();
+      try {
+        window.AmebaInit();
+      } catch (e) {
+        console.error('[ameba] Initialization error:', e);
+      }
     }
   </script>
 </body>
