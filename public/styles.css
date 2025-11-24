@@ -357,7 +357,7 @@ body{
 .icon-row .import-icon{will-change:transform;}
 
 /* ==========================================================================
-   Storage Panel
+   Storage Panel — Plumes & Organic Motion
    ========================================================================== */
 
 .panel--storage{
@@ -376,7 +376,7 @@ body{
   gap:14px;
 }
 
-/* Search row */
+/* -------------------- Storage — Search Row -------------------- */
 .storage__search-row{
   margin-bottom:4px;
 }
@@ -399,6 +399,8 @@ body{
   min-width:260px;
 }
 
+/* -------------------- Storage — Plumes (lava lamp lanes) -------------------- */
+
 /* Plumes container: vertical lava-lamp tracks */
 .storage-plumes{
   display:flex;
@@ -407,6 +409,25 @@ body{
   position:relative;
   padding:4px 2px 6px;
   overflow:visible; /* plumes can enlarge + overlap each other */
+}
+
+/* Keyframes for idle goo pulse animation */
+@keyframes plume-idle-pulse {
+  0%, 100% {
+    transform:translateY(0) scale(1);
+  }
+  50% {
+    transform:translateY(-0.3px) scale(1.002);
+  }
+}
+
+@keyframes plume-glow-shift {
+  0%, 100% {
+    background-position:0% 50%;
+  }
+  50% {
+    background-position:100% 50%;
+  }
 }
 
 /* Base plume button */
@@ -423,17 +444,28 @@ body{
   background:
     radial-gradient(circle at 0% 50%, rgba(167,139,250,.22), transparent 48%),
     linear-gradient(90deg, #15132e 0%, #18152f 36%, #151226 100%);
+  background-size:200% 100%;
   color:var(--text);
   cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.55);
   transform-origin:center;
   transform:translateY(0) scale(1);
   transition:
-    transform .22s ease,
-    box-shadow .22s ease,
-    background .22s ease,
-    border-color .22s ease,
-    opacity .18s ease;
+    transform .28s cubic-bezier(.2,.9,.3,1),
+    box-shadow .28s ease,
+    background .35s ease,
+    border-color .28s ease,
+    opacity .22s ease;
+  will-change:transform;
+  
+  /* Subtle idle pulse when not active or hovered */
+  animation:plume-idle-pulse 5.5s ease-in-out infinite;
+}
+
+/* Stop idle animation when hovering or active */
+.storage-plume:hover,
+.storage-plume.is-active{
+  animation:none;
 }
 
 /* Subtle inner goo highlight */
@@ -445,43 +477,90 @@ body{
   background:radial-gradient(circle at 20% 30%, rgba(255,255,255,.08), transparent 55%);
   opacity:.7;
   pointer-events:none;
+  transition:opacity .28s ease;
 }
 
-/* Active plume floats slightly above neighbors */
+/* Enhanced hover state - more pronounced lift and glow */
+.storage-plume:hover{
+  transform:translateY(-2px) scale(1.025);
+  box-shadow:
+    0 14px 32px rgba(0,0,0,.68),
+    0 0 0 1px rgba(167,139,250,.25),
+    0 0 18px rgba(167,139,250,.15);
+  border-color:rgba(167,139,250,.4);
+}
+
+.storage-plume:hover::before{
+  opacity:.85;
+}
+
+/* Active plume floats above neighbors with stronger visual emphasis */
 .storage-plume.is-active{
-  transform:translateY(-1px) scale(1.03);
-  box-shadow:0 14px 32px rgba(0,0,0,.7);
-  border-color:rgba(167,139,250,.8);
+  transform:translateY(-2px) scale(1.04);
+  box-shadow:
+    0 16px 38px rgba(0,0,0,.75),
+    0 0 0 2px rgba(167,139,250,.5),
+    0 0 24px rgba(167,139,250,.25);
+  border-color:rgba(189,158,255,.9);
   background:
-    radial-gradient(circle at 0% 50%, rgba(189,158,255,.45), transparent 50%),
-    linear-gradient(90deg, #1d1742 0%, #20194b 40%, #18122f 100%);
+    radial-gradient(circle at 0% 50%, rgba(189,158,255,.5), transparent 52%),
+    linear-gradient(90deg, #1f1a48 0%, #241e52 40%, #1a1433 100%);
+  background-size:200% 100%;
   z-index:5;
 }
 
-/* Slight hover without fighting active state */
-.storage-plume:hover{
-  transform:translateY(-1px) scale(1.02);
-  box-shadow:0 12px 28px rgba(0,0,0,.65);
+.storage-plume.is-active::before{
+  opacity:1;
+  background:radial-gradient(circle at 25% 35%, rgba(255,255,255,.14), transparent 58%);
 }
 
-/* Text chunk inside plumes */
+/* Smooth transition when becoming active */
+.storage-plume{
+  transition:
+    transform .32s cubic-bezier(.2,.9,.3,1),
+    box-shadow .32s cubic-bezier(.2,.9,.3,1),
+    background .35s ease,
+    border-color .32s ease,
+    opacity .22s ease,
+    z-index 0s linear .1s; /* Delay z-index to prevent visual pop */
+}
+
+/* -------------------- Storage — Plume Labels -------------------- */
+
 .plume-labels{
   display:flex;
   flex-direction:column;
   gap:2px;
+  transition:transform .22s ease;
+}
+
+.storage-plume:hover .plume-labels,
+.storage-plume.is-active .plume-labels{
+  transform:translateX(1px);
 }
 
 .plume-title{
   font-size:14px;
   font-weight:600;
+  transition:color .22s ease;
 }
 
 .plume-subtitle{
   font-size:12px;
   color:rgba(231,231,255,.76);
+  transition:color .22s ease;
 }
 
-/* Recent preview thumbnails */
+.storage-plume.is-active .plume-title{
+  color:rgba(255,255,255,.98);
+}
+
+.storage-plume.is-active .plume-subtitle{
+  color:rgba(240,235,255,.88);
+}
+
+/* -------------------- Storage — Recent Previews -------------------- */
+
 .plume-previews{
   display:flex;
   align-items:center;
@@ -498,13 +577,33 @@ body{
     0 0 0 1px rgba(255,255,255,.06),
     0 6px 14px rgba(0,0,0,.6);
   opacity:.9;
+  transition:
+    transform .22s ease,
+    opacity .22s ease,
+    box-shadow .22s ease;
 }
 
-/* Library orbit: 5 + 3 orbs, just aesthetic for now */
+.storage-plume:hover .plume-thumb,
+.storage-plume.is-active .plume-thumb{
+  opacity:1;
+  transform:translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.12),
+    0 8px 18px rgba(0,0,0,.7);
+}
+
+/* -------------------- Storage — Library Orbit (decorative orbs) -------------------- */
+
 .plume-orbit{
   position:relative;
   width:96px;
   height:60px;
+}
+
+/* Slow float animation for orbs */
+@keyframes orb-float {
+  0%, 100% { transform:translateY(0); }
+  50% { transform:translateY(-3px); }
 }
 
 .plume-orb{
@@ -514,23 +613,42 @@ body{
   border-radius:999px;
   background:radial-gradient(circle at 30% 20%, #fff, #a78bfa);
   opacity:.9;
+  transition:
+    transform .25s ease,
+    opacity .25s ease,
+    box-shadow .25s ease;
 }
 
-.plume-orbit .orb-1{ top:6px; left:32px; }
-.plume-orbit .orb-2{ top:20px; left:10px; }
-.plume-orbit .orb-3{ top:20px; right:10px; }
-.plume-orbit .orb-4{ bottom:4px; left:28px; }
-.plume-orbit .orb-5{ bottom:16px; right:32px; }
-.plume-orbit .orb-6{ bottom:-8px; left:4px; opacity:.65; }
-.plume-orbit .orb-7{ bottom:-10px; right:24px; opacity:.65; }
-.plume-orbit .orb-8{ top:-10px; right:18px; opacity:.65; }
+/* Individual orb positions */
+.plume-orbit .orb-1{ top:6px; left:32px; animation:orb-float 3.2s ease-in-out infinite; animation-delay:0s; }
+.plume-orbit .orb-2{ top:20px; left:10px; animation:orb-float 3.5s ease-in-out infinite; animation-delay:0.4s; }
+.plume-orbit .orb-3{ top:20px; right:10px; animation:orb-float 3.8s ease-in-out infinite; animation-delay:0.8s; }
+.plume-orbit .orb-4{ bottom:4px; left:28px; animation:orb-float 3.3s ease-in-out infinite; animation-delay:1.2s; }
+.plume-orbit .orb-5{ bottom:16px; right:32px; animation:orb-float 3.6s ease-in-out infinite; animation-delay:1.6s; }
+.plume-orbit .orb-6{ bottom:-8px; left:4px; opacity:.65; animation:orb-float 4s ease-in-out infinite; animation-delay:2s; }
+.plume-orbit .orb-7{ bottom:-10px; right:24px; opacity:.65; animation:orb-float 3.7s ease-in-out infinite; animation-delay:2.4s; }
+.plume-orbit .orb-8{ top:-10px; right:18px; opacity:.65; animation:orb-float 3.4s ease-in-out infinite; animation-delay:2.8s; }
 
-/* Queue bubbles (simple motion hint) */
+/* Orbs brighten on plume hover/active */
+.storage-plume--library:hover .plume-orb,
+.storage-plume--library.is-active .plume-orb{
+  opacity:1;
+  box-shadow:0 0 8px rgba(167,139,250,.5);
+}
+
+/* -------------------- Storage — Queue Bubbles -------------------- */
+
 .plume-bubbles{
   display:flex;
   align-items:center;
   gap:4px;
   padding-right:2px;
+}
+
+/* Pulse animation for queue bubbles */
+@keyframes bubble-pulse {
+  0%, 100% { transform:scale(1); opacity:.8; }
+  50% { transform:scale(1.15); opacity:1; }
 }
 
 .plume-bubbles span{
@@ -539,9 +657,23 @@ body{
   border-radius:999px;
   background:radial-gradient(circle at 30% 20%, #fff, #22d3ee);
   opacity:.8;
+  transition:transform .22s ease, opacity .22s ease;
 }
 
-/* Storage content area, driven by plumes */
+/* Staggered pulse on each bubble */
+.plume-bubbles span:nth-child(1){ animation:bubble-pulse 1.8s ease-in-out infinite; animation-delay:0s; }
+.plume-bubbles span:nth-child(2){ animation:bubble-pulse 1.8s ease-in-out infinite; animation-delay:0.3s; }
+.plume-bubbles span:nth-child(3){ animation:bubble-pulse 1.8s ease-in-out infinite; animation-delay:0.6s; }
+.plume-bubbles span:nth-child(4){ animation:bubble-pulse 1.8s ease-in-out infinite; animation-delay:0.9s; }
+
+.storage-plume--queue:hover .plume-bubbles span,
+.storage-plume--queue.is-active .plume-bubbles span{
+  opacity:1;
+  box-shadow:0 0 6px rgba(34,211,238,.4);
+}
+
+/* -------------------- Storage — Content Sections -------------------- */
+
 .storage__content{
   margin-top:10px;
   min-height:160px;
@@ -549,13 +681,19 @@ body{
 
 .storage__section{
   display:none;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .3s ease, transform .3s ease;
 }
 
 .storage__section.is-visible{
   display:block;
+  opacity:1;
+  transform:translateY(0);
 }
 
-/* Items inside Recent list */
+/* -------------------- Storage — Items (in Recent list) -------------------- */
+
 .storage__item{
   display:flex;
   align-items:center;
