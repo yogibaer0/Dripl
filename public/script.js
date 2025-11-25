@@ -235,13 +235,24 @@ function initStoragePlumes(){
         return;
       }
 
-      // LIBRARY: toggle focus on/off, keep Library as visible section
-      if (key === "library"){
-        focusKey   = (focusKey === "library") ? null : "library";
+          // LIBRARY: toggle focus; leaving focus returns to Recent section
+    if (key === "library"){
+      const wasFocused = focusKey === "library";
+
+      if (wasFocused){
+        // Exit Library focus: go back to base Recent view
+        focusKey   = null;
+        currentKey = "recent";
+      } else {
+        // Enter Library focus: Library plume header + grid
+        focusKey   = "library";
         currentKey = "library";
-        applyState();
-        return;
       }
+
+      applyState();
+      return;
+    }
+
 
       // QUEUE / SHARED: exit any focus, switch sections normally
       focusKey   = null;
