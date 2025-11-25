@@ -186,6 +186,7 @@ body{
 
 .panel--storage.storage--focus-library .storage-plume-wrap--library{
   display:flex;
+  order: -1; 
 }
 
 
