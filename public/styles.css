@@ -154,6 +154,8 @@ body{
   min-height:620px; /* tweak as desired */
 }
 
+==Recents Focus== 
+
 .panel--storage.storage--focus-recent .storage-plumes{
   gap:14px;
 }
@@ -168,6 +170,22 @@ body{
 
 .panel--storage.storage--focus-recent .storage-dropdown--recent{
   max-height:480px;
+}
+
+===Library Focus===
+
+/* Storage – Library focus (Library plume becomes header) */
+.panel--storage.storage--focus-library .storage-plumes{
+  gap:14px;
+}
+
+/* Hide all plume wraps in Library focus except the Library one */
+.panel--storage.storage--focus-library .storage-plume-wrap{
+  display:none;
+}
+
+.panel--storage.storage--focus-library .storage-plume-wrap--library{
+  display:flex;
 }
 
 
@@ -856,6 +874,66 @@ body{
 }
 
 .small{font-size:11px;}
+
+/* Storage – Library grid */
+.library-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:12px;
+  margin-top:10px;
+}
+
+.library-item{
+  position:relative;
+  border-radius:16px;
+  padding:10px 12px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(167,139,250,.22), transparent 55%),
+    linear-gradient(135deg,#050511,#141327);
+  box-shadow:0 10px 22px rgba(0,0,0,.7);
+  border:1px solid rgba(255,255,255,.05);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  transition:
+    transform .16s ease,
+    box-shadow .16s ease,
+    border-color .16s ease;
+}
+
+.library-item:hover{
+  transform:translateY(-1px) scale(1.01);
+  box-shadow:0 14px 28px rgba(0,0,0,.8);
+  border-color:rgba(167,139,250,.8);
+}
+
+.library-item__icon{
+  width:32px;
+  height:24px;
+  border-radius:8px;
+  background:linear-gradient(135deg,#a78bfa,#4f46e5);
+  margin-bottom:4px;
+}
+
+/* Media tiles get a slightly different accent */
+.library-item--media .library-item__icon{
+  border-radius:6px;
+  background:linear-gradient(135deg,#22c55e,#14b8a6);
+}
+
+.library-item__name{
+  font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.library-empty{
+  margin-top:12px;
+  font-size:13px;
+}
+
 
 
 /* ==========================================================================

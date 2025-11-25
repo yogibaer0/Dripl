@@ -142,6 +142,7 @@
 
 
       // ---------- Storage plumes: sections, dropdowns, focus modes ----------
+    // ---------- Storage plumes: sections, dropdowns, focus modes ----------
   function initStoragePlumes(){
     const panelsRoot   = document.querySelector(".panels");
     const storagePanel = document.querySelector(".panel--storage");
@@ -150,60 +151,64 @@
     const sections     = Array.from(document.querySelectorAll(".storage__section"));
     if (!plumes.length || !sections.length) return;
 
-    const recentBtn  = document.querySelector(".storage-plume--recent");
-    let currentKey   = "recent"; // which content section is active
-    let focusKey     = null;     // which plume has taken over the panel (if any)
+    let currentKey = "recent"; // which content section is active
+    let focusKey   = null;     // "recent" or "library" when in takeover mode
 
     const setFocus = (key) => {
       focusKey = key;
 
-      if (storagePanel){
-        storagePanel.classList.remove(
-          "storage--focus",
-          "storage--focus-recent",
-          "storage--focus-library",
-          "storage--focus-queue",
-          "storage--focus-shared"
-        );
-        if (key){
-          storagePanel.classList.add("storage--focus");
-          storagePanel.classList.add(`storage--focus-${key}`);
-        }
+      if (!storagePanel) return;
+
+      storagePanel.classList.remove(
+        "storage--focus",
+        "storage--focus-recent",
+        "storage--focus-library",
+        "storage--focus-queue",
+        "storage--focus-shared"
+      );
+
+      if (key){
+        storagePanel.classList.add("storage--focus");
+        storagePanel.classList.add(`storage--focus-${key}`);
       }
     };
 
     const openSection = (key) => {
       currentKey = key;
 
-      // Buttons: Recent is only "active" in focus mode;
-      // others are active when they own the section.
+      // Button active states
       plumes.forEach((btn) => {
         const section = btn.dataset.section || "recent";
-        let active    = false;
+        let isActive  = false;
 
         if (section === "recent"){
-          active = focusKey === "recent";
+          // Recent only "clicked" when in focus
+          isActive = focusKey === "recent";
+        } else if (section === "library"){
+          // Library is active whenever its section is open
+          isActive = key === "library";
         } else {
-          active = section === key;
+          isActive = section === key;
         }
 
-        btn.classList.toggle("is-active", active);
+        btn.classList.toggle("is-active", isActive);
       });
 
-      // Dropdowns: Queue opens by selected key, Recent opens only in focus
+      // Dropdown open/close (Recent only in focus, Queue when selected)
       plumeWraps.forEach((wrap) => {
         const btn     = wrap.querySelector(".storage-plume");
         if (!btn) return;
         const section = btn.dataset.section || "";
         const hasDrop = !!wrap.querySelector(".storage-dropdown");
+        let open      = false;
 
-        let open = false;
         if (section === "queue" && key === "queue" && hasDrop){
           open = true;
         }
         if (section === "recent" && focusKey === "recent" && hasDrop){
           open = true;
         }
+
         wrap.classList.toggle("is-open", open);
       });
 
@@ -213,7 +218,7 @@
         sec.classList.toggle("is-visible", isMatch);
       });
 
-      // Library engulf still works as before
+      // Library engulf: Storage takes the top row whenever Library is the active section
       if (panelsRoot){
         const expand = key === "library";
         panelsRoot.classList.toggle("panels--library-expanded", expand);
@@ -224,27 +229,35 @@
       btn.addEventListener("click", () => {
         const key = btn.dataset.section || "recent";
 
-        // Recent: clicking toggles focus mode, but base content key stays "recent"
+        // RECENT: toggle focus (conveyor header ↔ full dropdown view)
         if (key === "recent"){
           const enteringFocus = focusKey !== "recent";
           setFocus(enteringFocus ? "recent" : null);
-          openSection("recent"); // keep Recent as the visible section
+          openSection("recent"); // Recent stays the visible section
           return;
         }
 
-        // Any other plume: exit focus mode and switch sections
+        // LIBRARY: toggle header-focus + engulf mode
+        if (key === "library"){
+          const enteringFocus = focusKey !== "library";
+          setFocus(enteringFocus ? "library" : null);
+          openSection("library"); // keep Library section visible either way
+          return;
+        }
+
+        // Other plumes: just switch sections, no focus mode
         setFocus(null);
         openSection(key);
       });
     });
 
-    // Base state on load: Recent section visible, but not focused, no dropdown open.
+    // Base state on load:
+    // - Recent section visible
+    // - No focus (all plumes visible)
     setFocus(null);
     openSection("recent");
     ensureRecentPlaceholders();
   }
-
-
 
   // ---------- single intake ----------
   function handleFileDrop(fileList){

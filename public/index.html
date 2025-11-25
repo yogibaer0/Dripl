@@ -239,8 +239,34 @@
 
             <!-- Library placeholder for now -->
             <div class="storage__section storage__section--library">
-              <p class="muted">Your Ameba library will collect saved &amp; pinned items here.</p>
-            </div>
+  <!-- Library grid: folders + media tiles -->
+  <div class="library-grid">
+    <div class="library-item library-item--folder">
+      <div class="library-item__icon"></div>
+      <div class="library-item__name">Project folder</div>
+    </div>
+
+    <div class="library-item library-item--media">
+      <div class="library-item__icon"></div>
+      <div class="library-item__name">example-clip.mp4</div>
+    </div>
+
+    <div class="library-item library-item--media">
+      <div class="library-item__icon"></div>
+      <div class="library-item__name">edit-audio.wav</div>
+    </div>
+
+    <div class="library-item library-item--folder">
+      <div class="library-item__icon"></div>
+      <div class="library-item__name">Favorites</div>
+    </div>
+  </div>
+
+  <p class="library-empty muted">
+    Your Ameba library will collect saved &amp; pinned items here.
+  </p>
+</div>
+
 
             <!-- Queue placeholder -->
             <div class="storage__section storage__section--queue">
