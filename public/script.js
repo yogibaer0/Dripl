@@ -74,10 +74,11 @@
     if (els.previewHint) els.previewHint.hidden = true;
   }
 
-   // ---------- Storage UI (stub) ----------
+     // ---------- Storage UI (stub) ----------
   function addToStorageList(file){
     if (!els.storageList || !file) return;
 
+    // Full-size item in the bottom Recent section
     const item = document.createElement("div");
     item.className = "storage__item";
     item.innerHTML = `
@@ -89,8 +90,25 @@
     `;
     els.storageList.prepend(item);
 
+    // Compact row in the Recent dropdown (max 20)
+    const recentList = document.querySelector("#storageRecentList");
+    if (recentList){
+      const mini = document.createElement("div");
+      mini.className = "storage-dropdown__item";
+      mini.innerHTML = `
+        <span class="storage-dropdown__item-name">${file.name}</span>
+        <span class="storage-dropdown__item-meta">just now</span>
+      `;
+      recentList.prepend(mini);
+
+      while (recentList.children.length > 20){
+        recentList.removeChild(recentList.lastElementChild);
+      }
+    }
+
     pushRecentPreview(file);
   }
+
  
  function pushRecentPreview(file){
     if (!els.recentPreviewRow) return;
@@ -105,30 +123,56 @@
     }
   }
 
-  // ---------- Storage plumes (lane switching) ----------
+    // ---------- Storage plumes: sections, dropdowns, Library engulf ----------
   function initStoragePlumes(){
-    const plumes = Array.from(document.querySelectorAll(".storage-plume"));
-    const sections = Array.from(document.querySelectorAll(".storage__section"));
+    const panelsRoot = document.querySelector(".panels");
+    const plumeWraps = Array.from(document.querySelectorAll(".storage-plume-wrap"));
+    const plumes     = Array.from(document.querySelectorAll(".storage-plume"));
+    const sections   = Array.from(document.querySelectorAll(".storage__section"));
     if (!plumes.length || !sections.length) return;
 
-    const showSection = (key) => {
-      sections.forEach(sec => {
+    const openSection = (key) => {
+      // Buttons + wraps
+      plumes.forEach((btn) => {
+        const wrap = btn.closest(".storage-plume-wrap");
+        const isMatch = (btn.dataset.section || "recent") === key;
+
+        btn.classList.toggle("is-active", isMatch);
+
+        if (wrap){
+          const hasDropdown = !!wrap.querySelector(".storage-dropdown");
+          // Only Recent + Queue actually have dropdowns
+          wrap.classList.toggle(
+            "is-open",
+            isMatch && hasDropdown && (key === "recent" || key === "queue")
+          );
+        }
+      });
+
+      // Bottom content sections
+      sections.forEach((sec) => {
         const isMatch = sec.classList.contains(`storage__section--${key}`);
         sec.classList.toggle("is-visible", isMatch);
       });
+
+      // Library engulf: Storage spans the top row, Upload/Import hidden
+      if (panelsRoot){
+        const expand = key === "library";
+        panelsRoot.classList.toggle("panels--library-expanded", expand);
+      }
     };
 
-    plumes.forEach(btn => {
+    plumes.forEach((btn) => {
       btn.addEventListener("click", () => {
         const key = btn.dataset.section || "recent";
-        plumes.forEach(b => b.classList.toggle("is-active", b === btn));
-        showSection(key);
+        openSection(key);
       });
     });
 
-    // Default state
-    showSection("recent");
+    // Default: Recent open, dropdown visible
+    openSection("recent");
   }
+
 
 
   // ---------- single intake ----------

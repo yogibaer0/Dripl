@@ -136,6 +136,25 @@ body{
 
 .panel--dest .card__body{position:relative;}
 
+/* When Library is active, let Storage engulf the top row */
+.panels.panels--library-expanded{
+  grid-template-areas:
+    "storage storage storage"
+    "dest dest dest";
+}
+
+/* Upload + Import disappear while perusing the Library */
+.panels.panels--library-expanded .panel--upload,
+.panels.panels--library-expanded .panel--import{
+  display:none;
+}
+
+/* Give Storage extra vertical space in Library mode */
+.panels.panels--library-expanded .panel--storage{
+  min-height:620px; /* tweak as desired */
+}
+
+
 /* ==========================================================================
    Cards
    ========================================================================== */
@@ -727,6 +746,92 @@ body{
   font-size:11px;
   color:var(--muted);
 }
+
+/* Storage – plume wraps & dropdown pockets */
+.storage-plume-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:relative;
+}
+
+/* Queue wrap uses reverse flow so its dropdown appears above */
+.storage-plume-wrap--queue{
+  flex-direction:column-reverse;
+}
+
+/* Compact dropdown panel (Recent + Queue share this) */
+.storage-dropdown{
+  position:relative;
+  border-radius:18px;
+  padding:10px 12px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(167,139,250,.24), transparent 55%),
+    linear-gradient(145deg, #070712, #100e24);
+  box-shadow:0 14px 32px rgba(0,0,0,.85);
+  border:1px solid rgba(255,255,255,.06);
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  transform:translateY(-4px);
+  transition:
+    max-height .28s ease,
+    opacity .2s ease,
+    transform .28s ease;
+}
+
+/* When the wrap is open, slide the dropdown out */
+.storage-plume-wrap.is-open .storage-dropdown{
+  opacity:1;
+  max-height:220px; /* Recent gets up to ~20 slim rows */
+  transform:translateY(0);
+}
+
+/* Queue gets a slightly smaller pocket */
+.storage-dropdown--queue{
+  max-height:140px;
+}
+
+.storage-dropdown__title{
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin-bottom:6px;
+  color:rgba(231,231,255,.8);
+}
+
+.storage-dropdown__list{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  font-size:12px;
+}
+
+.storage-dropdown__item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  padding:4px 6px;
+  border-radius:8px;
+  background:rgba(4,4,13,.85);
+}
+
+.storage-dropdown__item-name{
+  flex:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.storage-dropdown__item-meta{
+  font-size:11px;
+  opacity:.7;
+}
+
+.small{font-size:11px;}
+
 
 /* ==========================================================================
    Destination Hub — Layout (panel + inner hub)

@@ -135,75 +135,99 @@
             </div>
           </div>
 
-          <!-- Plumes (1–4 buttons) -->
+                    <!-- Plumes (1–4 buttons) -->
           <div class="storage-plumes" role="list">
-            <!-- 1. Recent conversions -->
-            <button
-              class="storage-plume storage-plume--recent is-active"
-              data-section="recent"
-              type="button"
-              role="listitem"
-            >
-              <div class="plume-labels">
-                <span class="plume-title">Recent conversions</span>
-                <span class="plume-subtitle">See what you just converted</span>
-              </div>
-              <div class="plume-previews" id="recent-previews" aria-hidden="true">
-                <!-- thumbnails injected by JS -->
-              </div>
-            </button>
+            <!-- 1. Recent conversions (dropdown DOWN) -->
+            <div class="storage-plume-wrap storage-plume-wrap--recent is-open">
+              <button
+                class="storage-plume storage-plume--recent is-active"
+                data-section="recent"
+                type="button"
+                role="listitem"
+              >
+                <div class="plume-labels">
+                  <span class="plume-title">Recent conversions</span>
+                  <span class="plume-subtitle">See what you just converted</span>
+                </div>
+                <div class="plume-previews" id="recent-previews" aria-hidden="true">
+                  <!-- thumbnails injected by JS -->
+                </div>
+              </button>
 
-            <!-- 2. Library -->
-            <button
-              class="storage-plume storage-plume--library"
-              data-section="library"
-              type="button"
-              role="listitem"
-            >
-              <div class="plume-labels">
-                <span class="plume-title">Library</span>
-                <span class="plume-subtitle">Saved, pinned &amp; favorites</span>
+              <!-- Recent dropdown list -->
+              <div class="storage-dropdown storage-dropdown--recent">
+                <div class="storage-dropdown__title">Recent files</div>
+                <div class="storage-dropdown__list" id="storageRecentList">
+                  <!-- compact rows injected by JS -->
+                </div>
               </div>
-              <div class="plume-orbit" aria-hidden="true">
-                <span class="plume-orb orb-1"></span>
-                <span class="plume-orb orb-2"></span>
-                <span class="plume-orb orb-3"></span>
-                <span class="plume-orb orb-4"></span>
-                <span class="plume-orb orb-5"></span>
-                <span class="plume-orb orb-6"></span>
-                <span class="plume-orb orb-7"></span>
-                <span class="plume-orb orb-8"></span>
-              </div>
-            </button>
+            </div>
 
-            <!-- 3. Queued -->
-            <button
-              class="storage-plume storage-plume--queue"
-              data-section="queue"
-              type="button"
-              role="listitem"
-            >
-              <div class="plume-labels">
-                <span class="plume-title">Queued</span>
-                <span class="plume-subtitle">In progress &amp; upcoming</span>
+            <!-- 2. Library (no dropdown – uses big content area + engulf) -->
+            <div class="storage-plume-wrap storage-plume-wrap--library">
+              <button
+                class="storage-plume storage-plume--library"
+                data-section="library"
+                type="button"
+                role="listitem"
+              >
+                <div class="plume-labels">
+                  <span class="plume-title">Library</span>
+                  <span class="plume-subtitle">Saved, pinned &amp; favorites</span>
+                </div>
+                <div class="plume-orbit" aria-hidden="true">
+                  <span class="plume-orb orb-1"></span>
+                  <span class="plume-orb orb-2"></span>
+                  <span class="plume-orb orb-3"></span>
+                  <span class="plume-orb orb-4"></span>
+                  <span class="plume-orb orb-5"></span>
+                  <span class="plume-orb orb-6"></span>
+                  <span class="plume-orb orb-7"></span>
+                  <span class="plume-orb orb-8"></span>
+                </div>
+              </button>
+            </div>
+
+            <!-- 3. Queued (dropdown UP) -->
+            <div class="storage-plume-wrap storage-plume-wrap--queue">
+              <!-- Queue dropdown (sits visually above the plume) -->
+              <div class="storage-dropdown storage-dropdown--queue">
+                <div class="storage-dropdown__title">Queue</div>
+                <div class="storage-dropdown__list" id="storageQueueList">
+                  <p class="muted small">No active conversions.</p>
+                </div>
               </div>
-              <div class="plume-bubbles" aria-hidden="true">
-                <span></span><span></span><span></span><span></span>
-              </div>
-            </button>
+
+              <button
+                class="storage-plume storage-plume--queue"
+                data-section="queue"
+                type="button"
+                role="listitem"
+              >
+                <div class="plume-labels">
+                  <span class="plume-title">Queued</span>
+                  <span class="plume-subtitle">In progress &amp; upcoming</span>
+                </div>
+                <div class="plume-bubbles" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </button>
+            </div>
 
             <!-- 4. Shared -->
-            <button
-              class="storage-plume storage-plume--shared"
-              data-section="shared"
-              type="button"
-              role="listitem"
-            >
-              <div class="plume-labels">
-                <span class="plume-title">Shared with me</span>
-                <span class="plume-subtitle">Team links &amp; collab</span>
-              </div>
-            </button>
+            <div class="storage-plume-wrap storage-plume-wrap--shared">
+              <button
+                class="storage-plume storage-plume--shared"
+                data-section="shared"
+                type="button"
+                role="listitem"
+              >
+                <div class="plume-labels">
+                  <span class="plume-title">Shared with me</span>
+                  <span class="plume-subtitle">Team links &amp; collab</span>
+                </div>
+              </button>
+            </div>
           </div>
 
           <!-- Content area driven by which plume is active -->
