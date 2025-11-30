@@ -237,36 +237,30 @@
               <div class="grid" id="storage-list"></div>
             </div>
 
-            <!-- Library placeholder for now -->
-            <div class="storage__section storage__section--library">
-  <!-- Library grid: folders + media tiles -->
-  <div class="library-grid">
-    <div class="library-item library-item--folder">
-      <div class="library-item__icon"></div>
-      <div class="library-item__name">Project folder</div>
+           <div class="storage__section storage__section--library">
+  <div class="library-layout">
+    <!-- Left: fixed grid of preview cells -->
+    <div class="library-grid" id="libraryGrid">
+      <!-- Cells are injected by JS -->
     </div>
 
-    <div class="library-item library-item--media">
-      <div class="library-item__icon"></div>
-      <div class="library-item__name">example-clip.mp4</div>
-    </div>
-
-    <div class="library-item library-item--media">
-      <div class="library-item__icon"></div>
-      <div class="library-item__name">edit-audio.wav</div>
-    </div>
-
-    <div class="library-item library-item--folder">
-      <div class="library-item__icon"></div>
-      <div class="library-item__name">Favorites</div>
-    </div>
+    <!-- Right: metadata column -->
+    <aside class="library-meta-panel" id="libraryMetaPanel">
+      <div class="library-meta-panel__inner">
+        <div class="library-meta-panel__label">Details</div>
+        <div class="library-meta-panel__body" id="libraryMetaBody">
+          <p class="muted small">
+            Select a clip or folder to see metadata.
+          </p>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <p class="library-empty muted">
     Your Ameba library will collect saved &amp; pinned items here.
   </p>
 </div>
-
 
             <!-- Queue placeholder -->
             <div class="storage__section storage__section--queue">

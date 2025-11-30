@@ -140,6 +140,161 @@
     }
   }
 
+  // ---------- Library "neuron grid" ----------
+  function initLibraryView(){
+    const grid      = document.getElementById("libraryGrid");
+    const metaPanel = document.getElementById("libraryMetaPanel");
+    const metaBody  = document.getElementById("libraryMetaBody");
+    if (!grid || !metaPanel || !metaBody) return;
+
+    // Demo dataset – replace later with real saved media
+    const libraryItems = [
+      { id: 1,  name: "Project folder",    type: "folder", target: "All destinations", source: "Ameba" },
+      { id: 2,  name: "example-clip.mp4",  type: "video",  target: "YouTube",          source: "Upload" },
+      { id: 3,  name: "edit-audio.wav",    type: "audio",  target: "Spotify / reels",  source: "Upload" },
+      { id: 4,  name: "Favorites",         type: "folder", target: "Mixed",            source: "Ameba" },
+      { id: 5,  name: "shorts-intro.mp4",  type: "video",  target: "YouTube Shorts",   source: "Import" },
+      { id: 6,  name: "loop-ambience.wav", type: "audio",  target: "TikTok",           source: "Upload" },
+      { id: 7,  name: "Podcast Ep.1",      type: "audio",  target: "RSS/Podcast",      source: "Upload" },
+      { id: 8,  name: "Lo-fi reel.mp4",    type: "video",  target: "IG Reels",         source: "Upload" },
+      { id: 9,  name: "Gameplay highlights", type: "video",target: "Twitch / clips",   source: "Upload" },
+      { id:10,  name: "Thumbnail set",     type: "folder", target: "Multi",            source: "Ameba" },
+      { id:11,  name: "Ad hook v3.mp4",    type: "video",  target: "Paid ads",         source: "Upload" },
+      { id:12,  name: "Stream intro",      type: "video",  target: "YouTube / Twitch", source: "Upload" },
+      { id:13,  name: "Extra B-roll",      type: "folder", target: "Library only",     source: "Upload" },
+      { id:14,  name: "Sound effects",     type: "folder", target: "All projects",     source: "Ameba" }
+    ];
+
+    const VISIBLE_SLOTS = 12; // 3 cols x 4 rows
+    const MAX_PAGE      = Math.max(0, Math.ceil(libraryItems.length / VISIBLE_SLOTS) - 1);
+    let currentPage     = 0;
+    let activeId        = null;
+
+    function renderPage(){
+      grid.innerHTML = "";
+
+      const start = currentPage * VISIBLE_SLOTS;
+      const slice = libraryItems.slice(start, start + VISIBLE_SLOTS);
+
+      slice.forEach((item, idx) => {
+        const cell    = document.createElement("button");
+        cell.type     = "button";
+        cell.className= "library-cell";
+        cell.dataset.id = String(item.id);
+
+        const preview = document.createElement("div");
+        preview.className = "library-cell__preview";
+
+        // Divider bar
+        const divider = document.createElement("div");
+        divider.className = "library-cell__divider";
+
+        // Overlay meta bubble
+        const metaBubble = document.createElement("div");
+        metaBubble.className = "library-cell__meta";
+        metaBubble.innerHTML = `
+          <div class="library-cell__meta-title">${item.name}</div>
+          <div class="library-cell__meta-row">Meta: ${item.type}</div>
+          <div class="library-cell__meta-row">To: ${item.target}</div>
+          <div class="library-cell__meta-row">From: ${item.source}</div>
+        `;
+
+        cell.appendChild(preview);
+        cell.appendChild(divider);
+        cell.appendChild(metaBubble);
+
+        // Any click inside the cell that hits the divider toggles meta
+        cell.addEventListener("click", (evt) => {
+          const clickedDivider = evt.target === divider;
+          const clickedCell    = evt.currentTarget;
+
+          if (!clickedDivider){
+            // Non-divider clicks just set focus in the right-hand meta panel
+            showMetaInSidePanel(item);
+            setActiveCell(clickedCell, item.id, false);
+            return;
+          }
+
+          // Divider clicked: toggle overlay bubble and update side panel
+          const isSame = activeId === item.id && clickedCell.classList.contains("library-cell--show-meta");
+          if (isSame){
+            // Turn off overlay + active state
+            setActiveCell(null, null, true);
+            clearSidePanel();
+          } else {
+            setActiveCell(clickedCell, item.id, true);
+            showMetaInSidePanel(item);
+          }
+        });
+
+        grid.appendChild(cell);
+      });
+
+      // If the currently active item scrolled off page, clear selection
+      if (!libraryItems.find(it => it.id === activeId && it === slice.find(s => s.id === it.id))){
+        setActiveCell(null, null, true);
+        clearSidePanel();
+      }
+    }
+
+    function setActiveCell(cell, id, toggleBubble){
+      activeId = id;
+
+      const cells = grid.querySelectorAll(".library-cell");
+      cells.forEach((node) => {
+        node.classList.remove("library-cell--active","library-cell--show-meta");
+      });
+
+      if (!cell || !id) return;
+
+      cell.classList.add("library-cell--active");
+      if (toggleBubble){
+        cell.classList.add("library-cell--show-meta");
+      }
+    }
+
+    function showMetaInSidePanel(item){
+      metaBody.innerHTML = `
+        <p><strong>${item.name}</strong></p>
+        <p class="small">Type: ${item.type}</p>
+        <p class="small">Destination: ${item.target}</p>
+        <p class="small">Source: ${item.source}</p>
+        <p class="small">Others like this: coming soon…</p>
+      `;
+    }
+
+    function clearSidePanel(){
+      metaBody.innerHTML = `<p class="muted small">Select a clip or folder to see metadata.</p>`;
+    }
+
+    // Scroll = page the neurons; the card itself doesn’t move
+    grid.addEventListener("wheel", (evt) => {
+      evt.preventDefault();
+
+      if (evt.deltaY > 0 && currentPage < MAX_PAGE){
+        currentPage++;
+        renderPage();
+      } else if (evt.deltaY < 0 && currentPage > 0){
+        currentPage--;
+        renderPage();
+      }
+    }, { passive: false });
+
+    // Optional: arrow-key paging when Library is focused
+    grid.addEventListener("keydown", (evt) => {
+      if (evt.key === "ArrowDown" && currentPage < MAX_PAGE){
+        currentPage++;
+        renderPage();
+      }
+      if (evt.key === "ArrowUp" && currentPage > 0){
+        currentPage--;
+        renderPage();
+      }
+    });
+
+    renderPage();
+  }
+
 
       // ---------- Storage plumes: sections, dropdowns, focus modes ----------
 function initStoragePlumes(){
@@ -363,6 +518,7 @@ function initStoragePlumes(){
     initImportIcons();
     initConvert();
     initStoragePlumes();
+    initLibraryView();
   };
 })();
 
