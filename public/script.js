@@ -175,11 +175,18 @@
       if (!nodesContainer){
         nodesContainer = document.createElement("div");
         nodesContainer.className = "library-grid__nodes";
-        // Create 25 nodes for 5x5 intersections
-        for (let i = 0; i < 25; i++){
-          const node = document.createElement("div");
-          node.className = "library-grid__node";
-          nodesContainer.appendChild(node);
+        // Create 25 nodes for 5x5 intersections (4 columns = 5 vertical lines)
+        const rows = 5;
+        const cols = 5;
+        for (let row = 0; row < rows; row++){
+          for (let col = 0; col < cols; col++){
+            const node = document.createElement("div");
+            node.className = "library-grid__node";
+            // Set position via CSS custom properties for maintainability
+            node.style.setProperty("--node-row", `${(row / (rows - 1)) * 100}%`);
+            node.style.setProperty("--node-col", `${(col / (cols - 1)) * 100}%`);
+            nodesContainer.appendChild(node);
+          }
         }
         grid.appendChild(nodesContainer);
       }
