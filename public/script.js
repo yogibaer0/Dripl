@@ -169,6 +169,29 @@
     let currentPage     = 0;
     let activeId        = null;
 
+    // Create glowing nodes at grid intersections (5x5 = 25 nodes for 4x4 grid)
+    function createIntersectionNodes(){
+      let nodesContainer = grid.querySelector(".library-grid__nodes");
+      if (!nodesContainer){
+        nodesContainer = document.createElement("div");
+        nodesContainer.className = "library-grid__nodes";
+        // Create 25 nodes for 5x5 intersections (4 columns = 5 vertical lines)
+        const rows = 5;
+        const cols = 5;
+        for (let row = 0; row < rows; row++){
+          for (let col = 0; col < cols; col++){
+            const node = document.createElement("div");
+            node.className = "library-grid__node";
+            // Set position via CSS custom properties for maintainability
+            node.style.setProperty("--node-row", `${(row / (rows - 1)) * 100}%`);
+            node.style.setProperty("--node-col", `${(col / (cols - 1)) * 100}%`);
+            nodesContainer.appendChild(node);
+          }
+        }
+        grid.appendChild(nodesContainer);
+      }
+    }
+
     function clearSidePanel(){
       metaBody.innerHTML = `<p class="muted small">Select a clip or folder to see metadata.</p>`;
     }
@@ -201,7 +224,12 @@
     }
 
     function renderPage(){
+      // Preserve the intersection nodes container
+      const nodesContainer = grid.querySelector(".library-grid__nodes");
       grid.innerHTML = "";
+      if (nodesContainer){
+        grid.appendChild(nodesContainer);
+      }
 
       const startIndex = currentPage * VISIBLE_SLOTS;
 
@@ -213,11 +241,8 @@
         cell.className  = "library-cell";
 
         if (!item){
-          // True empty chamber — only micro node hint
+          // True empty chamber — NO content, only grid lines visible around it
           cell.classList.add("library-cell--empty");
-          const node = document.createElement("div");
-          node.className = "library-cell__node";
-          cell.appendChild(node);
           grid.appendChild(cell);
           continue;
         }
@@ -242,6 +267,7 @@
           <div class="library-cell__meta-row">From: ${item.source}</div>
         `;
 
+        // Corner node for filled cells
         const node = document.createElement("div");
         node.className = "library-cell__node";
 
@@ -308,6 +334,8 @@
       }
     });
 
+    // Initialize intersection nodes and render
+    createIntersectionNodes();
     clearSidePanel();
     renderPage();
   }
