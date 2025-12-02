@@ -140,117 +140,37 @@
     }
   }
 
-  // ---------- Library "neuron grid" ----------
+   // ---------- Library "cytoskeleton" grid ----------
   function initLibraryView(){
     const grid      = document.getElementById("libraryGrid");
-    const metaPanel = document.getElementById("libraryMetaPanel");
     const metaBody  = document.getElementById("libraryMetaBody");
-    if (!grid || !metaPanel || !metaBody) return;
+    if (!grid || !metaBody) return;
 
-    // Demo dataset – replace later with real saved media
+    // Demo dataset — each item is an "organism" that can occupy a chamber
     const libraryItems = [
-      { id: 1,  name: "Project folder",    type: "folder", target: "All destinations", source: "Ameba" },
-      { id: 2,  name: "example-clip.mp4",  type: "video",  target: "YouTube",          source: "Upload" },
-      { id: 3,  name: "edit-audio.wav",    type: "audio",  target: "Spotify / reels",  source: "Upload" },
-      { id: 4,  name: "Favorites",         type: "folder", target: "Mixed",            source: "Ameba" },
-      { id: 5,  name: "shorts-intro.mp4",  type: "video",  target: "YouTube Shorts",   source: "Import" },
-      { id: 6,  name: "loop-ambience.wav", type: "audio",  target: "TikTok",           source: "Upload" },
-      { id: 7,  name: "Podcast Ep.1",      type: "audio",  target: "RSS/Podcast",      source: "Upload" },
-      { id: 8,  name: "Lo-fi reel.mp4",    type: "video",  target: "IG Reels",         source: "Upload" },
-      { id: 9,  name: "Gameplay highlights", type: "video",target: "Twitch / clips",   source: "Upload" },
-      { id:10,  name: "Thumbnail set",     type: "folder", target: "Multi",            source: "Ameba" },
-      { id:11,  name: "Ad hook v3.mp4",    type: "video",  target: "Paid ads",         source: "Upload" },
-      { id:12,  name: "Stream intro",      type: "video",  target: "YouTube / Twitch", source: "Upload" },
-      { id:13,  name: "Extra B-roll",      type: "folder", target: "Library only",     source: "Upload" },
-      { id:14,  name: "Sound effects",     type: "folder", target: "All projects",     source: "Ameba" }
+      { id: 1,  name: "Project folder",       type: "folder", target: "All destinations",   source: "Ameba",  aspect: "square"    },
+      { id: 2,  name: "example-clip.mp4",     type: "video",  target: "YouTube",            source: "Upload", aspect: "landscape" },
+      { id: 3,  name: "shorts-intro.mp4",     type: "video",  target: "YouTube Shorts",     source: "Upload", aspect: "portrait"  },
+      { id: 4,  name: "edit-audio.wav",       type: "audio",  target: "Spotify / Reels",    source: "Upload", aspect: "landscape" },
+      { id: 5,  name: "Favorites",            type: "folder", target: "Mixed",              source: "Ameba",  aspect: "square"    },
+      { id: 6,  name: "Lo-fi reel.mp4",       type: "video",  target: "IG Reels",           source: "Upload", aspect: "portrait"  },
+      { id: 7,  name: "Gameplay highlights",  type: "video",  target: "Twitch / clips",     source: "Upload", aspect: "landscape" },
+      { id: 8,  name: "Podcast Ep.1",         type: "audio",  target: "Podcast feeds",      source: "Upload", aspect: "square"    },
+      { id: 9,  name: "Thumbnail set",        type: "folder", target: "Multi",              source: "Ameba",  aspect: "square"    },
+      { id:10,  name: "Ad hook v3.mp4",       type: "video",  target: "Paid ads",           source: "Upload", aspect: "landscape" },
+      { id:11,  name: "Stream intro",         type: "video",  target: "YouTube / Twitch",   source: "Upload", aspect: "landscape" },
+      { id:12,  name: "Extra B-roll",         type: "folder", target: "Library only",       source: "Upload", aspect: "square"    },
+      { id:13,  name: "Sound effects",        type: "folder", target: "All projects",       source: "Ameba",  aspect: "square"    },
+      { id:14,  name: "Loop ambience.wav",    type: "audio",  target: "Background beds",    source: "Upload", aspect: "square"    }
     ];
 
-    const VISIBLE_SLOTS = 12; // 3 cols x 4 rows
+    const VISIBLE_SLOTS = 16; // 4 columns x 4 rows
     const MAX_PAGE      = Math.max(0, Math.ceil(libraryItems.length / VISIBLE_SLOTS) - 1);
     let currentPage     = 0;
     let activeId        = null;
 
-    function renderPage(){
-      grid.innerHTML = "";
-
-      const start = currentPage * VISIBLE_SLOTS;
-      const slice = libraryItems.slice(start, start + VISIBLE_SLOTS);
-
-      slice.forEach((item, idx) => {
-        const cell    = document.createElement("button");
-        cell.type     = "button";
-        cell.className= "library-cell";
-        cell.dataset.id = String(item.id);
-
-        const preview = document.createElement("div");
-        preview.className = "library-cell__preview";
-
-        // Divider bar
-        const divider = document.createElement("div");
-        divider.className = "library-cell__divider";
-
-        // Overlay meta bubble
-        const metaBubble = document.createElement("div");
-        metaBubble.className = "library-cell__meta";
-        metaBubble.innerHTML = `
-          <div class="library-cell__meta-title">${item.name}</div>
-          <div class="library-cell__meta-row">Meta: ${item.type}</div>
-          <div class="library-cell__meta-row">To: ${item.target}</div>
-          <div class="library-cell__meta-row">From: ${item.source}</div>
-        `;
-
-        cell.appendChild(preview);
-        cell.appendChild(divider);
-        cell.appendChild(metaBubble);
-
-        // Any click inside the cell that hits the divider toggles meta
-        cell.addEventListener("click", (evt) => {
-          const clickedDivider = evt.target === divider;
-          const clickedCell    = evt.currentTarget;
-
-          if (!clickedDivider){
-            // Non-divider clicks just set focus in the right-hand meta panel
-            showMetaInSidePanel(item);
-            setActiveCell(clickedCell, item.id, false);
-            return;
-          }
-
-          // Divider clicked: toggle overlay bubble and update side panel
-          const isSame = activeId === item.id && clickedCell.classList.contains("library-cell--show-meta");
-          if (isSame){
-            // Turn off overlay + active state
-            setActiveCell(null, null, true);
-            clearSidePanel();
-          } else {
-            setActiveCell(clickedCell, item.id, true);
-            showMetaInSidePanel(item);
-          }
-        });
-
-        grid.appendChild(cell);
-      });
-
-      // If the currently active item scrolled off page, clear selection
-      if (!libraryItems.find(it => it.id === activeId && it === slice.find(s => s.id === it.id))){
-        setActiveCell(null, null, true);
-        clearSidePanel();
-      }
-    }
-
-    function setActiveCell(cell, id, toggleBubble){
-      activeId = id;
-
-      const cells = grid.querySelectorAll(".library-cell");
-      cells.forEach((node) => {
-        node.classList.remove("library-cell--active","library-cell--show-meta");
-      });
-
-      if (!cell || !id) return;
-
-      cell.classList.add("library-cell--active");
-      if (toggleBubble){
-        cell.classList.add("library-cell--show-meta");
-      }
+    function clearSidePanel(){
+      metaBody.innerHTML = `<p class="muted small">Select a clip or folder to see metadata.</p>`;
     }
 
     function showMetaInSidePanel(item){
@@ -263,11 +183,107 @@
       `;
     }
 
-    function clearSidePanel(){
-      metaBody.innerHTML = `<p class="muted small">Select a clip or folder to see metadata.</p>`;
+    function setActiveCell(cell, id, toggleBubble){
+      activeId = id || null;
+
+      const cells = grid.querySelectorAll(".library-cell");
+      cells.forEach((node) => {
+        node.classList.remove("library-cell--active", "library-cell--show-meta");
+      });
+
+      if (!cell || !id) return;
+      if (cell.classList.contains("library-cell--empty")) return;
+
+      cell.classList.add("library-cell--active");
+      if (toggleBubble){
+        cell.classList.add("library-cell--show-meta");
+      }
     }
 
-    // Scroll = page the neurons; the card itself doesn’t move
+    function renderPage(){
+      grid.innerHTML = "";
+
+      const startIndex = currentPage * VISIBLE_SLOTS;
+
+      for (let slot = 0; slot < VISIBLE_SLOTS; slot++){
+        const itemIndex = startIndex + slot;
+        const item      = libraryItems[itemIndex];
+        const cell      = document.createElement("button");
+        cell.type       = "button";
+        cell.className  = "library-cell";
+
+        if (!item){
+          // True empty chamber — only micro node hint
+          cell.classList.add("library-cell--empty");
+          const node = document.createElement("div");
+          node.className = "library-cell__node";
+          cell.appendChild(node);
+          grid.appendChild(cell);
+          continue;
+        }
+
+        cell.classList.add("library-cell--filled");
+        cell.dataset.id = String(item.id);
+
+        const aspect = item.aspect || "square";
+
+        const preview = document.createElement("div");
+        preview.className = `library-cell__preview library-cell__preview--${aspect}`;
+
+        const divider = document.createElement("div");
+        divider.className = "library-cell__divider";
+
+        const metaBubble = document.createElement("div");
+        metaBubble.className = "library-cell__meta";
+        metaBubble.innerHTML = `
+          <div class="library-cell__meta-title">${item.name}</div>
+          <div class="library-cell__meta-row">Meta: ${item.type}</div>
+          <div class="library-cell__meta-row">To: ${item.target}</div>
+          <div class="library-cell__meta-row">From: ${item.source}</div>
+        `;
+
+        const node = document.createElement("div");
+        node.className = "library-cell__node";
+
+        cell.appendChild(preview);
+        cell.appendChild(divider);
+        cell.appendChild(metaBubble);
+        cell.appendChild(node);
+
+        cell.addEventListener("click", (evt) => {
+          const clickedDivider = evt.target === divider;
+
+          if (!clickedDivider){
+            // Chamber click: focus organism in side panel, no overlay toggle
+            showMetaInSidePanel(item);
+            setActiveCell(cell, item.id, false);
+            return;
+          }
+
+          // Divider click: toggle overlay bubble + focus
+          const isSameBubble = cell.classList.contains("library-cell--show-meta") && activeId === item.id;
+
+          if (isSameBubble){
+            setActiveCell(null, null, true);
+            clearSidePanel();
+          } else {
+            setActiveCell(cell, item.id, true);
+            showMetaInSidePanel(item);
+          }
+        });
+
+        grid.appendChild(cell);
+      }
+
+      // If the previously active organism walked off-page, clear focus
+      if (!libraryItems.some((it) => it.id === activeId &&
+            it === libraryItems[startIndex + (libraryItems.slice(startIndex, startIndex + VISIBLE_SLOTS).findIndex(s => s && s.id === it.id))])){
+        setActiveCell(null, null, true);
+        clearSidePanel();
+      }
+    }
+
+    // Scroll → page through organisms; cytoskeleton stays still
     grid.addEventListener("wheel", (evt) => {
       evt.preventDefault();
 
@@ -280,7 +296,7 @@
       }
     }, { passive: false });
 
-    // Optional: arrow-key paging when Library is focused
+    // Optional keyboard paging
     grid.addEventListener("keydown", (evt) => {
       if (evt.key === "ArrowDown" && currentPage < MAX_PAGE){
         currentPage++;
@@ -292,6 +308,7 @@
       }
     });
 
+    clearSidePanel();
     renderPage();
   }
 
