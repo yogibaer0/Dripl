@@ -949,163 +949,77 @@ body{
   align-items:stretch; /* Allow grid to stretch full height */
 }
 
-/* The grid is the organism's cytoskeleton - NO container look */
-.library-grid{
-  position:relative;
-  display:grid;
-  grid-template-columns:repeat(4, minmax(0,1fr)); /* 4 columns */
-  gap:0; /* lines define the chambers */
-  padding:0; /* No padding - grid lines extend to edges */
-  border-radius:0; /* No rounded corners */
-  background:transparent; /* No container background */
-  box-shadow:none; /* No container shadow */
-  overflow:visible; /* Let grid lines visually extend */
-  min-height:100%;
+/* ============================================================
+   Storage Library — Cytoskeleton Grid
+   Thick glowing conduits, no edge nodes, lines extend past view
+   ============================================================ */
+
+.library-grid {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden; /* hide the overshoot so lines feel endless */
 }
 
-/* Glowing cytoskeleton grid lines - extend full height */
-.library-grid::before{
-  content:"";
-  position:absolute;
-  /* Extend beyond container edges for visual effect */
-  top:-30px;
-  bottom:-30px;
-  left:0;
-  right:0;
+/* Main glowing conduits (vertical + horizontal) */
+.library-grid::before {
+  content: "";
+  position: absolute;
+
+  /* extend beyond the visible area so you don't see the ends */
+  inset: -40px;
+
   background:
-    /* Vertical conduits - 3px thick, using accent color */
+    /* vertical conduits (4 columns) */
     repeating-linear-gradient(
       to right,
-      transparent 0,
-      transparent calc(25% - 1.5px),
-      var(--brand) calc(25% - 1.5px),
-      var(--brand) calc(25% + 1.5px),
-      transparent calc(25% + 1.5px),
-      transparent 25%
+      rgba(212, 189, 255, 0.90) 0,
+      rgba(212, 189, 255, 0.90) 7px,   /* THICK core */
+      transparent 7px,
+      transparent calc(25% - 7px)
     ),
-    /* Horizontal conduits - 3px thick, using accent color */
+    /* horizontal conduits (4 rows) */
     repeating-linear-gradient(
       to bottom,
-      transparent 0,
-      transparent calc(25% - 1.5px),
-      var(--brand) calc(25% - 1.5px),
-      var(--brand) calc(25% + 1.5px),
-      transparent calc(25% + 1.5px),
-      transparent 25%
+      rgba(212, 189, 255, 0.94) 0,
+      rgba(212, 189, 255, 0.94) 7px,   /* THICK core */
+      transparent 7px,
+      transparent calc(25% - 7px)
     );
-  opacity:1;
-  filter:blur(0.3px) drop-shadow(0 0 10px var(--brand)) drop-shadow(0 0 20px rgba(167,139,250,.7));
-  pointer-events:none;
-  z-index:0;
-  animation:gridPulse 6s ease-in-out infinite alternate;
+
+  opacity: 0.95;
+  filter:
+    drop-shadow(0 0 32px rgba(199, 210, 254, 1))
+    drop-shadow(0 0 64px rgba(165, 180, 252, 0.9));
+  pointer-events: none;
+  z-index: -1;
 }
 
-/* Second layer for enhanced glow effect - soft blur halo */
-.library-grid::after{
-  content:"";
-  position:absolute;
-  top:-30px;
-  bottom:-30px;
-  left:0;
-  right:0;
-  background:
-    /* Vertical glow layer */
-    repeating-linear-gradient(
-      to right,
-      transparent 0,
-      transparent calc(25% - 3px),
-      rgba(167,139,250,.4) calc(25% - 3px),
-      rgba(167,139,250,.4) calc(25% + 3px),
-      transparent calc(25% + 3px),
-      transparent 25%
-    ),
-    /* Horizontal glow layer */
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(25% - 3px),
-      rgba(167,139,250,.4) calc(25% - 3px),
-      rgba(167,139,250,.4) calc(25% + 3px),
-      transparent calc(25% + 3px),
-      transparent 25%
-    );
-  filter:blur(6px);
-  opacity:.85;
-  pointer-events:none;
-  z-index:0;
+/* Soft upward "water through roots" highlight */
+.library-grid::after {
+  content: "";
+  position: absolute;
+  inset: -40px;
+
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    rgba(191, 219, 254, 0.00) 20%,
+    rgba(191, 219, 254, 0.55) 50%,
+    rgba(191, 219, 254, 0.00) 80%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  pointer-events: none;
+  animation: libraryFlow 9s linear infinite;
+  z-index: -1;
 }
 
-@keyframes gridPulse{
-  0%{
-    opacity:.85;
-    filter:blur(0.5px) drop-shadow(0 0 6px var(--brand)) drop-shadow(0 0 12px rgba(167,139,250,.5));
-  }
-  50%{
-    opacity:1;
-    filter:blur(0.5px) drop-shadow(0 0 12px var(--brand)) drop-shadow(0 0 24px rgba(167,139,250,.8));
-  }
-  100%{
-    opacity:.9;
-    filter:blur(0.5px) drop-shadow(0 0 8px var(--brand)) drop-shadow(0 0 16px rgba(167,139,250,.6));
-  }
-}
-
-/* Glowing nodes at grid intersections */
-.library-grid__nodes{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index:1;
-}
-
-.library-grid__node{
-  position:absolute;
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #fff 0%, var(--brand) 40%, rgba(167,139,250,.5) 100%);
-  box-shadow:0 0 8px var(--brand), 0 0 16px rgba(167,139,250,.9);
-  transform:translate(-50%, -50%);
-  opacity:.8;
-  transition:opacity .3s ease, transform .3s ease, box-shadow .3s ease;
-  /* Performance optimization for animations */
-  will-change:transform, opacity;
-  /* Use CSS custom properties for position - set via JS */
-  top:var(--node-row, 0);
-  left:var(--node-col, 0);
-}
-
-/* Subtle pulse animation for nodes - reduced to corner nodes only for performance */
-@keyframes nodePulse{
-  0%,100%{
-    opacity:.7;
-    transform:translate(-50%,-50%) scale(1);
-    box-shadow:0 0 6px var(--brand), 0 0 12px rgba(167,139,250,.7);
-  }
-  50%{
-    opacity:1;
-    transform:translate(-50%,-50%) scale(1.2);
-    box-shadow:0 0 10px var(--brand), 0 0 20px rgba(167,139,250,1);
-  }
-}
-
-/* Apply animation only to corner nodes (4 corners) for better performance */
-.library-grid__node:nth-child(1),
-.library-grid__node:nth-child(5),
-.library-grid__node:nth-child(21),
-.library-grid__node:nth-child(25){
-  animation:nodePulse 4s ease-in-out infinite;
-}
-
-/* Stagger the corner animations */
-.library-grid__node:nth-child(5){animation-delay:1s}
-.library-grid__node:nth-child(21){animation-delay:2s}
-.library-grid__node:nth-child(25){animation-delay:3s}
-
-/* Node hover: brighten all nodes via parent hover */
-.library-grid:hover .library-grid__node{
-  opacity:1;
-  box-shadow:0 0 10px var(--brand), 0 0 20px rgba(167,139,250,1);
+@keyframes libraryFlow {
+  0%   { background-position: 0 100%; }
+  100% { background-position: 0   0%; }
 }
 
 
@@ -1343,6 +1257,11 @@ body{
 
 /* Tiny helper */
 .small{ font-size:11px; }
+
+/* ---- Override old library rail layer (hide dots/balls) ---- */
+.library-cytoskeleton-rail {
+  display: none;
+}
 
 
 
