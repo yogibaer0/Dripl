@@ -251,6 +251,7 @@
         cell.dataset.id = String(item.id);
 
         const aspect = item.aspect || "square";
+	cell.dataset.aspect = aspect;
 
         const preview = document.createElement("div");
         preview.className = `library-cell__preview library-cell__preview--${aspect}`;
