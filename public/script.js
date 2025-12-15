@@ -278,6 +278,45 @@
         cell.appendChild(divider);
         cell.appendChild(metaBubble);
         cell.appendChild(node);
+        
+// --- Shape morphing: default 1:1, adapt to true aspect while observed ---
+        const resetPreviewShape = () => {
+          preview.classList.remove(
+            "library-cell__preview--landscape",
+            "library-cell__preview--portrait"
+          );
+          if (!preview.classList.contains("library-cell__preview--square")) {
+            preview.classList.add("library-cell__preview--square");
+          }
+        };
+
+        const applyAspectShape = () => {
+          const aspectForCell = cell.dataset.aspect || "square";
+
+          preview.classList.remove(
+            "library-cell__preview--square",
+            "library-cell__preview--landscape",
+            "library-cell__preview--portrait"
+          );
+
+          if (aspectForCell === "landscape") {
+            preview.classList.add("library-cell__preview--landscape");
+          } else if (aspectForCell === "portrait") {
+            preview.classList.add("library-cell__preview--portrait");
+          } else {
+            preview.classList.add("library-cell__preview--square");
+          }
+        };
+
+        // Mouse + keyboard observation
+        cell.addEventListener("mouseenter", applyAspectShape);
+        cell.addEventListener("mouseleave", resetPreviewShape);
+        cell.addEventListener("focus", applyAspectShape);
+        cell.addEventListener("blur", resetPreviewShape);
+
+        // Ensure base state is always the 1:1 chamber
+        resetPreviewShape();
+
 
         cell.addEventListener("click", (evt) => {
           const clickedDivider = evt.target === divider;
