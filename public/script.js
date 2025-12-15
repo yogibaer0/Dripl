@@ -254,7 +254,9 @@
 	cell.dataset.aspect = aspect;
 
         const preview = document.createElement("div");
-        preview.className = `library-cell__preview library-cell__preview--${aspect}`;
+	/* Start everything as a 1:1 organism – aspect morphs only on hover */
+	preview.className = "library-cell__preview library-cell__preview--square";
+
 
         const divider = document.createElement("div");
         divider.className = "library-cell__divider";
