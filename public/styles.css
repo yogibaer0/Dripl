@@ -961,48 +961,73 @@ body{
    Thick glowing conduits, no edge nodes, lines extend past view
    ============================================================ */
 
-/* Storage Library — grid / cytoskeleton
-   The grid is the organism's cytoskeleton: fixed 4×4, no gloss overlay. */
+/* === Ameba Library – strict 4×4 cytoskeleton override === */
+
+/* One true 4×4 grid, no gaps – 1 chamber per window */
 .library-grid {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
-
-  /* ACTUAL 4×4 structure so rails match cells */
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, minmax(140px, 1fr));
-  gap: 0;
-  margin-top: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0;                /* no gaps – lines become the boundaries */
+  margin-top: 10px;
 }
 
-/* Thin, bright rails only – no big blurred “sheet” */
+/* Grid conduits: thick glowing lines, no glossy wash */
 .library-grid::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 
-  /* 4 vertical + 4 horizontal rails, ~4px thick */
+  /* vertical conduits */
   background:
-    repeating-linear-gradient(
+    linear-gradient(
       to right,
       transparent 0,
       transparent calc(25% - 2px),
-      rgba(167, 139, 250, 0.95) calc(25% - 2px),
-      rgba(167, 139, 250, 0.95) calc(25% + 2px)
+      rgba(167, 139, 250, 0.55) calc(25% - 1px),
+      rgba(214, 187, 252, 0.95) 25%,
+      rgba(167, 139, 250, 0.55) calc(25% + 1px),
+      transparent calc(25% + 2px),
+      transparent calc(50% - 2px),
+      rgba(167, 139, 250, 0.55) calc(50% - 1px),
+      rgba(214, 187, 252, 0.95) 50%,
+      rgba(167, 139, 250, 0.55) calc(50% + 1px),
+      transparent calc(50% + 2px),
+      transparent calc(75% - 2px),
+      rgba(167, 139, 250, 0.55) calc(75% - 1px),
+      rgba(214, 187, 252, 0.95) 75%,
+      rgba(167, 139, 250, 0.55) calc(75% + 1px),
+      transparent calc(75% + 2px),
+      transparent 100%
     ),
-    repeating-linear-gradient(
+    /* horizontal conduits */
+    linear-gradient(
       to bottom,
       transparent 0,
       transparent calc(25% - 2px),
-      rgba(167, 139, 250, 0.95) calc(25% - 2px),
-      rgba(167, 139, 250, 0.95) calc(25% + 2px)
+      rgba(167, 139, 250, 0.55) calc(25% - 1px),
+      rgba(214, 187, 252, 0.95) 25%,
+      rgba(167, 139, 250, 0.55) calc(25% + 1px),
+      transparent calc(25% + 2px),
+      transparent calc(50% - 2px),
+      rgba(167, 139, 250, 0.55) calc(50% - 1px),
+      rgba(214, 187, 252, 0.95) 50%,
+      rgba(167, 139, 250, 0.55) calc(50% + 1px),
+      transparent calc(50% + 2px),
+      transparent calc(75% - 2px),
+      rgba(167, 139, 250, 0.55) calc(75% - 1px),
+      rgba(214, 187, 252, 0.95) 75%,
+      rgba(167, 139, 250, 0.55) calc(75% + 1px),
+      transparent calc(75% + 2px),
+      transparent 100%
     );
-
-  opacity: 0.95;
-  /* 🚫 no drop-shadow here – that’s what was creating the “gloss” */
+}
+  filter:
+    drop-shadow(0 0 18px rgba(199,210,254,0.9))
+    drop-shadow(0 0 32px rgba(165,180,252,0.8));
 }
 
 /* Chambers: pure structural cells, always square - NO backgrounds */
@@ -1029,66 +1054,66 @@ body{
   display:none;
 }
 
-/* Organism occupying the chamber — semi-floating with glow */
-.library-cell__preview {
+/* Organism occupying the chamber: default 1:1 organism sitting INSIDE the grid cell */
+.library-cell__preview{
   position: relative;
-  border-radius: 10px;
-
-  /* keep your existing look */
+  width: 70%;
+  aspect-ratio: 1 / 1;            /* 👈 default: always a square chamber */
+  border-radius: 16px;
   background:
-    radial-gradient(ellipse at 30% 20%, rgba(167,139,250,.12), transparent 70%),
-    rgba(15,23,42,.25);
+    radial-gradient(ellipse at 30% 20%, rgba(167,139,250,.14), transparent 70%),
+    rgba(15,23,42,.45);
   box-shadow:
-    0 6px 20px rgba(0,0,0,.4),
-    0 16px rgba(167,139,250,.35),
-    inset 0 0 1px rgba(167,139,250,.25);
-
-  /* NEW: default 1:1 petri dish */
-  width: 80%;
-  margin: 0 auto;
-  aspect-ratio: 1 / 1;
-
+    0 10px 30px rgba(0,0,0,.55),
+    0 0 20px rgba(167,139,250,.35),
+    inset 0 0 0 1px rgba(167,139,250,.4);
   opacity: 0;
-  transform: scale(.9) translateY(2px);
+  transform: scale(.92) translateY(2px);
   transition:
     opacity .25s ease,
     transform .25s ease,
     box-shadow .25s ease,
-    aspect-ratio .25s ease;
+    width .25s ease,
+    aspect-ratio .25s ease,
+    border-radius .25s ease;
   overflow: hidden;
 }
 
-/* A filled chamber – preview becomes visible */
-.library-cell--filled .library-cell__preview {
+/* Filled vs empty chambers */
+.library-cell--filled .library-cell__preview{
   opacity: 1;
   transform: scale(1) translateY(0);
 }
 
-/* Aspect morphing inside the chamber */
+.library-cell--empty .library-cell__preview{
+  opacity: 0;
+  pointer-events: none;
+}
 
-/* Landscape media: stretch horizontally on hover/active */
-.library-cell[data-aspect="landscape"]:hover .library-cell__preview,
-.library-cell[data-aspect="landscape"].library-cell--active .library-cell__preview {
+/* Shape morphing inside the chamber – aspect-ratio aware */
+.library-cell__preview--square{
+  width: 70%;
+  aspect-ratio: 1 / 1;
+}
+
+.library-cell__preview--landscape{
+  width: 90%;
   aspect-ratio: 16 / 9;
 }
 
-/* Portrait media: stretch vertically on hover/active */
-.library-cell[data-aspect="portrait"]:hover .library-cell__preview,
-.library-cell[data-aspect="portrait"].library-cell--active .library-cell__preview {
+.library-cell__preview--portrait{
+  width: 62%;
   aspect-ratio: 9 / 16;
 }
 
-/* Square stays square – no extra rule needed */
-
-/* Hover / active: organism "floats higher" with enhanced glow */
+/* Hover / active: organism “floats higher” with enhanced glow */
 .library-cell:hover .library-cell__preview,
 .library-cell--active .library-cell__preview{
-  opacity:1;
-  transform:scale(1.03) translateY(-4px);
   box-shadow:
-    0 12px 28px rgba(0,0,0,.5),
-    0 0 24px rgba(167,139,250,.55),
-    inset 0 0 0 1.5px var(--brand);
+    0 14px 36px rgba(0,0,0,.7),
+    0 0 26px rgba(196,181,253,.55),
+    inset 0 0 0 1px rgba(233,213,255,.55);
+  transform: scale(1.02) translateY(-1px);
 }
 
 /* Divider bar = activatable conduit at the cell boundary - glowing accent */
@@ -1166,20 +1191,9 @@ body{
 }
 
 /* Micro node in the corner – glowing intersection node */
-.library-cell__node{
-  position:absolute;
-  /* Position at bottom-right corner (grid intersection) */
-  right:-4px;
-  bottom:-4px;
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #fff 0%, var(--brand) 50%, rgba(167,139,250,.6) 100%);
-  box-shadow:0 0 6px var(--brand), 0 0 10px rgba(167,139,250,.7);
-  opacity:0;
-  transform:scale(.8);
-  transition:opacity .3s ease, transform .3s ease, box-shadow .3s ease;
-  z-index:2;
+/* Temporarily hide the edge nodes (balls) */
+.library-cell__node {
+  display: none !important;
 }
 
 /* Show node for filled cells */
