@@ -140,246 +140,192 @@
     }
   }
 
-   // ---------- Library "cytoskeleton" grid ----------
+   // ---------- Library vertical list ----------
   function initLibraryView(){
-    const grid      = document.getElementById("libraryGrid");
-    const metaBody  = document.getElementById("libraryMetaBody");
-    if (!grid || !metaBody) return;
+    const list         = document.getElementById("libraryList");
+    const detailsPanel = document.getElementById("libraryDetailsPanel");
+    const detailsBody  = document.getElementById("libraryDetailsBody");
+    const closeBtn     = document.getElementById("libraryDetailsClose");
+    if (!list || !detailsPanel || !detailsBody) return;
 
-    // Demo dataset — each item is an "organism" that can occupy a chamber
+    // Demo dataset — library items with platform and metadata
     const libraryItems = [
-      { id: 1,  name: "Project folder",       type: "folder", target: "All destinations",   source: "Ameba",  aspect: "square"    },
-      { id: 2,  name: "example-clip.mp4",     type: "video",  target: "YouTube",            source: "Upload", aspect: "landscape" },
-      { id: 3,  name: "shorts-intro.mp4",     type: "video",  target: "YouTube Shorts",     source: "Upload", aspect: "portrait"  },
-      { id: 4,  name: "edit-audio.wav",       type: "audio",  target: "Spotify / Reels",    source: "Upload", aspect: "landscape" },
-      { id: 5,  name: "Favorites",            type: "folder", target: "Mixed",              source: "Ameba",  aspect: "square"    },
-      { id: 6,  name: "Lo-fi reel.mp4",       type: "video",  target: "IG Reels",           source: "Upload", aspect: "portrait"  },
-      { id: 7,  name: "Gameplay highlights",  type: "video",  target: "Twitch / clips",     source: "Upload", aspect: "landscape" },
-      { id: 8,  name: "Podcast Ep.1",         type: "audio",  target: "Podcast feeds",      source: "Upload", aspect: "square"    },
-      { id: 9,  name: "Thumbnail set",        type: "folder", target: "Multi",              source: "Ameba",  aspect: "square"    },
-      { id:10,  name: "Ad hook v3.mp4",       type: "video",  target: "Paid ads",           source: "Upload", aspect: "landscape" },
-      { id:11,  name: "Stream intro",         type: "video",  target: "YouTube / Twitch",   source: "Upload", aspect: "landscape" },
-      { id:12,  name: "Extra B-roll",         type: "folder", target: "Library only",       source: "Upload", aspect: "square"    },
-      { id:13,  name: "Sound effects",        type: "folder", target: "All projects",       source: "Ameba",  aspect: "square"    },
-      { id:14,  name: "Loop ambience.wav",    type: "audio",  target: "Background beds",    source: "Upload", aspect: "square"    }
+      { id: 1,  name: "Project folder",       type: "folder",  platform: "youtube",    duration: "—",      date: "Dec 20",  tags: ["folder", "youtube"] },
+      { id: 2,  name: "example-clip.mp4",     type: "video",   platform: "youtube",    duration: "3:42",   date: "Dec 22",  tags: ["shorts", "viral"] },
+      { id: 3,  name: "shorts-intro.mp4",     type: "video",   platform: "tiktok",     duration: "0:15",   date: "Dec 23",  tags: ["intro", "short"] },
+      { id: 4,  name: "edit-audio.wav",       type: "audio",   platform: "instagram",  duration: "2:18",   date: "Dec 21",  tags: ["reels", "music"] },
+      { id: 5,  name: "Favorites",            type: "folder",  platform: "reddit",     duration: "—",      date: "Dec 18",  tags: ["collection"] },
+      { id: 6,  name: "Lo-fi reel.mp4",       type: "video",   platform: "instagram",  duration: "0:30",   date: "Dec 24",  tags: ["lofi", "chill"] },
+      { id: 7,  name: "Gameplay highlights",  type: "video",   platform: "youtube",    duration: "12:45",  date: "Dec 19",  tags: ["gaming", "highlights"] },
+      { id: 8,  name: "Podcast Ep.1",         type: "audio",   platform: "youtube",    duration: "45:00",  date: "Dec 15",  tags: ["podcast", "audio"] },
+      { id: 9,  name: "Thumbnail set",        type: "folder",  platform: "youtube",    duration: "—",      date: "Dec 17",  tags: ["thumbnails"] },
+      { id:10,  name: "Ad hook v3.mp4",       type: "video",   platform: "tiktok",     duration: "0:06",   date: "Dec 25",  tags: ["ad", "hook"] },
+      { id:11,  name: "Stream intro",         type: "video",   platform: "reddit",     duration: "0:08",   date: "Dec 16",  tags: ["stream", "intro"] },
+      { id:12,  name: "Extra B-roll",         type: "folder",  platform: "instagram",  duration: "—",      date: "Dec 14",  tags: ["broll"] }
     ];
 
-    const VISIBLE_SLOTS = 16; // 4 columns x 4 rows
-    const MAX_PAGE      = Math.max(0, Math.ceil(libraryItems.length / VISIBLE_SLOTS) - 1);
-    let currentPage     = 0;
-    let activeId        = null;
+    let selectedId = null;
 
-    // Create glowing nodes at grid intersections (5x5 = 25 nodes for 4x4 grid)
-    function createIntersectionNodes(){
-      let nodesContainer = grid.querySelector(".library-grid__nodes");
-      if (!nodesContainer){
-        nodesContainer = document.createElement("div");
-        nodesContainer.className = "library-grid__nodes";
-        // Create 25 nodes for 5x5 intersections (4 columns = 5 vertical lines)
-        const rows = 5;
-        const cols = 5;
-        for (let row = 0; row < rows; row++){
-          for (let col = 0; col < cols; col++){
-            const node = document.createElement("div");
-            node.className = "library-grid__node";
-            // Set position via CSS custom properties for maintainability
-            node.style.setProperty("--node-row", `${(row / (rows - 1)) * 100}%`);
-            node.style.setProperty("--node-col", `${(col / (cols - 1)) * 100}%`);
-            nodesContainer.appendChild(node);
-          }
-        }
-        grid.appendChild(nodesContainer);
-      }
-    }
+    function renderSlots(){
+      list.innerHTML = "";
+      
+      // Create all slots (show 3-4 visible, rest scrollable)
+      libraryItems.forEach((item, index) => {
+        const slot = document.createElement("button");
+        slot.type = "button";
+        slot.className = "library-slot";
+        slot.dataset.id = String(item.id);
+        slot.dataset.platform = item.platform;
 
-    function clearSidePanel(){
-      metaBody.innerHTML = `<p class="muted small">Select a clip or folder to see metadata.</p>`;
-    }
+        // Banner background
+        const banner = document.createElement("div");
+        banner.className = "library-slot__banner";
 
-    function showMetaInSidePanel(item){
-      metaBody.innerHTML = `
-        <p><strong>${item.name}</strong></p>
-        <p class="small">Type: ${item.type}</p>
-        <p class="small">Destination: ${item.target}</p>
-        <p class="small">Source: ${item.source}</p>
-        <p class="small">Others like this: coming soon…</p>
-      `;
-    }
+        // Morph layer (platform-colored translucent layer behind preview)
+        const morph = document.createElement("div");
+        morph.className = "library-slot__morph";
 
-    function setActiveCell(cell, id, toggleBubble){
-      activeId = id || null;
-
-      const cells = grid.querySelectorAll(".library-cell");
-      cells.forEach((node) => {
-        node.classList.remove("library-cell--active", "library-cell--show-meta");
-      });
-
-      if (!cell || !id) return;
-      if (cell.classList.contains("library-cell--empty")) return;
-
-      cell.classList.add("library-cell--active");
-      if (toggleBubble){
-        cell.classList.add("library-cell--show-meta");
-      }
-    }
-
-    function renderPage(){
-      // Preserve the intersection nodes container
-      const nodesContainer = grid.querySelector(".library-grid__nodes");
-      grid.innerHTML = "";
-      if (nodesContainer){
-        grid.appendChild(nodesContainer);
-      }
-
-      const startIndex = currentPage * VISIBLE_SLOTS;
-
-      for (let slot = 0; slot < VISIBLE_SLOTS; slot++){
-        const itemIndex = startIndex + slot;
-        const item      = libraryItems[itemIndex];
-        const cell      = document.createElement("button");
-        cell.type       = "button";
-        cell.className  = "library-cell";
-
-        if (!item){
-          // True empty chamber — NO content, only grid lines visible around it
-          cell.classList.add("library-cell--empty");
-          grid.appendChild(cell);
-          continue;
-        }
-
-        cell.classList.add("library-cell--filled");
-        cell.dataset.id = String(item.id);
-
-        const aspect = item.aspect || "square";
-	cell.dataset.aspect = aspect;
-
+        // Floating 1:1 preview square
         const preview = document.createElement("div");
-	/* Start everything as a 1:1 organism – aspect morphs only on hover */
-	preview.className = "library-cell__preview library-cell__preview--square";
+        preview.className = "library-slot__preview";
 
+        // Content metadata
+        const content = document.createElement("div");
+        content.className = "library-slot__content";
 
-        const divider = document.createElement("div");
-        divider.className = "library-cell__divider";
+        const title = document.createElement("div");
+        title.className = "library-slot__title";
+        title.textContent = item.name;
 
-        const metaBubble = document.createElement("div");
-        metaBubble.className = "library-cell__meta";
-        metaBubble.innerHTML = `
-          <div class="library-cell__meta-title">${item.name}</div>
-          <div class="library-cell__meta-row">Meta: ${item.type}</div>
-          <div class="library-cell__meta-row">To: ${item.target}</div>
-          <div class="library-cell__meta-row">From: ${item.source}</div>
-        `;
+        const meta = document.createElement("div");
+        meta.className = "library-slot__meta";
 
-        // Corner node for filled cells
-        const node = document.createElement("div");
-        node.className = "library-cell__node";
+        // Platform badge
+        const badge = document.createElement("span");
+        badge.className = "library-slot__badge";
+        badge.textContent = item.platform;
 
-        cell.appendChild(preview);
-        cell.appendChild(divider);
-        cell.appendChild(metaBubble);
-        cell.appendChild(node);
-        
-// --- Shape morphing: default 1:1, adapt to true aspect while observed ---
-        const resetPreviewShape = () => {
-          preview.classList.remove(
-            "library-cell__preview--landscape",
-            "library-cell__preview--portrait"
-          );
-          if (!preview.classList.contains("library-cell__preview--square")) {
-            preview.classList.add("library-cell__preview--square");
-          }
-        };
-
-        const applyAspectShape = () => {
-          const aspectForCell = cell.dataset.aspect || "square";
-
-          preview.classList.remove(
-            "library-cell__preview--square",
-            "library-cell__preview--landscape",
-            "library-cell__preview--portrait"
-          );
-
-          if (aspectForCell === "landscape") {
-            preview.classList.add("library-cell__preview--landscape");
-          } else if (aspectForCell === "portrait") {
-            preview.classList.add("library-cell__preview--portrait");
-          } else {
-            preview.classList.add("library-cell__preview--square");
-          }
-        };
-
-        // Mouse + keyboard observation
-        cell.addEventListener("mouseenter", applyAspectShape);
-        cell.addEventListener("mouseleave", resetPreviewShape);
-        cell.addEventListener("focus", applyAspectShape);
-        cell.addEventListener("blur", resetPreviewShape);
-
-        // Ensure base state is always the 1:1 chamber
-        resetPreviewShape();
-
-
-        cell.addEventListener("click", (evt) => {
-          const clickedDivider = evt.target === divider;
-
-          if (!clickedDivider){
-            // Chamber click: focus organism in side panel, no overlay toggle
-            showMetaInSidePanel(item);
-            setActiveCell(cell, item.id, false);
-            return;
-          }
-
-          // Divider click: toggle overlay bubble + focus
-          const isSameBubble = cell.classList.contains("library-cell--show-meta") && activeId === item.id;
-
-          if (isSameBubble){
-            setActiveCell(null, null, true);
-            clearSidePanel();
-          } else {
-            setActiveCell(cell, item.id, true);
-            showMetaInSidePanel(item);
-          }
+        // Tags
+        const tagsContainer = document.createElement("span");
+        item.tags.slice(0, 2).forEach(tag => {
+          const tagEl = document.createElement("span");
+          tagEl.className = "library-slot__tag";
+          tagEl.textContent = tag;
+          tagsContainer.appendChild(tagEl);
         });
 
-        grid.appendChild(cell);
-      }
+        meta.appendChild(badge);
+        meta.appendChild(tagsContainer);
 
-      // If the previously active organism walked off-page, clear focus
-      if (!libraryItems.some((it) => it.id === activeId &&
-            it === libraryItems[startIndex + (libraryItems.slice(startIndex, startIndex + VISIBLE_SLOTS).findIndex(s => s && s.id === it.id))])){
-        setActiveCell(null, null, true);
-        clearSidePanel();
+        // Info row (duration, date)
+        const info = document.createElement("div");
+        info.className = "library-slot__info";
+        info.innerHTML = `
+          <span>⏱ ${item.duration}</span>
+          <span>📅 ${item.date}</span>
+        `;
+
+        content.appendChild(title);
+        content.appendChild(meta);
+        content.appendChild(info);
+
+        // Assemble slot (layering: banner < morph < preview, content)
+        slot.appendChild(banner);
+        slot.appendChild(morph);
+        slot.appendChild(preview);
+        slot.appendChild(content);
+
+        // Click handler
+        slot.addEventListener("click", () => {
+          selectSlot(item.id);
+        });
+
+        list.appendChild(slot);
+      });
+
+      // Add 3 empty state shells if less than 3 items
+      const emptyCount = Math.max(0, 3 - libraryItems.length);
+      for (let i = 0; i < emptyCount; i++){
+        const emptySlot = document.createElement("div");
+        emptySlot.className = "library-slot library-slot--empty";
+        emptySlot.innerHTML = `
+          <div class="library-slot__banner"></div>
+          <div class="library-slot__content">
+            <div class="library-slot__title">Empty slot</div>
+            <div class="library-slot__info">
+              <span class="muted small">Drag files here or convert new media</span>
+            </div>
+          </div>
+        `;
+        list.appendChild(emptySlot);
       }
     }
 
-    // Scroll → page through organisms; cytoskeleton stays still
-    grid.addEventListener("wheel", (evt) => {
-      evt.preventDefault();
+    function selectSlot(id){
+      selectedId = id;
+      
+      // Update selected state
+      const slots = list.querySelectorAll(".library-slot");
+      slots.forEach(slot => {
+        if (slot.dataset.id === String(id)){
+          slot.classList.add("library-slot--selected");
+        } else {
+          slot.classList.remove("library-slot--selected");
+        }
+      });
 
-      if (evt.deltaY > 0 && currentPage < MAX_PAGE){
-        currentPage++;
-        renderPage();
-      } else if (evt.deltaY < 0 && currentPage > 0){
-        currentPage--;
-        renderPage();
+      // Show details panel
+      const item = libraryItems.find(it => it.id === id);
+      if (item){
+        showDetailsPanel(item);
       }
-    }, { passive: false });
+    }
 
-    // Optional keyboard paging
-    grid.addEventListener("keydown", (evt) => {
-      if (evt.key === "ArrowDown" && currentPage < MAX_PAGE){
-        currentPage++;
-        renderPage();
-      }
-      if (evt.key === "ArrowUp" && currentPage > 0){
-        currentPage--;
-        renderPage();
-      }
-    });
+    function showDetailsPanel(item){
+      detailsBody.innerHTML = `
+        <h3 style="margin: 0 0 16px 0; font-size: 16px;">${item.name}</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Type</div>
+            <div style="font-size: 13px;">${item.type}</div>
+          </div>
+          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Platform</div>
+            <div style="font-size: 13px; text-transform: capitalize;">${item.platform}</div>
+          </div>
+          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Duration</div>
+            <div style="font-size: 13px;">${item.duration}</div>
+          </div>
+          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Date Added</div>
+            <div style="font-size: 13px;">${item.date}</div>
+          </div>
+          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Tags</div>
+            <div style="font-size: 13px;">${item.tags.join(", ")}</div>
+          </div>
+        </div>
+      `;
+      detailsPanel.classList.add("library-details-panel--visible");
+    }
 
-    // Initialize intersection nodes and render
-    createIntersectionNodes();
-    clearSidePanel();
-    renderPage();
+    function hideDetailsPanel(){
+      detailsPanel.classList.remove("library-details-panel--visible");
+      selectedId = null;
+      
+      // Deselect all slots
+      const slots = list.querySelectorAll(".library-slot");
+      slots.forEach(slot => slot.classList.remove("library-slot--selected"));
+    }
+
+    // Close button handler
+    if (closeBtn){
+      closeBtn.addEventListener("click", hideDetailsPanel);
+    }
+
+    // Initialize
+    renderSlots();
   }
 
 
