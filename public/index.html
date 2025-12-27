@@ -238,24 +238,25 @@
             </div>
 
            <div class="storage__section storage__section--library">
-  <div class="library-layout">
-    <!-- Left: vertical list of 3 visible slots (scrollable) -->
-    <div class="library-list-wrapper">
-      <div class="library-list" id="libraryList">
-        <!-- Slots are injected by JS -->
-      </div>
+  <div class="library-layout library-layout--list">
+    <!-- Vertical list (limited view; scroll for more) -->
+    <div class="library-list-wrapper" aria-label="Library items">
+      <div class="library-list" id="libraryList"></div>
     </div>
 
-    <!-- Right: Details panel overlay (hidden by default) -->
-    <aside class="library-details-panel" id="libraryDetailsPanel">
-      <div class="library-details-panel__inner">
-        <button class="library-details-panel__close" id="libraryDetailsClose" aria-label="Close details">×</button>
-        <div class="library-details-panel__label">Details</div>
-        <div class="library-details-panel__body" id="libraryDetailsBody">
-          <p class="muted small">
-            Select a clip or folder to see details.
-          </p>
-        </div>
+    <!-- Slide-in details panel (covers most of gradient window, not all) -->
+    <aside class="library-details-panel" id="libraryDetailsPanel" aria-hidden="true">
+      <div class="library-details-panel__head">
+        <div class="library-details-panel__label">DETAILS</div>
+        <button
+          class="library-details-panel__close"
+          id="libraryDetailsClose"
+          type="button"
+          aria-label="Close details"
+        >×</button>
+      </div>
+      <div class="library-details-panel__body" id="libraryDetailsBody">
+        <p class="muted small">Select a clip or folder to see metadata.</p>
       </div>
     </aside>
   </div>
@@ -264,6 +265,7 @@
     Your Ameba library will collect saved &amp; pinned items here.
   </p>
 </div>
+
 
             <!-- Queue placeholder -->
             <div class="storage__section storage__section--queue">

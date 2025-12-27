@@ -141,192 +141,215 @@
   }
 
    // ---------- Library vertical list ----------
-  function initLibraryView(){
-    const list         = document.getElementById("libraryList");
-    const detailsPanel = document.getElementById("libraryDetailsPanel");
-    const detailsBody  = document.getElementById("libraryDetailsBody");
-    const closeBtn     = document.getElementById("libraryDetailsClose");
-    if (!list || !detailsPanel || !detailsBody) return;
+function initLibraryView(){
+  const list         = document.getElementById("libraryList");
+  const detailsPanel = document.getElementById("libraryDetailsPanel");
+  const detailsBody  = document.getElementById("libraryDetailsBody");
+  const closeBtn     = document.getElementById("libraryDetailsClose");
+  if (!list || !detailsPanel || !detailsBody) return;
 
-    // Demo dataset — library items with platform and metadata
-    const libraryItems = [
-      { id: 1,  name: "Project folder",       type: "folder",  platform: "youtube",    duration: "—",      date: "Dec 20",  tags: ["folder", "youtube"] },
-      { id: 2,  name: "example-clip.mp4",     type: "video",   platform: "youtube",    duration: "3:42",   date: "Dec 22",  tags: ["shorts", "viral"] },
-      { id: 3,  name: "shorts-intro.mp4",     type: "video",   platform: "tiktok",     duration: "0:15",   date: "Dec 23",  tags: ["intro", "short"] },
-      { id: 4,  name: "edit-audio.wav",       type: "audio",   platform: "instagram",  duration: "2:18",   date: "Dec 21",  tags: ["reels", "music"] },
-      { id: 5,  name: "Favorites",            type: "folder",  platform: "reddit",     duration: "—",      date: "Dec 18",  tags: ["collection"] },
-      { id: 6,  name: "Lo-fi reel.mp4",       type: "video",   platform: "instagram",  duration: "0:30",   date: "Dec 24",  tags: ["lofi", "chill"] },
-      { id: 7,  name: "Gameplay highlights",  type: "video",   platform: "youtube",    duration: "12:45",  date: "Dec 19",  tags: ["gaming", "highlights"] },
-      { id: 8,  name: "Podcast Ep.1",         type: "audio",   platform: "youtube",    duration: "45:00",  date: "Dec 15",  tags: ["podcast", "audio"] },
-      { id: 9,  name: "Thumbnail set",        type: "folder",  platform: "youtube",    duration: "—",      date: "Dec 17",  tags: ["thumbnails"] },
-      { id:10,  name: "Ad hook v3.mp4",       type: "video",   platform: "tiktok",     duration: "0:06",   date: "Dec 25",  tags: ["ad", "hook"] },
-      { id:11,  name: "Stream intro",         type: "video",   platform: "reddit",     duration: "0:08",   date: "Dec 16",  tags: ["stream", "intro"] },
-      { id:12,  name: "Extra B-roll",         type: "folder",  platform: "instagram",  duration: "—",      date: "Dec 14",  tags: ["broll"] }
-    ];
+  // "Settings" hook (wired for future UI; can be toggled via localStorage in dev)
+  const SETTINGS = {
+    // 1 = show details panel immediately (matches current beta screenshots)
+    detailsOpenByDefault: (localStorage.getItem("ameba.library.detailsOpenByDefault") ?? "1") !== "0",
+    // 1 = keep the special "Project folder" row
+    includeProjectFolderRow: (localStorage.getItem("ameba.library.includeProjectFolderRow") ?? "1") !== "0"
+  };
 
-    let selectedId = null;
+  // Demo dataset — library items with platform and metadata
+  const PROJECT_FOLDER_ITEM = {
+    id: 1,
+    name: "Project folder",
+    type: "folder",
+    platform: "youtube",
+    duration: "—",
+    date: "Dec 20",
+    tags: ["folder", "youtube"]
+  };
 
-    function renderSlots(){
-      list.innerHTML = "";
-      
-      // Create all slots (show 3-4 visible, rest scrollable)
-      libraryItems.forEach((item, index) => {
-        const slot = document.createElement("button");
-        slot.type = "button";
-        slot.className = "library-slot";
-        slot.dataset.id = String(item.id);
-        slot.dataset.platform = item.platform;
+  const LIBRARY_ITEMS_BASE = [
+    { id: 2,  name: "example-clip.mp4",     type: "video",  platform: "youtube",   duration: "3:42",  date: "Dec 22", tags: ["shorts", "viral"] },
+    { id: 3,  name: "shorts-intro.mp4",     type: "video",  platform: "tiktok",    duration: "0:15",  date: "Dec 23", tags: ["intro", "short"] },
+    { id: 4,  name: "edit-audio.wav",       type: "audio",  platform: "instagram", duration: "2:18",  date: "Dec 21", tags: ["reels", "music"] },
+    { id: 5,  name: "Favorites",            type: "folder", platform: "reddit",    duration: "—",     date: "Dec 18", tags: ["collection"] },
+    { id: 6,  name: "Lo-fi reel.mp4",       type: "video",  platform: "instagram", duration: "0:30",  date: "Dec 24", tags: ["lofi", "chill"] },
+    { id: 7,  name: "Gameplay highlights",  type: "video",  platform: "youtube",   duration: "12:45", date: "Dec 19", tags: ["gaming", "highlights"] },
+    { id: 8,  name: "Podcast Ep.1",         type: "audio",  platform: "youtube",   duration: "45:00", date: "Dec 15", tags: ["podcast", "audio"] },
+    { id: 9,  name: "Thumbnail set",        type: "folder", platform: "youtube",   duration: "—",     date: "Dec 17", tags: ["thumbnails"] },
+    { id:10,  name: "Ad hook v3.mp4",       type: "video",  platform: "tiktok",    duration: "0:06",  date: "Dec 25", tags: ["ad", "hook"] },
+    { id:11,  name: "Stream intro",         type: "video",  platform: "reddit",    duration: "0:08",  date: "Dec 16", tags: ["stream", "intro"] },
+    { id:12,  name: "Extra B-roll",         type: "folder", platform: "instagram", duration: "—",     date: "Dec 14", tags: ["broll"] }
+  ];
 
-        // Banner background
-        const banner = document.createElement("div");
-        banner.className = "library-slot__banner";
+  // Project folder row separated (easy to remove later)
+  const libraryItems = [
+    ...(SETTINGS.includeProjectFolderRow ? [PROJECT_FOLDER_ITEM] : []),
+    ...LIBRARY_ITEMS_BASE
+  ];
 
-        // Morph layer (platform-colored translucent layer behind preview)
-        const morph = document.createElement("div");
-        morph.className = "library-slot__morph";
+  let selectedId = null;
 
-        // Floating 1:1 preview square
-        const preview = document.createElement("div");
-        preview.className = "library-slot__preview";
+  function renderSlots(){
+    list.innerHTML = "";
 
-        // Content metadata
-        const content = document.createElement("div");
-        content.className = "library-slot__content";
+    // Create all slots (CSS limits viewport to 5 visible; the list scrolls for the rest)
+    libraryItems.forEach((item) => {
+      const slot = document.createElement("button");
+      slot.type = "button";
+      slot.className = "library-slot";
+      slot.dataset.id = String(item.id);
+      slot.dataset.platform = item.platform;
 
-        const title = document.createElement("div");
-        title.className = "library-slot__title";
-        title.textContent = item.name;
+      // Banner background
+      const banner = document.createElement("div");
+      banner.className = "library-slot__banner";
 
-        const meta = document.createElement("div");
-        meta.className = "library-slot__meta";
+      // Morph layer (platform-colored translucent layer behind preview)
+      const morph = document.createElement("div");
+      morph.className = "library-slot__morph";
 
-        // Platform badge
-        const badge = document.createElement("span");
-        badge.className = "library-slot__badge";
-        badge.textContent = item.platform;
+      // Floating 1:1 preview square
+      const preview = document.createElement("div");
+      preview.className = "library-slot__preview";
 
-        // Tags
-        const tagsContainer = document.createElement("span");
-        item.tags.slice(0, 2).forEach(tag => {
-          const tagEl = document.createElement("span");
-          tagEl.className = "library-slot__tag";
-          tagEl.textContent = tag;
-          tagsContainer.appendChild(tagEl);
-        });
+      // Content metadata
+      const content = document.createElement("div");
+      content.className = "library-slot__content";
 
-        meta.appendChild(badge);
-        meta.appendChild(tagsContainer);
+      const title = document.createElement("div");
+      title.className = "library-slot__title";
+      title.textContent = item.name;
 
-        // Info row (duration, date)
-        const info = document.createElement("div");
-        info.className = "library-slot__info";
-        info.innerHTML = `
-          <span>⏱ ${item.duration}</span>
-          <span>📅 ${item.date}</span>
-        `;
+      const meta = document.createElement("div");
+      meta.className = "library-slot__meta";
 
-        content.appendChild(title);
-        content.appendChild(meta);
-        content.appendChild(info);
+      // Platform badge
+      const badge = document.createElement("span");
+      badge.className = "library-slot__badge";
+      badge.textContent = item.platform;
 
-        // Assemble slot (layering: banner < morph < preview, content)
-        slot.appendChild(banner);
-        slot.appendChild(morph);
-        slot.appendChild(preview);
-        slot.appendChild(content);
-
-        // Click handler
-        slot.addEventListener("click", () => {
-          selectSlot(item.id);
-        });
-
-        list.appendChild(slot);
+      // Tags
+      const tagsContainer = document.createElement("span");
+      item.tags.slice(0, 2).forEach(tag => {
+        const tagEl = document.createElement("span");
+        tagEl.className = "library-slot__tag";
+        tagEl.textContent = tag;
+        tagsContainer.appendChild(tagEl);
       });
 
-      // Add 3 empty state shells if less than 3 items
-      const emptyCount = Math.max(0, 3 - libraryItems.length);
-      for (let i = 0; i < emptyCount; i++){
-        const emptySlot = document.createElement("div");
-        emptySlot.className = "library-slot library-slot--empty";
-        emptySlot.innerHTML = `
-          <div class="library-slot__banner"></div>
-          <div class="library-slot__content">
-            <div class="library-slot__title">Empty slot</div>
-            <div class="library-slot__info">
-              <span class="muted small">Drag files here or convert new media</span>
-            </div>
-          </div>
-        `;
-        list.appendChild(emptySlot);
-      }
-    }
+      meta.appendChild(badge);
+      meta.appendChild(tagsContainer);
 
-    function selectSlot(id){
-      selectedId = id;
-      
-      // Update selected state
-      const slots = list.querySelectorAll(".library-slot");
-      slots.forEach(slot => {
-        if (slot.dataset.id === String(id)){
-          slot.classList.add("library-slot--selected");
-        } else {
-          slot.classList.remove("library-slot--selected");
-        }
+      // Info row (duration, date)
+      const info = document.createElement("div");
+      info.className = "library-slot__info";
+      info.innerHTML = `
+        <span>⏱ ${item.duration}</span>
+        <span>📅 ${item.date}</span>
+      `;
+
+      content.appendChild(title);
+      content.appendChild(meta);
+      content.appendChild(info);
+
+      // Assemble slot (layering: banner < morph < preview, content)
+      slot.appendChild(banner);
+      slot.appendChild(morph);
+      slot.appendChild(preview);
+      slot.appendChild(content);
+
+      slot.addEventListener("click", () => {
+        selectSlot(item.id);
       });
 
-      // Show details panel
-      const item = libraryItems.find(it => it.id === id);
-      if (item){
-        showDetailsPanel(item);
-      }
-    }
+      list.appendChild(slot);
+    });
 
-    function showDetailsPanel(item){
-      detailsBody.innerHTML = `
-        <h3 style="margin: 0 0 16px 0; font-size: 16px;">${item.name}</h3>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Type</div>
-            <div style="font-size: 13px;">${item.type}</div>
-          </div>
-          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Platform</div>
-            <div style="font-size: 13px; text-transform: capitalize;">${item.platform}</div>
-          </div>
-          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Duration</div>
-            <div style="font-size: 13px;">${item.duration}</div>
-          </div>
-          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Date Added</div>
-            <div style="font-size: 13px;">${item.date}</div>
-          </div>
-          <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-            <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Tags</div>
-            <div style="font-size: 13px;">${item.tags.join(", ")}</div>
+    // Fill to 5 visible with empties when dataset is short
+    const emptyCount = Math.max(0, 5 - libraryItems.length);
+    for (let i = 0; i < emptyCount; i++){
+      const emptySlot = document.createElement("div");
+      emptySlot.className = "library-slot library-slot--empty";
+      emptySlot.innerHTML = `
+        <div class="library-slot__banner"></div>
+        <div class="library-slot__content">
+          <div class="library-slot__title">Empty slot</div>
+          <div class="library-slot__info">
+            <span class="muted small">Drag files here or convert new media</span>
           </div>
         </div>
       `;
-      detailsPanel.classList.add("library-details-panel--visible");
+      list.appendChild(emptySlot);
     }
-
-    function hideDetailsPanel(){
-      detailsPanel.classList.remove("library-details-panel--visible");
-      selectedId = null;
-      
-      // Deselect all slots
-      const slots = list.querySelectorAll(".library-slot");
-      slots.forEach(slot => slot.classList.remove("library-slot--selected"));
-    }
-
-    // Close button handler
-    if (closeBtn){
-      closeBtn.addEventListener("click", hideDetailsPanel);
-    }
-
-    // Initialize
-    renderSlots();
   }
+
+  function selectSlot(id){
+    selectedId = id;
+
+    // Update selected state
+    const slots = list.querySelectorAll(".library-slot");
+    slots.forEach(slot => {
+      if (slot.dataset.id === String(id)) slot.classList.add("library-slot--selected");
+      else slot.classList.remove("library-slot--selected");
+    });
+
+    const item = libraryItems.find(it => it.id === id);
+    if (item) showDetailsPanel(item);
+  }
+
+  function showDetailsPanel(item){
+    detailsBody.innerHTML = `
+      <h3 style="margin: 0 0 16px 0; font-size: 16px;">${item.name}</h3>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Type</div>
+          <div style="font-size: 13px;">${item.type}</div>
+        </div>
+        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Platform</div>
+          <div style="font-size: 13px; text-transform: capitalize;">${item.platform}</div>
+        </div>
+        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Duration</div>
+          <div style="font-size: 13px;">${item.duration}</div>
+        </div>
+        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Date Added</div>
+          <div style="font-size: 13px;">${item.date}</div>
+        </div>
+        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Tags</div>
+          <div style="font-size: 13px;">${item.tags.join(", ")}</div>
+        </div>
+      </div>
+    `;
+    detailsPanel.classList.add("library-details-panel--visible");
+    detailsPanel.setAttribute("aria-hidden","false");
+  }
+
+  function hideDetailsPanel(){
+    detailsPanel.classList.remove("library-details-panel--visible");
+    detailsPanel.setAttribute("aria-hidden","true");
+    selectedId = null;
+
+    // Deselect all slots
+    const slots = list.querySelectorAll(".library-slot");
+    slots.forEach(slot => slot.classList.remove("library-slot--selected"));
+  }
+
+  if (closeBtn){
+    closeBtn.addEventListener("click", hideDetailsPanel);
+  }
+
+  renderSlots();
+
+  // Default: keep Details open (can be toggled later in Settings)
+  if (SETTINGS.detailsOpenByDefault && libraryItems.length){
+    selectSlot(libraryItems[0].id);
+  } else {
+    hideDetailsPanel();
+  }
+}
 
 
       // ---------- Storage plumes: sections, dropdowns, focus modes ----------

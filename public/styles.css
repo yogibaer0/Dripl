@@ -1631,6 +1631,217 @@ body{
   margin-right:2px;
 }
 
+/* ============================================================
+   Library (Beta) — 3×1 list slots (5 visible, scroll for more)
+   ============================================================ */
+
+:root{
+  --library-visible-slots: 5;
+  --library-slot-height: 132px;
+  --library-slot-gap: 14px;
+}
+
+/* Use single-column layout for the new Library list */
+.library-layout--list{
+  grid-template-columns: 1fr;
+  position: relative;
+  align-items: start;
+}
+
+/* Fixed viewport = 5 slots; list scrolls internally */
+.library-list-wrapper{
+  border-radius: 18px;
+  overflow: hidden;
+  height: calc((var(--library-slot-height) * var(--library-visible-slots)) + (var(--library-slot-gap) * (var(--library-visible-slots) - 1)));
+  max-height: 80vh;
+}
+
+.library-list{
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 6px; /* keep glow from clipping into scrollbar */
+  display: flex;
+  flex-direction: column;
+  gap: var(--library-slot-gap);
+}
+
+/* Slot (one per row) */
+.library-slot{
+  position: relative;
+  height: var(--library-slot-height);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 18px;
+  background: rgba(10,10,20,.55);
+  overflow: hidden;
+  cursor: pointer;
+  padding: 16px 18px 16px 150px; /* leaves room for preview square */
+  text-align: left;
+  color: inherit;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.library-slot:hover{
+  transform: translateY(-1px);
+  border-color: rgba(167,139,250,.55);
+  box-shadow: 0 18px 40px rgba(0,0,0,.55);
+}
+
+/* Horizontal banner thumbnail gradient (purely visual for now) */
+.library-slot__banner{
+  position: absolute;
+  inset: 0;
+  opacity: .9;
+  background:
+    radial-gradient(1200px 260px at 30% 50%, rgba(167,139,250,.16), transparent 55%),
+    linear-gradient(90deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+}
+
+/* Morph layer under preview (platform tinted) */
+.library-slot__morph{
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 108px;
+  height: 108px;
+  transform: translateY(-50%);
+  border-radius: 20px;
+  background: rgba(167,139,250,.10);
+  box-shadow:
+    0 0 0 1px rgba(167,139,250,.22) inset,
+    0 20px 40px rgba(0,0,0,.35);
+}
+
+/* Floating preview square above the morph */
+.library-slot__preview{
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  transform: translateY(-50%);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.09), transparent 60%),
+    rgba(15,23,42,.45);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.55),
+    0 0 18px rgba(167,139,250,.25),
+    inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* Text stack */
+.library-slot__title{
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  margin-bottom: 10px;
+}
+
+.library-slot__meta{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.library-slot__badge{
+  font-size: 10px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(167,139,250,.18);
+  border: 1px solid rgba(167,139,250,.22);
+}
+
+.library-slot__tag{
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  margin-left: 6px;
+}
+
+.library-slot__info{
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: rgba(255,255,255,.65);
+}
+
+/* Selected state */
+.library-slot--selected{
+  border-color: rgba(214,187,252,.7);
+  box-shadow: 0 0 0 1px rgba(214,187,252,.25) inset, 0 22px 46px rgba(0,0,0,.6);
+}
+
+/* Platform tints (morph + badge) */
+.library-slot[data-platform="youtube"] .library-slot__morph{ background: rgba(239,68,68,.14); box-shadow: 0 0 0 1px rgba(239,68,68,.24) inset, 0 20px 40px rgba(0,0,0,.35); }
+.library-slot[data-platform="youtube"] .library-slot__badge{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.26); }
+
+.library-slot[data-platform="tiktok"] .library-slot__morph{ background: rgba(59,130,246,.14); box-shadow: 0 0 0 1px rgba(59,130,246,.24) inset, 0 20px 40px rgba(0,0,0,.35); }
+.library-slot[data-platform="tiktok"] .library-slot__badge{ background: rgba(59,130,246,.16); border-color: rgba(59,130,246,.26); }
+
+.library-slot[data-platform="instagram"] .library-slot__morph{ background: rgba(236,72,153,.14); box-shadow: 0 0 0 1px rgba(236,72,153,.24) inset, 0 20px 40px rgba(0,0,0,.35); }
+.library-slot[data-platform="instagram"] .library-slot__badge{ background: rgba(236,72,153,.16); border-color: rgba(236,72,153,.26); }
+
+.library-slot[data-platform="reddit"] .library-slot__morph{ background: rgba(249,115,22,.14); box-shadow: 0 0 0 1px rgba(249,115,22,.24) inset, 0 20px 40px rgba(0,0,0,.35); }
+.library-slot[data-platform="reddit"] .library-slot__badge{ background: rgba(249,115,22,.16); border-color: rgba(249,115,22,.26); }
+
+/* Slide-in details panel overlay */
+.library-details-panel{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: clamp(280px, 44%, 420px);
+  background: rgba(5,5,12,.92);
+  border-left: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  box-shadow: 0 26px 60px rgba(0,0,0,.65);
+  padding: 16px;
+  transform: translateX(110%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+.library-details-panel--visible{
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.library-details-panel__head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.library-details-panel__label{
+  font-size: 11px;
+  letter-spacing: .6px;
+  color: rgba(255,255,255,.6);
+}
+
+.library-details-panel__close{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.85);
+  cursor: pointer;
+}
+
+.library-details-panel__close:hover{
+  border-color: rgba(167,139,250,.45);
+}
+
+
 /* ==========================================================================
    Responsive
    ========================================================================== */
