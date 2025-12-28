@@ -1841,6 +1841,39 @@ body{
   border-color: rgba(167,139,250,.45);
 }
 
+/* ===== Library: hard-limit to 5 visible slots ===== */
+:root{
+  --library-visible-slots: 5;
+  --library-slot-height: 116px;   /* increase if you want chunkier rows */
+  --library-slot-gap: 14px;
+}
+
+/* the scroll viewport */
+.library-list-wrapper{
+  height: calc(
+    (var(--library-slot-height) * var(--library-visible-slots)) +
+    (var(--library-slot-gap) * (var(--library-visible-slots) - 1))
+  );
+  overflow: hidden; /* wrapper hides overflow, list handles scrolling */
+}
+
+/* the scrolling list */
+.library-list{
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--library-slot-gap);
+}
+
+/* each slot must NOT shrink */
+.library-slot{
+  height: var(--library-slot-height);
+  min-height: var(--library-slot-height);
+  flex: 0 0 auto;
+}
+
+
 
 /* ==========================================================================
    Responsive
