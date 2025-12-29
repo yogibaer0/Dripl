@@ -45,9 +45,238 @@
   <label for="fileInput" class="sr-only">Choose a file</label>
   <input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true" />
 
-  <main class="shell">
-    <div class="panels">
+  <main class="shell open-space-shell">
+    <!-- NEW LAYOUT: Open Space Shell -->
+    
+    <!-- TOP WALL: Destination Hub (moved from bottom, reused as-is) -->
+    <div class="top-wall" id="topWall">
+      <!-- Destination Hub (moved to top-wall) -->
+      <section class="panel--dest panel--dest-topwall" aria-label="Destination Hub">
+        <!-- Hub card (the cell) -->
+        <section class="card dest-card">
+          <div class="card__head">
+            <h2 class="hidden">Destination Hub</h2>
+          </div>
 
+          <div class="card__body">
+            <!-- Hub content wrapper to constrain width -->
+            <div class="dest-inner">
+              <section id="destHub"
+                       class="dest-panel"
+                       aria-label="Preview, metadata and actions">
+
+                <div class="dest-left">
+                  <div class="preview-wrap" id="previewWrap" aria-live="polite">
+                    <img id="previewImg" alt="" hidden>
+                    <video id="previewVideo" playsinline muted loop controls hidden></video>
+
+                    <div class="preview-hint" id="previewHint">
+                      <span>Preview</span>
+                      <span class="muted">• 1:1 • drag a file above or paste a link</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="dest-right">
+                  <div class="meta-grid" role="list">
+                    <div class="meta-row" role="listitem">
+                      <span id="lblMetaFilename" class="meta-label">Filename</span>
+                      <div class="pill" id="metaFilename" role="text" aria-labelledby="lblMetaFilename">—</div>
+                    </div>
+
+                    <div class="meta-row" role="listitem">
+                      <span id="lblMetaDuration" class="meta-label">Duration</span>
+                      <div class="pill" id="metaDuration" role="text" aria-labelledby="lblMetaDuration">—</div>
+                    </div>
+
+                    <div class="meta-row" role="listitem">
+                      <span id="lblMetaResolution" class="meta-label">Resolution</span>
+                      <div class="pill" id="metaResolution" role="text" aria-labelledby="lblMetaResolution">—</div>
+                    </div>
+
+                    <div class="meta-row" role="listitem">
+                      <span id="lblMetaCodec" class="meta-label">Codec</span>
+                      <div class="pill" id="metaCodec" role="text" aria-labelledby="lblMetaCodec">—</div>
+                    </div>
+                  </div>
+
+                  <div class="dest-actions">
+                    <!-- Ghost buttons (mirror satellites) -->
+                    <div class="dest-buttons">
+                      <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
+                      <button class="btn btn-ghost" data-target="instagram">Instagram</button>
+                      <button class="btn btn-ghost" data-target="youtube">YouTube</button>
+                      <button class="btn btn-ghost" data-target="reddit">Reddit</button>
+                    </div>
+
+                    <!-- SR-only labels kept for a11y -->
+                    <label class="sr-only" for="optWatermark">Watermark</label>
+                    <label class="sr-only" for="optAutotrim">Auto-trim</label>
+                    <label class="sr-only" for="optAutofit">Auto-fit to platform</label>
+                    <label class="sr-only" for="optFaceFilters">Face filters</label>
+
+                    <div class="dest-toggles">
+                      <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
+                      <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
+                      <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
+                      <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
+                    </div>
+
+                    <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- Return button stays with the hub UI -->
+            <button class="sat-return" id="satReturn" hidden>Return</button>
+          </div>
+        </section>
+
+        <!-- Proteins: satellites live OUTSIDE the card, in their own rail -->
+        <div class="dest-sat-rail" aria-hidden="true">
+          <button class="satellite sat--yt"
+                  data-platform="youtube" data-slot-index="0"
+                  aria-pressed="false" aria-label="YouTube" title="YouTube"></button>
+
+          <button class="satellite sat--ig"
+                  data-platform="instagram" data-slot-index="1"
+                  aria-pressed="false" aria-label="Instagram" title="Instagram"></button>
+
+          <button class="satellite sat--tt"
+                  data-platform="tiktok" data-slot-index="2"
+                  aria-pressed="false" aria-label="TikTok" title="TikTok"></button>
+
+          <button class="satellite sat--rd"
+                  data-platform="reddit" data-slot-index="3"
+                  aria-pressed="false" aria-label="Reddit" title="Reddit"></button>
+        </div>
+      </section>
+      <!-- END Destination Hub -->
+    </div>
+    
+    <!-- CENTER: Open Space Viewport (no panel background) -->
+    <div class="open-space-viewport" id="openSpaceViewport">
+      <!-- Default: User stats placeholders -->
+      <div class="open-space-content" id="openSpaceContent">
+        <div class="user-stats-placeholder">
+          <div class="stat-widget">
+            <span class="stat-label">Followers</span>
+            <span class="stat-value">—</span>
+          </div>
+          <div class="stat-widget">
+            <span class="stat-label">Likes</span>
+            <span class="stat-value">—</span>
+          </div>
+          <div class="stat-widget">
+            <span class="stat-label">Emails</span>
+            <span class="stat-value">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- LEFT: Vanity/Tool Bubble -->
+    <div class="vanity-bubble" id="vanityBubble" role="button" tabindex="0" aria-label="Tool shed">
+      <div class="vanity-bubble__avatar">
+        <!-- User profile image placeholder -->
+        <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.8"/>
+          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="currentColor" opacity="0.6"/>
+        </svg>
+      </div>
+      
+      <!-- Tool shed panel (hidden by default) -->
+      <div class="tool-shed" id="toolShed" hidden>
+        <div class="tool-shed__title">Tool Shed</div>
+        <div class="tool-shed__items">
+          <button class="tool-item" data-tool="dripl-engine">
+            <span class="tool-item__icon">⚙️</span>
+            <span class="tool-item__label">Dripl Engine</span>
+          </button>
+          <button class="tool-item" data-tool="ameba-quality">
+            <span class="tool-item__icon">✨</span>
+            <span class="tool-item__label">AMEBA Quality+</span>
+          </button>
+          <button class="tool-item" data-tool="batch-process">
+            <span class="tool-item__icon">📦</span>
+            <span class="tool-item__label">Batch Process</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- BOTTOM: Bottom Dock (Port + Storage) -->
+    <div class="bottom-dock" id="bottomDock">
+      <div class="bottom-dock__content">
+        <div class="dock-section dock-section--port">
+          <h3 class="dock-section__title">Port</h3>
+          <div class="dock-section__actions">
+            <button class="dock-btn" id="dockUpload" title="Upload files">
+              <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+                <path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+              </svg>
+              <span>Upload</span>
+            </button>
+            <button class="dock-btn" id="dockImport" title="Import from sources">
+              <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+                <path fill="currentColor" d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+              </svg>
+              <span>Import</span>
+            </button>
+            <button class="dock-btn" id="dockConvert" title="Convert media">
+              <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+                <path fill="currentColor" d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/>
+              </svg>
+              <span>Convert</span>
+            </button>
+          </div>
+        </div>
+        <div class="dock-section dock-section--storage">
+          <button class="dock-btn dock-btn--storage" id="dockStorage" title="Open Storage">
+            <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+              <path fill="currentColor" d="M4 7.5c0-1.1.9-2 2-2h3.2c.3 0 .6.1.8.3l1 1c.2.2.5.3.8.3H18c1.1 0 2 .9 2 2v7.7c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7.5Z"/>
+            </svg>
+            <span>Storage</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- RIGHT: Analytics Wall (slide-out) -->
+    <aside class="analytics-wall" id="analyticsWall" aria-label="Analytics panel">
+      <button class="analytics-wall__handle" id="analyticsToggle" aria-label="Toggle analytics panel">
+        <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+          <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+        </svg>
+      </button>
+      
+      <div class="analytics-wall__content">
+        <div class="analytics-section">
+          <h3 class="analytics-section__title">Analytics</h3>
+          <div class="analytics-section__body">
+            <p class="muted small">Performance metrics will appear here</p>
+          </div>
+        </div>
+        
+        <div class="analytics-section">
+          <h3 class="analytics-section__title">Sticky Notes</h3>
+          <div class="analytics-section__body">
+            <p class="muted small">Pin notes into open space</p>
+          </div>
+        </div>
+        
+        <div class="analytics-section">
+          <h3 class="analytics-section__title">Calendar</h3>
+          <div class="analytics-section__body">
+            <p class="muted small">Schedule and deadlines</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- LEGACY PANELS (preserved but hidden/repositioned) -->
+    <div class="legacy-panels" hidden>
       <!-- Upload -->
       <section class="card panel--upload upload" aria-labelledby="h-upload">
         <div class="card__head"><h2 id="h-upload">Upload</h2></div>
@@ -279,112 +508,9 @@
           </div>
         </div>
       </section>
-
-
-      <!-- Destination Hub -->
-<section class="panel--dest" aria-label="Destination Hub">
-  <!-- Hub card (the cell) -->
-  <section class="card dest-card">
-    <div class="card__head">
-      <h2 class="hidden">Destination Hub</h2>
     </div>
+    <!-- END legacy-panels (hidden) -->
 
-    <div class="card__body">
-      <!-- Hub content wrapper to constrain width -->
-      <div class="dest-inner">
-        <section id="destHub"
-                 class="dest-panel"
-                 aria-label="Preview, metadata and actions">
-
-          <div class="dest-left">
-            <div class="preview-wrap" id="previewWrap" aria-live="polite">
-              <img id="previewImg" alt="" hidden>
-              <video id="previewVideo" playsinline muted loop controls hidden></video>
-
-              <div class="preview-hint" id="previewHint">
-                <span>Preview</span>
-                <span class="muted">• 1:1 • drag a file above or paste a link</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="dest-right">
-                <div class="meta-grid" role="list">
-                  <div class="meta-row" role="listitem">
-                    <span id="lblMetaFilename" class="meta-label">Filename</span>
-                    <div class="pill" id="metaFilename" role="text" aria-labelledby="lblMetaFilename">—</div>
-                  </div>
-
-                  <div class="meta-row" role="listitem">
-                    <span id="lblMetaDuration" class="meta-label">Duration</span>
-                    <div class="pill" id="metaDuration" role="text" aria-labelledby="lblMetaDuration">—</div>
-                  </div>
-
-                  <div class="meta-row" role="listitem">
-                    <span id="lblMetaResolution" class="meta-label">Resolution</span>
-                    <div class="pill" id="metaResolution" role="text" aria-labelledby="lblMetaResolution">—</div>
-                  </div>
-
-                  <div class="meta-row" role="listitem">
-                    <span id="lblMetaCodec" class="meta-label">Codec</span>
-                    <div class="pill" id="metaCodec" role="text" aria-labelledby="lblMetaCodec">—</div>
-                  </div>
-                </div>
-
-                <div class="dest-actions">
-                  <!-- Ghost buttons (mirror satellites) -->
-                  <div class="dest-buttons">
-                    <button class="btn btn-ghost" data-target="tiktok">TikTok</button>
-                    <button class="btn btn-ghost" data-target="instagram">Instagram</button>
-                    <button class="btn btn-ghost" data-target="youtube">YouTube</button>
-                    <button class="btn btn-ghost" data-target="reddit">Reddit</button>
-                  </div>
-
-                  <!-- SR-only labels kept for a11y -->
-                  <label class="sr-only" for="optWatermark">Watermark</label>
-                  <label class="sr-only" for="optAutotrim">Auto-trim</label>
-                  <label class="sr-only" for="optAutofit">Auto-fit to platform</label>
-                  <label class="sr-only" for="optFaceFilters">Face filters</label>
-
-                  <div class="dest-toggles">
-                    <label class="toggle"><input type="checkbox" id="optWatermark" /> <span>Watermark</span></label>
-                    <label class="toggle"><input type="checkbox" id="optAutotrim" /> <span>Auto-trim</span></label>
-                    <label class="toggle"><input type="checkbox" id="optAutofit" /> <span>Auto-fit to platform</span></label>
-                    <label class="toggle"><input type="checkbox" id="optFaceFilters" /> <span>Face filters</span></label>
-                  </div>
-
-                  <button id="convertSelected" class="btn btn--primary">Convert Selected</button>
-                </div>
-              </div>
-        </section>
-      </div>
-
-      <!-- Return button stays with the hub UI -->
-      <button class="sat-return" id="satReturn" hidden>Return</button>
-    </div>
-  </section>
-
-  <!-- Proteins: satellites live OUTSIDE the card, in their own rail -->
-  <div class="dest-sat-rail" aria-hidden="true">
-    <button class="satellite sat--yt"
-            data-platform="youtube" data-slot-index="0"
-            aria-pressed="false" aria-label="YouTube" title="YouTube"></button>
-
-    <button class="satellite sat--ig"
-            data-platform="instagram" data-slot-index="1"
-            aria-pressed="false" aria-label="Instagram" title="Instagram"></button>
-
-    <button class="satellite sat--tt"
-            data-platform="tiktok" data-slot-index="2"
-            aria-pressed="false" aria-label="TikTok" title="TikTok"></button>
-
-    <button class="satellite sat--rd"
-            data-platform="reddit" data-slot-index="3"
-            aria-pressed="false" aria-label="Reddit" title="Reddit"></button>
-  </div>
-</section>
-
-    </div>
   </main>
 
   <script src="/script.js" nonce="{{NONCE}}"></script>
