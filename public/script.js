@@ -1203,6 +1203,15 @@ function initStoragePlumes(){
       style.id = 'tool-card-styles';
       document.head.appendChild(style);
     }
+    
+    // Add click handlers to tool cards
+    const toolCards = openSpaceContent.querySelectorAll('.tool-card');
+    toolCards.forEach(card => {
+      on(card, "click", (e) => {
+        const tool = card.dataset.tool;
+        showToolInterface(tool);
+      });
+    });
   }
   
   function showDefaultStats() {
@@ -1261,15 +1270,11 @@ function initStoragePlumes(){
     alert("Storage functionality - to be wired to existing storage view");
   }
   
-  // Tool item click handler
-  function handleToolItemClick(e) {
-    const toolItem = e.target.closest(".tool-item");
-    if (!toolItem) return;
-    
-    const tool = toolItem.dataset.tool;
+  // Show tool interface (shared function)
+  function showToolInterface(tool) {
     console.log("[OpenSpace] Tool selected:", tool);
     
-    // Close tool shed and show tool-specific content
+    // Close tool shed
     toolShedOpen = false;
     toolShed.hidden = true;
     
@@ -1301,6 +1306,15 @@ function initStoragePlumes(){
         showToolSelection();
       });
     }
+  }
+  
+  // Tool item click handler (from tool shed)
+  function handleToolItemClick(e) {
+    const toolItem = e.target.closest(".tool-item");
+    if (!toolItem) return;
+    
+    const tool = toolItem.dataset.tool;
+    showToolInterface(tool);
   }
   
   // Event listeners
