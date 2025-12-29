@@ -1179,31 +1179,6 @@ function initStoragePlumes(){
       </div>
     `;
     
-    // Add tool card styling
-    const style = document.createElement('style');
-    style.textContent = `
-      .tool-card {
-        background: linear-gradient(135deg, rgba(22, 22, 37, 0.8) 0%, rgba(27, 27, 46, 0.6) 100%);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 32px;
-        width: 220px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-      }
-      .tool-card:hover {
-        transform: translateY(-8px) scale(1.05);
-        box-shadow: 0 16px 48px rgba(139, 92, 246, 0.3);
-        border-color: rgba(139, 92, 246, 0.5);
-      }
-    `;
-    if (!document.querySelector('#tool-card-styles')) {
-      style.id = 'tool-card-styles';
-      document.head.appendChild(style);
-    }
-    
     // Add click handlers to tool cards
     const toolCards = openSpaceContent.querySelectorAll('.tool-card');
     toolCards.forEach(card => {
@@ -1255,7 +1230,7 @@ function initStoragePlumes(){
   function handleDockImport() {
     // Show import options (could open a modal or panel)
     console.log("[OpenSpace] Import clicked - TODO: wire to existing import logic");
-    alert("Import functionality - to be wired to existing import sources");
+    // TODO: Replace with proper UI - show import modal or panel
   }
   
   function handleDockConvert() {
@@ -1267,7 +1242,7 @@ function initStoragePlumes(){
   function handleDockStorage() {
     // Toggle storage view (could show storage panel in open space)
     console.log("[OpenSpace] Storage clicked - TODO: wire to existing storage");
-    alert("Storage functionality - to be wired to existing storage view");
+    // TODO: Replace with proper UI - show storage in open space
   }
   
   // Show tool interface (shared function)
