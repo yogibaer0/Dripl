@@ -1101,6 +1101,218 @@ function initStoragePlumes(){
 })();
 
 
+/* ==========================================================================
+   OPEN SPACE SHELL INTERACTIONS
+   ========================================================================== */
+
+(function OpenSpaceShell() {
+  "use strict";
+  
+  const $ = (sel) => document.querySelector(sel);
+  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+  
+  // Elements
+  const vanityBubble = $("#vanityBubble");
+  const vanityAvatar = $(".vanity-bubble__avatar");
+  const toolShed = $("#toolShed");
+  const openSpaceContent = $("#openSpaceContent");
+  const analyticsWall = $("#analyticsWall");
+  const analyticsToggle = $("#analyticsToggle");
+  
+  // Dock buttons
+  const dockUpload = $("#dockUpload");
+  const dockImport = $("#dockImport");
+  const dockConvert = $("#dockConvert");
+  const dockStorage = $("#dockStorage");
+  
+  // State
+  let toolShedOpen = false;
+  let analyticsOpen = true;
+  
+  // Vanity Bubble / Tool Shed Toggle
+  function toggleToolShed() {
+    toolShedOpen = !toolShedOpen;
+    
+    if (toolShedOpen) {
+      toolShed.hidden = false;
+      vanityBubble.classList.add("tool-shed-active");
+      // Show tool selection in open space
+      showToolSelection();
+    } else {
+      toolShed.hidden = true;
+      vanityBubble.classList.remove("tool-shed-active");
+      // Show default user stats
+      showDefaultStats();
+    }
+  }
+  
+  function showToolSelection() {
+    if (!openSpaceContent) return;
+    openSpaceContent.innerHTML = `
+      <div class="tool-selection-view">
+        <h2 style="color: var(--text); font-size: 28px; margin-bottom: 24px; text-align: center;">
+          Select a Tool
+        </h2>
+        <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+          <div class="tool-card" data-tool="dripl-engine">
+            <div style="font-size: 48px; margin-bottom: 16px;">⚙️</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--text);">Dripl Engine</div>
+            <div style="font-size: 13px; color: var(--muted); margin-top: 8px;">
+              Advanced media processing
+            </div>
+          </div>
+          <div class="tool-card" data-tool="ameba-quality">
+            <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--text);">AMEBA Quality+</div>
+            <div style="font-size: 13px; color: var(--muted); margin-top: 8px;">
+              AI quality enhancement
+            </div>
+          </div>
+          <div class="tool-card" data-tool="batch-process">
+            <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--text);">Batch Process</div>
+            <div style="font-size: 13px; color: var(--muted); margin-top: 8px;">
+              Process multiple files
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add click handlers to tool cards
+    const toolCards = openSpaceContent.querySelectorAll('.tool-card');
+    toolCards.forEach(card => {
+      on(card, "click", (e) => {
+        const tool = card.dataset.tool;
+        showToolInterface(tool);
+      });
+    });
+  }
+  
+  function showDefaultStats() {
+    if (!openSpaceContent) return;
+    openSpaceContent.innerHTML = `
+      <div class="user-stats-placeholder">
+        <div class="stat-widget">
+          <span class="stat-label">Followers</span>
+          <span class="stat-value">—</span>
+        </div>
+        <div class="stat-widget">
+          <span class="stat-label">Likes</span>
+          <span class="stat-value">—</span>
+        </div>
+        <div class="stat-widget">
+          <span class="stat-label">Emails</span>
+          <span class="stat-value">—</span>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Analytics Wall Toggle
+  function toggleAnalyticsWall() {
+    analyticsOpen = !analyticsOpen;
+    
+    if (analyticsOpen) {
+      analyticsWall.classList.remove("collapsed");
+    } else {
+      analyticsWall.classList.add("collapsed");
+    }
+  }
+  
+  // Dock button handlers (bridge to existing functionality)
+  function handleDockUpload() {
+    // Trigger file input click
+    const fileInput = $("#fileInput");
+    if (fileInput) fileInput.click();
+  }
+  
+  function handleDockImport() {
+    // Show import options (could open a modal or panel)
+    console.log("[OpenSpace] Import clicked - TODO: wire to existing import logic");
+    // TODO: Replace with proper UI - show import modal or panel
+  }
+  
+  function handleDockConvert() {
+    // Trigger conversion
+    const convertBtn = $("#convert-btn");
+    if (convertBtn) convertBtn.click();
+  }
+  
+  function handleDockStorage() {
+    // Toggle storage view (could show storage panel in open space)
+    console.log("[OpenSpace] Storage clicked - TODO: wire to existing storage");
+    // TODO: Replace with proper UI - show storage in open space
+  }
+  
+  // Show tool interface (shared function)
+  function showToolInterface(tool) {
+    console.log("[OpenSpace] Tool selected:", tool);
+    
+    // Close tool shed
+    toolShedOpen = false;
+    toolShed.hidden = true;
+    
+    // Show tool-specific UI in open space
+    if (openSpaceContent) {
+      openSpaceContent.innerHTML = `
+        <div style="text-align: center; padding: 60px;">
+          <h2 style="color: var(--text); font-size: 32px; margin-bottom: 16px;">
+            ${tool.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          </h2>
+          <p style="color: var(--muted); font-size: 16px;">
+            Tool interface placeholder - to be implemented
+          </p>
+          <button 
+            id="backToTools" 
+            class="btn btn--primary" 
+            style="margin-top: 32px; padding: 12px 24px; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 8px; cursor: pointer; color: var(--text);"
+          >
+            Back to Tools
+          </button>
+        </div>
+      `;
+      
+      // Wire back button
+      const backBtn = $("#backToTools");
+      on(backBtn, "click", () => {
+        toolShedOpen = true;
+        toolShed.hidden = false;
+        showToolSelection();
+      });
+    }
+  }
+  
+  // Tool item click handler (from tool shed)
+  function handleToolItemClick(e) {
+    const toolItem = e.target.closest(".tool-item");
+    if (!toolItem) return;
+    
+    const tool = toolItem.dataset.tool;
+    showToolInterface(tool);
+  }
+  
+  // Event listeners
+  on(vanityBubble, "click", toggleToolShed);
+  on(analyticsToggle, "click", toggleAnalyticsWall);
+  on(dockUpload, "click", handleDockUpload);
+  on(dockImport, "click", handleDockImport);
+  on(dockConvert, "click", handleDockConvert);
+  on(dockStorage, "click", handleDockStorage);
+  
+  // Delegate tool item clicks
+  on(toolShed, "click", handleToolItemClick);
+  
+  // Initialize: set default state
+  if (analyticsWall) {
+    analyticsWall.classList.add("collapsed");
+    analyticsOpen = false;
+  }
+  
+  console.log("[OpenSpace] Shell initialized");
+})();
+
+
 
 
 
