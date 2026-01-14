@@ -612,7 +612,7 @@ function initWorkshop(){
     catch { return fallback; }
   }
   function saveNotes(){ localStorage.setItem(LS_NOTES, JSON.stringify(state.notes)); }
-//   function saveJournal(v){ localStorage.setItem(LS_JOURNAL, v || ""); }
+  function saveArtifacts(){ localStorage.setItem(LS_ARTIFACTS, JSON.stringify(state.artifacts)); }
 
   // ---- Awareness: event model ----
   function pushEvent(ev){
