@@ -1422,6 +1422,372 @@ function initWorkshop(){
   const $ = (sel) => document.querySelector(sel);
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
   
+  // -------------------------
+  // Workshop View (render)
+  // -------------------------
+  const WS = {
+    deskKey: "ameba:desk:v1",
+    lastPulseAt: 0,
+    blobLastSpokeAt: 0
+  };
+
+  function renderWorkshop(){
+    if (!openSpaceContent) return;
+
+    openSpaceContent.innerHTML = `
+      <div class="workshop-grid" id="workshopGrid">
+
+        <!-- Awareness Lane -->
+        <section class="ws-card awareness-lane" id="awarenessLane" aria-label="Awareness lane">
+          <div class="ws-card__head">
+            <h3 class="ws-card__title">Awareness</h3>
+            <span class="muted" style="font-size:11px;">monitoring</span>
+          </div>
+          <div class="ws-card__body">
+            <div class="awareness-stream" id="awarenessStream"></div>
+          </div>
+        </section>
+
+        <!-- Ink Canvas -->
+        <section class="ws-card ink-canvas" aria-label="Canvas">
+          <div class="ws-card__head">
+            <h3 class="ws-card__title">Canvas</h3>
+            <span class="muted" style="font-size:11px;">clean ink</span>
+          </div>
+
+          <div class="ws-card__body">
+            <div class="muted" style="font-size:12px;">
+              Click the ink to pull a route. The canvas stays simple.
+            </div>
+
+            <div class="canvas-actions" style="margin-top:12px;">
+              <button class="canvas-btn" id="wsIdeaBtn">I have an idea</button>
+              <button class="canvas-btn" id="wsPostBtn">I wanna post</button>
+              <button class="canvas-btn" id="wsEditBtn">Need to edit</button>
+              <button class="canvas-btn" id="wsNoteBtn">New note slip</button>
+            </div>
+
+            <div style="margin-top:14px;" id="wsSlipBin"></div>
+          </div>
+        </section>
+
+        <!-- Right Column -->
+        <div style="display:flex; flex-direction:column; gap:18px;">
+
+          <!-- Mini stats -->
+          <section class="ws-card" aria-label="Workshop stats">
+            <div class="ws-card__head">
+              <h3 class="ws-card__title">Profiles</h3>
+              <span class="muted" style="font-size:11px;">combined</span>
+            </div>
+            <div class="ws-card__body">
+              <div class="ws-mini-stats">
+                <div class="ws-stat">
+                  <div class="ws-stat__k">Followers</div>
+                  <div class="ws-stat__v" id="wsFollowers">—</div>
+                </div>
+                <div class="ws-stat">
+                  <div class="ws-stat__k">Likes</div>
+                  <div class="ws-stat__v" id="wsLikes">—</div>
+                </div>
+              </div>
+              <div class="muted" style="font-size:11px; margin-top:10px;">
+                (Later: sum YouTube subs + TikTok followers + etc.)
+              </div>
+            </div>
+          </section>
+
+          <!-- Desk Stage -->
+          <section class="ws-card desk-stage" aria-label="Desk stage">
+            <div class="ws-card__head">
+              <h3 class="ws-card__title">Desk</h3>
+              <span class="muted" style="font-size:11px;">stage</span>
+            </div>
+            <div class="ws-card__body">
+              <div class="desk-stage__hint">Drop artifacts here. They stay until you trash them.</div>
+              <div class="desk-dropzone" id="deskDropzone" aria-label="Desk drop zone"></div>
+              <div class="muted" style="font-size:11px; margin-top:10px;">
+                Tip: right-click a note to delete (desktop only).
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    `;
+
+    initWorkshopUX();
+  }
+
+  // -------------------------
+  // Workshop UX (notes + awareness + blob)
+  // -------------------------
+  function initWorkshopUX(){
+    // Guard: only bind once per render
+    const slipBin = $("#wsSlipBin");
+    const desk = $("#deskDropzone");
+    const awarenessStream = $("#awarenessStream");
+    const awarenessLane = $("#awarenessLane");
+
+    if (!slipBin || !desk || !awarenessStream || !awarenessLane) return;
+
+    // Load persisted desk notes
+    loadDeskNotes(desk);
+
+    // Canvas buttons
+    on($("#wsNoteBtn"), "click", () => {
+      const n = makeSlip({ text: "New thought…", tag: "note" });
+      slipBin.prepend(n);
+    });
+
+    on($("#wsIdeaBtn"), "click", () => {
+      const n = makeSlip({ text: "Idea: ", tag: "idea" });
+      slipBin.prepend(n);
+    });
+
+    on($("#wsPostBtn"), "click", () => {
+      // Route: open hub / focus destination hub (Phase 2.5)
+      pushAwareness({ platform: "AMEBA", type: "route", text: "Routing to Destination Hub…" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    on($("#wsEditBtn"), "click", () => {
+      pushAwareness({ platform: "AMEBA", type: "route", text: "Routing to edit flow (stub)…" });
+    });
+
+    // Desk dropzone drag events
+    desk.addEventListener("dragover", (e) => { e.preventDefault(); desk.classList.add("is-over"); });
+    desk.addEventListener("dragleave", () => desk.classList.remove("is-over"));
+    desk.addEventListener("drop", (e) => {
+      e.preventDefault();
+      desk.classList.remove("is-over");
+
+      const id = e.dataTransfer.getData("text/ameba-slip-id");
+      if (!id) return;
+
+      const slip = document.querySelector(`[data-slip-id="${CSS.escape(id)}"]`);
+      if (!slip) return;
+
+      // Convert slip -> placed desk note
+      const rect = desk.getBoundingClientRect();
+      const x = Math.max(8, e.clientX - rect.left - 80);
+      const y = Math.max(8, e.clientY - rect.top - 20);
+
+      const placed = placeDeskNoteFromSlip(slip, { x, y });
+      desk.appendChild(placed);
+
+      // Remove slip from bin after placing
+      slip.remove();
+
+      saveDeskNotes(desk);
+      pushAwareness({ platform: "Desk", type: "placed", text: "Artifact placed on desk." });
+
+      document.dispatchEvent(new CustomEvent("desk:note-added", { detail: { id: placed.dataset.noteId }}));
+    });
+
+    // Seed awareness with a few items (mock)
+    if (!awarenessStream.dataset.seeded) {
+      awarenessStream.dataset.seeded = "1";
+      pushAwareness({ platform: "YouTube", type: "comment", text: "New comment arrived." });
+      pushAwareness({ platform: "TikTok", type: "like", text: "Someone liked your post." });
+      pushAwareness({ platform: "Spotify", type: "save", text: "A song was added to liked songs." });
+    }
+
+    // Listen for awareness events (centralized)
+    document.addEventListener("awareness:event", (ev) => {
+      const item = renderAwarenessItem(ev.detail);
+      awarenessStream.prepend(item);
+
+      // Pulse lane (rate limited)
+      const now = Date.now();
+      if (now - WS.lastPulseAt > 600) {
+        WS.lastPulseAt = now;
+        awarenessLane.classList.add("is-pulsing");
+        setTimeout(() => awarenessLane.classList.remove("is-pulsing"), 550);
+      }
+
+      // Blob reacts (rare)
+      blobObserve(ev.detail);
+    });
+
+    // Also let hub platform changes feed awareness
+    document.addEventListener("hub-platform-changed", (ev) => {
+      const p = ev.detail?.platform;
+      if (!p) return;
+      pushAwareness({ platform: "Hub", type: "platform", text: `Platform preset selected: ${p}` });
+    });
+
+    // Right click delete desk notes (desktop only)
+    desk.addEventListener("contextmenu", (e) => {
+      const note = e.target.closest(".note-slip");
+      if (!note || !desk.contains(note)) return;
+      e.preventDefault();
+      note.remove();
+      saveDeskNotes(desk);
+      pushAwareness({ platform: "Desk", type: "deleted", text: "Artifact trashed." });
+      document.dispatchEvent(new CustomEvent("desk:note-deleted", { detail: { id: note.dataset.noteId }}));
+    });
+
+    function pushAwareness(detail){
+      document.dispatchEvent(new CustomEvent("awareness:event", { detail }));
+    }
+
+    function renderAwarenessItem({ platform, type, text }){
+      const el = document.createElement("div");
+      el.className = "awareness-item";
+      el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px;">
+          <strong>${escapeHtml(platform || "AMEBA")}</strong>
+          <span class="muted">${escapeHtml(type || "event")}</span>
+        </div>
+        <div style="margin-top:6px;">${escapeHtml(text || "")}</div>
+      `;
+      return el;
+    }
+  }
+
+  // -------------------------
+  // Note creation / persistence
+  // -------------------------
+  function makeSlip({ text, tag }){
+    const id = `slip_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+    const el = document.createElement("div");
+    el.className = "note-slip";
+    el.setAttribute("draggable", "true");
+    el.dataset.slipId = id;
+
+    el.innerHTML = `
+      <div class="note-slip__meta">${escapeHtml(tag || "note")}</div>
+      <div class="note-slip__text" contenteditable="true" spellcheck="false">${escapeHtml(text || "")}</div>
+    `;
+
+    el.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/ameba-slip-id", id);
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    return el;
+  }
+
+  function placeDeskNoteFromSlip(slip, { x, y }){
+    const noteId = `desk_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+    const textEl = slip.querySelector(".note-slip__text");
+    const metaEl = slip.querySelector(".note-slip__meta");
+
+    const el = document.createElement("div");
+    el.className = "note-slip";
+    el.dataset.noteId = noteId;
+    el.style.position = "absolute";
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+
+    el.innerHTML = `
+      <div class="note-slip__meta">${escapeHtml(metaEl?.textContent || "note")}</div>
+      <div class="note-slip__text" contenteditable="true" spellcheck="false">${escapeHtml(textEl?.textContent || "")}</div>
+    `;
+
+    // Make placed notes draggable inside desk (simple pointer move)
+    let dragging = false, ox = 0, oy = 0;
+    el.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      ox = e.clientX - el.getBoundingClientRect().left;
+      oy = e.clientY - el.getBoundingClientRect().top;
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const parent = el.parentElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
+      const nx = Math.max(6, e.clientX - rect.left - ox);
+      const ny = Math.max(6, e.clientY - rect.top - oy);
+      el.style.left = `${nx}px`;
+      el.style.top = `${ny}px`;
+    });
+    el.addEventListener("pointerup", () => {
+      dragging = false;
+      const parent = el.parentElement;
+      if (parent) saveDeskNotes(parent);
+      document.dispatchEvent(new CustomEvent("desk:note-moved", { detail: { id: noteId }}));
+    });
+
+    return el;
+  }
+
+  function saveDeskNotes(deskEl){
+    const notes = Array.from(deskEl.querySelectorAll(".note-slip")).map(n => {
+      const text = n.querySelector(".note-slip__text")?.textContent || "";
+      const tag = n.querySelector(".note-slip__meta")?.textContent || "note";
+      return {
+        id: n.dataset.noteId || "",
+        x: parseFloat(n.style.left) || 10,
+        y: parseFloat(n.style.top) || 10,
+        text,
+        tag
+      };
+    });
+    try{
+      localStorage.setItem(WS.deskKey, JSON.stringify(notes));
+    }catch(e){}
+  }
+
+  function loadDeskNotes(deskEl){
+    let raw = null;
+    try{ raw = localStorage.getItem(WS.deskKey); }catch(e){}
+    if (!raw) return;
+    let notes = [];
+    try{ notes = JSON.parse(raw) || []; }catch(e){ notes = []; }
+    notes.forEach(n => {
+      const slip = makeSlip({ text: n.text, tag: n.tag });
+      // convert to desk note
+      const placed = placeDeskNoteFromSlip(slip, { x: n.x, y: n.y });
+      placed.dataset.noteId = n.id || placed.dataset.noteId;
+      deskEl.appendChild(placed);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  // -------------------------
+  // Blob (observer v1)
+  // -------------------------
+  function blobObserve(detail){
+    const now = Date.now();
+
+    // Rare speech: at most once every ~20s
+    if (now - WS.blobLastSpokeAt < 20000) return;
+
+    // Only speak on certain event types
+    const t = detail?.type || "";
+    const shouldSpeak = (t === "comment" || t === "like" || t === "platform");
+    if (!shouldSpeak) return;
+
+    WS.blobLastSpokeAt = now;
+
+    const riddles = [
+      "a ripple in the glass… someone touched your work.",
+      "numbers move. meaning follows later.",
+      "a voice arrived. do you answer, or do you watch?",
+      "your orbit changed. same star, new angle."
+    ];
+    const line = riddles[Math.floor(Math.random() * riddles.length)];
+
+    // Update toolbar status as Blob “mood”
+    const status = document.getElementById("toolbarStatus");
+    if (status) status.textContent = "blob noticed";
+
+    // Also emit as awareness (but marked as Blob)
+    document.dispatchEvent(new CustomEvent("awareness:event", {
+      detail: { platform: "Blob", type: "riddle", text: line }
+    }));
+
+    setTimeout(() => { if (status) status.textContent = "monitoring"; }, 2400);
+  }
+
   // Elements
   const vanityBubble = $("#vanityBubble");
   const vanityAvatar = $(".vanity-bubble__avatar");

@@ -41,6 +41,36 @@
     </div>
   </header>
 
+<!-- TOP TOOLBAR (global) -->
+<nav class="top-toolbar" id="topToolbar" aria-label="Primary navigation">
+  <div class="top-toolbar__inner">
+    <div class="top-toolbar__brand">
+      <button class="top-toolbar__avatar" id="toolbarAvatar" aria-label="Open tool shed">
+        <!-- reuse the same icon vibe -->
+        <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.85"/>
+          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="currentColor" opacity="0.65"/>
+        </svg>
+      </button>
+      <span class="top-toolbar__title">AMEBA LABS</span>
+    </div>
+
+    <div class="top-toolbar__tabs" role="tablist" aria-label="Pages">
+      <button class="tab-btn is-active" data-view="workshop" role="tab" aria-selected="true">Workshop</button>
+      <button class="tab-btn" data-view="youtube" role="tab" aria-selected="false">YouTube</button>
+      <button class="tab-btn" data-view="tiktok" role="tab" aria-selected="false">TikTok</button>
+      <button class="tab-btn" data-view="tools" role="tab" aria-selected="false">Tools</button>
+    </div>
+
+    <div class="top-toolbar__right">
+      <div class="top-toolbar__pill" id="toolbarStatus" aria-live="polite">
+        monitoring
+      </div>
+    </div>
+  </div>
+</nav>
+
+
   <!-- Hidden input for local picker (must not be display:none) -->
   <label for="fileInput" class="sr-only">Choose a file</label>
   <input id="fileInput" type="file" accept="video/*,image/*" aria-hidden="true" />
