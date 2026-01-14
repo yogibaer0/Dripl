@@ -1435,86 +1435,98 @@ function initWorkshop(){
     if (!openSpaceContent) return;
 
     openSpaceContent.innerHTML = `
-      <div class="workshop-grid" id="workshopGrid">
+  <div class="workshop-grid" id="workshopGrid">
 
-        <!-- Awareness Lane -->
-        <section class="ws-card awareness-lane" id="awarenessLane" aria-label="Awareness lane">
-          <div class="ws-card__head">
-            <h3 class="ws-card__title">Awareness</h3>
-            <span class="muted" style="font-size:11px;">monitoring</span>
-          </div>
-          <div class="ws-card__body">
-            <div class="awareness-stream" id="awarenessStream"></div>
-          </div>
-        </section>
+    <!-- Awareness Lane -->
+    <section class="ws-card awareness-lane ws-area-awareness" id="awarenessLane" aria-label="Awareness lane">
+      <div class="ws-card__head">
+        <h3 class="ws-card__title">Awareness</h3>
+        <span class="muted" style="font-size:11px;" id="awarenessMode">monitoring</span>
+      </div>
+      <div class="ws-card__body">
+        <div class="awareness-stream" id="awarenessStream"></div>
+      </div>
+    </section>
 
-        <!-- Ink Canvas -->
-        <section class="ws-card ink-canvas" aria-label="Canvas">
-          <div class="ws-card__head">
-            <h3 class="ws-card__title">Canvas</h3>
-            <span class="muted" style="font-size:11px;">clean ink</span>
-          </div>
+    <!-- Canvas -->
+    <section class="ws-card ink-canvas ws-area-canvas" aria-label="Canvas">
+      <div class="ws-card__head">
+        <h3 class="ws-card__title">Canvas</h3>
+        <span class="muted" style="font-size:11px;">clean ink</span>
+      </div>
 
-          <div class="ws-card__body">
+      <div class="ws-card__body">
+        <div class="muted" style="font-size:12px;">
+          Read-only clarity. Pull what you need. The canvas stays simple.
+        </div>
+
+        <div class="canvas-actions" style="margin-top:12px;">
+          <button class="canvas-btn" id="wsIdeaBtn">I have an idea</button>
+          <button class="canvas-btn" id="wsPostBtn">I wanna post</button>
+          <button class="canvas-btn" id="wsEditBtn">Need to edit</button>
+          <button class="canvas-btn" id="wsNoteBtn">New note slip</button>
+        </div>
+
+        <!-- slips spawn here before being placed -->
+        <div style="margin-top:14px;" id="wsSlipBin"></div>
+
+        <!-- optional: simple “read-only calendar” stub -->
+        <div class="ws-card" style="margin-top:14px; border-radius:14px;">
+          <div class="ws-card__head" style="padding:10px 12px;">
+            <h3 class="ws-card__title">Read-only calendar</h3>
+            <span class="muted" style="font-size:11px;">stub</span>
+          </div>
+          <div class="ws-card__body" style="padding:12px;">
             <div class="muted" style="font-size:12px;">
-              Click the ink to pull a route. The canvas stays simple.
+              Upcoming: (placeholder) • Later we’ll show scheduled posts + reminders.
             </div>
-
-            <div class="canvas-actions" style="margin-top:12px;">
-              <button class="canvas-btn" id="wsIdeaBtn">I have an idea</button>
-              <button class="canvas-btn" id="wsPostBtn">I wanna post</button>
-              <button class="canvas-btn" id="wsEditBtn">Need to edit</button>
-              <button class="canvas-btn" id="wsNoteBtn">New note slip</button>
-            </div>
-
-            <div style="margin-top:14px;" id="wsSlipBin"></div>
           </div>
-        </section>
-
-        <!-- Right Column -->
-        <div style="display:flex; flex-direction:column; gap:18px;">
-
-          <!-- Mini stats -->
-          <section class="ws-card" aria-label="Workshop stats">
-            <div class="ws-card__head">
-              <h3 class="ws-card__title">Profiles</h3>
-              <span class="muted" style="font-size:11px;">combined</span>
-            </div>
-            <div class="ws-card__body">
-              <div class="ws-mini-stats">
-                <div class="ws-stat">
-                  <div class="ws-stat__k">Followers</div>
-                  <div class="ws-stat__v" id="wsFollowers">—</div>
-                </div>
-                <div class="ws-stat">
-                  <div class="ws-stat__k">Likes</div>
-                  <div class="ws-stat__v" id="wsLikes">—</div>
-                </div>
-              </div>
-              <div class="muted" style="font-size:11px; margin-top:10px;">
-                (Later: sum YouTube subs + TikTok followers + etc.)
-              </div>
-            </div>
-          </section>
-
-          <!-- Desk Stage -->
-          <section class="ws-card desk-stage" aria-label="Desk stage">
-            <div class="ws-card__head">
-              <h3 class="ws-card__title">Desk</h3>
-              <span class="muted" style="font-size:11px;">stage</span>
-            </div>
-            <div class="ws-card__body">
-              <div class="desk-stage__hint">Drop artifacts here. They stay until you trash them.</div>
-              <div class="desk-dropzone" id="deskDropzone" aria-label="Desk drop zone"></div>
-              <div class="muted" style="font-size:11px; margin-top:10px;">
-                Tip: right-click a note to delete (desktop only).
-              </div>
-            </div>
-          </section>
-
         </div>
       </div>
-    `;
+    </section>
+
+    <!-- Stats tile (top-right) -->
+    <section class="ws-card ws-area-stats" aria-label="Workshop stats">
+      <div class="ws-card__head">
+        <h3 class="ws-card__title">Stats</h3>
+        <span class="muted" style="font-size:11px;">combined</span>
+      </div>
+      <div class="ws-card__body">
+        <div class="ws-mini-stats">
+          <div class="ws-stat">
+            <div class="ws-stat__k">Followers</div>
+            <div class="ws-stat__v" id="wsFollowers">—</div>
+          </div>
+          <div class="ws-stat">
+            <div class="ws-stat__k">Likes</div>
+            <div class="ws-stat__v" id="wsLikes">—</div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:11px; margin-top:10px;">
+          (Later: YouTube subs + TikTok followers + etc.)
+        </div>
+      </div>
+    </section>
+
+    <!-- Desk Stage (right tall) -->
+    <section class="ws-card desk-stage ws-area-desk" aria-label="Desk stage">
+      <div class="ws-card__head">
+        <h3 class="ws-card__title">Desk</h3>
+        <span class="muted" style="font-size:11px;">place artifacts</span>
+      </div>
+      <div class="ws-card__body">
+        <div class="desk-stage__hint">
+          Drag slips here. They stay until trashed.
+        </div>
+        <div class="desk-dropzone" id="deskDropzone" aria-label="Desk drop zone"></div>
+        <div class="muted" style="font-size:11px; margin-top:10px;">
+          Tip: right-click a note to delete (desktop). Mobile later gets a long-press menu.
+        </div>
+      </div>
+    </section>
+
+  </div>
+`;
 
     initWorkshopUX();
   }
@@ -1546,14 +1558,21 @@ function initWorkshop(){
     });
 
     on($("#wsPostBtn"), "click", () => {
-      // Route: open hub / focus destination hub (Phase 2.5)
-      pushAwareness({ platform: "AMEBA", type: "route", text: "Routing to Destination Hub…" });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
+  // no hub — create a “post plan” slip users can place on desk
+  const n = makeSlip({ text: "Post plan: platform / caption / time…", tag: "post" });
+  slipBin.prepend(n);
+  document.dispatchEvent(new CustomEvent("awareness:event", {
+    detail: { platform: "AMEBA", type: "canvas", text: "Post plan slip created." }
+  }));
+});
 
-    on($("#wsEditBtn"), "click", () => {
-      pushAwareness({ platform: "AMEBA", type: "route", text: "Routing to edit flow (stub)…" });
-    });
+on($("#wsEditBtn"), "click", () => {
+  const n = makeSlip({ text: "Edit note: trim / hook / subtitles…", tag: "edit" });
+  slipBin.prepend(n);
+  document.dispatchEvent(new CustomEvent("awareness:event", {
+    detail: { platform: "AMEBA", type: "canvas", text: "Edit slip created." }
+  }));
+});
 
     // Desk dropzone drag events
     desk.addEventListener("dragover", (e) => { e.preventDefault(); desk.classList.add("is-over"); });

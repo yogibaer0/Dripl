@@ -2716,13 +2716,57 @@ body{
    WORKSHOP VIEW (asymmetric intent)
    ========================================================================== */
 
-.workshop-grid{
+..workshop-grid{
   width: 100%;
-  max-width: 1100px;
+  max-width: 1200px;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: 220px 1fr 320px;
+
+  /* sketch intent */
+  grid-template-columns: 240px 1fr 340px;
+  grid-template-rows: auto 1fr;
+
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+}
+
+/* left lane spans both rows */
+.ws-area-awareness{
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  min-height: 520px;
+}
+
+/* canvas is the main center */
+.ws-area-canvas{
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 520px;
+}
+
+/* stats is a small top-right tile */
+.ws-area-stats{
+  grid-column: 3;
+  grid-row: 1;
+}
+
+/* desk is the tall right stage */
+.ws-area-desk{
+  grid-column: 3;
+  grid-row: 2;
+  min-height: 420px;
+}
+
+/* mobile stack */
+@media (max-width: 1100px){
+  .workshop-grid{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+  .ws-area-awareness{ grid-column: 1; grid-row: 1; min-height: unset; }
+  .ws-area-canvas{ grid-column: 1; grid-row: 2; min-height: unset; }
+  .ws-area-stats{ grid-column: 1; grid-row: 3; }
+  .ws-area-desk{ grid-column: 1; grid-row: 4; min-height: unset; }
 }
 
 .ws-card{
@@ -2880,5 +2924,11 @@ body{
   .workshop-grid{
     grid-template-columns: 1fr;
   }
+}
+
+/* TEMP: Destination Hub hidden (scrapped for now) */
+#topWall,
+#bottomDock {
+  display: none !important;
 }
 
