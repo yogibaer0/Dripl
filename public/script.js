@@ -573,6 +573,10 @@ function initWorkshop(){
   const root = document.getElementById("workshopRoot");
   if (!root) return;
 
+  const awarenessLane = document.getElementById("awarenessLane");
+  const laneToggle    = document.getElementById("laneToggle");
+  const laneIcon      = document.getElementById("laneIcon");
+  const laneUnreadBadge = document.getElementById("laneUnreadBadge");
   const laneGroups   = document.getElementById("laneGroups");
   const laneStatus   = document.getElementById("laneStatus");
   const inkPool      = document.getElementById("inkPool");
@@ -580,14 +584,12 @@ function initWorkshop(){
   const inkSearch    = document.getElementById("inkSearch");
   const inkItems     = document.getElementById("inkItems");
 
-  const noteList     = document.getElementById("noteList");
+  const deskStage    = document.getElementById("deskStage");
   const newNoteBtn   = document.getElementById("newNoteBtn");
-  const pinBtn       = document.getElementById("pinToCanvasBtn");
-  const journalInput = document.getElementById("journalInput");
+  const newReminderBtn = document.getElementById("newReminderBtn");
 
   const queueDrop    = document.getElementById("queueDrop");
   const queueList    = document.getElementById("queueList");
-  const openHubBtn   = document.getElementById("openHubBtn");
 
   const queueCountEl = document.getElementById("queueCount");
   const noteCountEl  = document.getElementById("noteCount");
@@ -595,17 +597,15 @@ function initWorkshop(){
 
   // ---- state (local, simple) ----
   const LS_NOTES   = "ameba.workshop.notes.v1";
-  const LS_JOURNAL = "ameba.workshop.journal.v1";
+  const LS_ARTIFACTS = "ameba.workshop.artifacts.v1";
 
   const state = {
     events: [],        // awareness events
     unread: 0,
     notes: loadJSON(LS_NOTES, []),
-    journal: localStorage.getItem(LS_JOURNAL) || "",
+    artifacts: loadJSON(LS_ARTIFACTS, []),
     queue: []          // staged media
   };
-
-  if (journalInput) journalInput.value = state.journal;
 
   function loadJSON(key, fallback){
     try { return JSON.parse(localStorage.getItem(key) || "") ?? fallback; }
@@ -675,8 +675,51 @@ function initWorkshop(){
 
   function renderCounts(){
     if (queueCountEl) queueCountEl.textContent = String(state.queue.length);
-    if (noteCountEl)  noteCountEl.textContent  = String(state.notes.length);
+    if (noteCountEl)  noteCountEl.textContent  = String(state.artifacts.length);
     if (unreadCountEl)unreadCountEl.textContent= String(state.unread);
+    
+    // Update badge on collapsed icon
+    if (laneUnreadBadge) {
+      if (state.unread > 0) {
+        laneUnreadBadge.textContent = String(state.unread);
+        laneUnreadBadge.hidden = false;
+      } else {
+        laneUnreadBadge.hidden = true;
+      }
+    }
+  }
+
+  // ---- Awareness Lane: Collapse/Expand ----
+  function toggleLane(){
+    if (!awarenessLane) return;
+    const isCollapsed = awarenessLane.classList.toggle("is-collapsed");
+    if (laneToggle) laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
+    
+    // Mark unread as read when expanding
+    if (!isCollapsed) {
+      state.unread = 0;
+      renderCounts();
+    }
+  }
+
+  if (laneToggle) {
+    laneToggle.addEventListener("click", toggleLane);
+  }
+
+  if (laneIcon) {
+    laneIcon.addEventListener("click", toggleLane);
+  }
+
+  // Enhance pushEvent with pulse animation
+  const originalPushEvent = pushEvent;
+  function pushEvent(ev){
+    originalPushEvent(ev);
+    
+    // Add pulse to icon when collapsed
+    if (awarenessLane && awarenessLane.classList.contains("is-collapsed") && laneIcon) {
+      laneIcon.classList.add("is-pulsing");
+      setTimeout(() => laneIcon.classList.remove("is-pulsing"), 2000);
+    }
   }
 
   // ---- Ink commands (Canvas router) ----
@@ -775,6 +818,76 @@ function initWorkshop(){
     });
   });
 
+  // ---- Desk Stage: artifact placement ----
+  function createArtifact(type, title, body){
+    const id = crypto?.randomUUID?.() || String(Date.now() + Math.random());
+    state.artifacts.push({ id, type, title, body, createdAt: Date.now() });
+    saveArtifacts();
+    renderDeskStage();
+    renderCounts();
+  }
+
+  function deleteArtifact(id){
+    state.artifacts = state.artifacts.filter(a => a.id !== id);
+    saveArtifacts();
+    renderDeskStage();
+    renderCounts();
+  }
+
+  function renderDeskStage(){
+    if (!deskStage) return;
+    
+    // Keep hint, remove old artifacts
+    const hint = deskStage.querySelector(".desk__stage-hint");
+    deskStage.innerHTML = "";
+    if (hint) deskStage.appendChild(hint);
+    
+    // Render artifacts
+    state.artifacts.forEach(artifact => {
+      const el = document.createElement("div");
+      el.className = "desk__artifact";
+      el.dataset.artifactId = artifact.id;
+      el.innerHTML = `
+        <button class="desk__artifact-delete" data-delete-id="${artifact.id}" title="Delete">×</button>
+        <div style="font-weight:600; font-size:12px; margin-bottom:4px;">${escapeHTML(artifact.title)}</div>
+        <div style="font-size:12px; opacity:.85;">${escapeHTML(artifact.body || "")}</div>
+        <div style="font-size:10px; opacity:.6; margin-top:6px;">${artifact.type}</div>
+      `;
+      
+      // Delete button
+      const deleteBtn = el.querySelector(".desk__artifact-delete");
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = deleteBtn.getAttribute("data-delete-id");
+          if (id) deleteArtifact(id);
+        });
+      }
+      
+      deskStage.appendChild(el);
+    });
+  }
+
+  // Update button handlers to use artifacts
+  if (newNoteBtn) {
+    newNoteBtn.addEventListener("click", () => {
+      const title = prompt("Note title:", "Quick Note");
+      if (title) {
+        const body = prompt("Note body:", "Write something...");
+        createArtifact("note", title, body || "");
+      }
+    });
+  }
+
+  if (newReminderBtn) {
+    newReminderBtn.addEventListener("click", () => {
+      const title = prompt("Reminder:", "Remember to...");
+      if (title) {
+        createArtifact("reminder", title, "");
+      }
+    });
+  }
+
   // ---- Queue dock: drag drop ----
   function addToQueue(file){
     state.queue.unshift({
@@ -870,7 +983,7 @@ function initWorkshop(){
 
   // initial renders
   renderLane();
-  renderNotes();
+  renderDeskStage();
   renderQueue();
   renderCounts();
   renderInkMenu("");
