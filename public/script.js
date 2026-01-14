@@ -612,7 +612,8 @@ function initWorkshop(){
     catch { return fallback; }
   }
   function saveNotes(){ localStorage.setItem(LS_NOTES, JSON.stringify(state.notes)); }
-  function saveJournal(v){ localStorage.setItem(LS_JOURNAL, v || ""); }
+  function saveArtifacts(){ localStorage.setItem(LS_ARTIFACTS, JSON.stringify(state.artifacts)); }
+//   function saveJournal(v){ localStorage.setItem(LS_JOURNAL, v || ""); }
 
   // ---- Awareness: event model ----
   function pushEvent(ev){
@@ -620,6 +621,12 @@ function initWorkshop(){
     state.unread += 1;
     renderLane();
     renderCounts();
+    
+    // Add pulse to icon when collapsed
+    if (awarenessLane && awarenessLane.classList.contains("is-collapsed") && laneIcon) {
+      laneIcon.classList.add("is-pulsing");
+      setTimeout(() => laneIcon.classList.remove("is-pulsing"), 2000);
+    }
     // mark “new” highlight for a moment
     setTimeout(() => {
       const node = document.querySelector(`[data-ev-id="${ev.id}"]`);
@@ -710,18 +717,6 @@ function initWorkshop(){
     laneIcon.addEventListener("click", toggleLane);
   }
 
-  // Enhance pushEvent with pulse animation
-  const originalPushEvent = pushEvent;
-  function pushEvent(ev){
-    originalPushEvent(ev);
-    
-    // Add pulse to icon when collapsed
-    if (awarenessLane && awarenessLane.classList.contains("is-collapsed") && laneIcon) {
-      laneIcon.classList.add("is-pulsing");
-      setTimeout(() => laneIcon.classList.remove("is-pulsing"), 2000);
-    }
-  }
-
   // ---- Ink commands (Canvas router) ----
   const commands = [
     { key: "idea", label: "I have an idea", run: () => createNote("Idea", "") },
@@ -795,16 +790,16 @@ function initWorkshop(){
     `).join("");
   }
 
-  on(newNoteBtn, "click", () => createNote("Note", "Write here…"));
-  on(pinBtn, "click", () => {
-    // MVP: pin just creates a “Canvas pinned” note
-    createNote("Pinned to Canvas", "A slip surfaced.");
-  });
-
-  on(journalInput, "input", () => {
-    state.journal = journalInput.value || "";
-    saveJournal(state.journal);
-  });
+//   on(newNoteBtn, "click", () => createNote("Note", "Write here…"));
+//   on(pinBtn, "click", () => {
+//     // MVP: pin just creates a “Canvas pinned” note
+//     createNote("Pinned to Canvas", "A slip surfaced.");
+//   });
+// 
+//   on(journalInput, "input", () => {
+//     state.journal = journalInput.value || "";
+//     saveJournal(state.journal);
+//   });
 
   // Desk tabs switching
   document.querySelectorAll(".desk__tab").forEach(btn => {
