@@ -155,125 +155,97 @@
       <!-- END Destination Hub -->
     </div>
     
-    <!-- CENTER: Open Space Viewport (no panel background) -->
-    <div class="open-space-viewport" id="openSpaceViewport">
-      <!-- Default: User stats placeholders -->
-      <div class="open-space-content" id="openSpaceContent">
-        <div class="user-stats-placeholder">
-          <div class="stat-widget">
-            <span class="stat-label">Followers</span>
-            <span class="stat-value">—</span>
-          </div>
-          <div class="stat-widget">
-            <span class="stat-label">Likes</span>
-            <span class="stat-value">—</span>
-          </div>
-          <div class="stat-widget">
-            <span class="stat-label">Emails</span>
-            <span class="stat-value">—</span>
-          </div>
-        </div>
+    <div class="workshop" id="workshopRoot">
+  <!-- LEFT: Awareness Lane -->
+  <aside class="workshop__lane" id="awarenessLane" aria-label="Awareness Lane">
+    <div class="lane__head">
+      <div class="lane__title">Awareness</div>
+      <div class="lane__status" id="laneStatus">quiet</div>
+    </div>
+
+    <div class="lane__groups" id="laneGroups">
+      <!-- populated by JS -->
+    </div>
+
+    <button class="lane__toggle" id="laneToggle" type="button" aria-label="Toggle lane details">
+      Details
+    </button>
+  </aside>
+
+  <!-- CENTER: Canvas Ink -->
+  <section class="workshop__canvas" aria-label="Canvas">
+    <button class="ink" id="inkPool" type="button" aria-label="Open Canvas Ink">
+      <div class="ink__title">Canvas</div>
+      <div class="ink__hint">Click to pull what you need.</div>
+    </button>
+
+    <div class="inkmenu" id="inkMenu" hidden>
+      <div class="inkmenu__head">
+        <div class="inkmenu__title">Ink</div>
+        <div class="inkmenu__hint">Type or click.</div>
+      </div>
+
+      <input class="inkmenu__search" id="inkSearch" placeholder="I have an idea / I wanna post / Need to edit…" />
+
+      <div class="inkmenu__items" id="inkItems">
+        <!-- populated by JS -->
       </div>
     </div>
-    
-    <!-- LEFT: Vanity/Tool Bubble -->
-    <div class="vanity-bubble" id="vanityBubble" role="button" tabindex="0" aria-label="Tool shed">
-      <div class="vanity-bubble__avatar">
-        <!-- User profile image placeholder -->
-        <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-          <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.8"/>
-          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="currentColor" opacity="0.6"/>
-        </svg>
-      </div>
-      
-      <!-- Tool shed panel (hidden by default) -->
-      <div class="tool-shed" id="toolShed" hidden>
-        <div class="tool-shed__title">Tool Shed</div>
-        <div class="tool-shed__items">
-          <button class="tool-item" data-tool="dripl-engine">
-            <span class="tool-item__icon">⚙️</span>
-            <span class="tool-item__label">Dripl Engine</span>
-          </button>
-          <button class="tool-item" data-tool="ameba-quality">
-            <span class="tool-item__icon">✨</span>
-            <span class="tool-item__label">AMEBA Quality+</span>
-          </button>
-          <button class="tool-item" data-tool="batch-process">
-            <span class="tool-item__icon">📦</span>
-            <span class="tool-item__label">Batch Process</span>
-          </button>
+
+    <div class="canvas__summary" id="canvasSummary" aria-live="polite">
+      <div class="summary__chip">Queue: <span id="queueCount">0</span></div>
+      <div class="summary__chip">Notes: <span id="noteCount">0</span></div>
+      <div class="summary__chip">Unread: <span id="unreadCount">0</span></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Desk -->
+  <aside class="workshop__desk" aria-label="Desk" id="deskPanel">
+    <div class="desk__head">
+      <div class="desk__title">Desk</div>
+      <div class="desk__sub">journal • slips • clutter (optional)</div>
+    </div>
+
+    <div class="desk__tabs">
+      <button class="desk__tab is-active" data-tab="notes" type="button">Notepads</button>
+      <button class="desk__tab" data-tab="calendar" type="button">Calendar</button>
+      <button class="desk__tab" data-tab="journal" type="button">Journal</button>
+    </div>
+
+    <div class="desk__body">
+      <div class="desk__view is-visible" data-view="notes">
+        <div class="desk__actions">
+          <button class="btn btn-ghost" id="newNoteBtn" type="button">New note</button>
+          <button class="btn btn-ghost" id="pinToCanvasBtn" type="button">Pin to Canvas</button>
         </div>
+        <div class="desk__list" id="noteList"></div>
+      </div>
+
+      <div class="desk__view" data-view="calendar">
+        <div class="muted small">Calendar (MVP placeholder)</div>
+      </div>
+
+      <div class="desk__view" data-view="journal">
+        <textarea class="textarea" id="journalInput" rows="10" placeholder="Write… (saved locally)"></textarea>
+        <div class="muted small">Autosaves.</div>
       </div>
     </div>
-    
-    <!-- BOTTOM: Bottom Dock (Port + Storage) -->
-    <div class="bottom-dock" id="bottomDock">
-      <div class="bottom-dock__content">
-        <div class="dock-section dock-section--port">
-          <h3 class="dock-section__title">Port</h3>
-          <div class="dock-section__actions">
-            <button class="dock-btn" id="dockUpload" title="Upload files">
-              <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-                <path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
-              </svg>
-              <span>Upload</span>
-            </button>
-            <button class="dock-btn" id="dockImport" title="Import from sources">
-              <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-                <path fill="currentColor" d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
-              </svg>
-              <span>Import</span>
-            </button>
-            <button class="dock-btn" id="dockConvert" title="Convert media">
-              <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-                <path fill="currentColor" d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/>
-              </svg>
-              <span>Convert</span>
-            </button>
-          </div>
-        </div>
-        <div class="dock-section dock-section--storage">
-          <button class="dock-btn dock-btn--storage" id="dockStorage" title="Open Storage">
-            <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-              <path fill="currentColor" d="M4 7.5c0-1.1.9-2 2-2h3.2c.3 0 .6.1.8.3l1 1c.2.2.5.3.8.3H18c1.1 0 2 .9 2 2v7.7c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7.5Z"/>
-            </svg>
-            <span>Storage</span>
-          </button>
-        </div>
-      </div>
+  </aside>
+
+  <!-- BOTTOM-RIGHT: Queue Dock -->
+  <section class="workshop__dock" aria-label="Queue Dock">
+    <div class="dock__head">
+      <div class="dock__title">Queue</div>
+      <button class="dock__open btn btn-ghost" id="openHubBtn" type="button">Open Hub</button>
     </div>
-    
-    <!-- RIGHT: Analytics Wall (slide-out) -->
-    <aside class="analytics-wall" id="analyticsWall" aria-label="Analytics panel">
-      <button class="analytics-wall__handle" id="analyticsToggle" aria-label="Toggle analytics panel">
-        <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
-          <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-        </svg>
-      </button>
-      
-      <div class="analytics-wall__content">
-        <div class="analytics-section">
-          <h3 class="analytics-section__title">Analytics</h3>
-          <div class="analytics-section__body">
-            <p class="muted small">Performance metrics will appear here</p>
-          </div>
-        </div>
-        
-        <div class="analytics-section">
-          <h3 class="analytics-section__title">Sticky Notes</h3>
-          <div class="analytics-section__body">
-            <p class="muted small">Pin notes into open space</p>
-          </div>
-        </div>
-        
-        <div class="analytics-section">
-          <h3 class="analytics-section__title">Calendar</h3>
-          <div class="analytics-section__body">
-            <p class="muted small">Schedule and deadlines</p>
-          </div>
-        </div>
-      </div>
-    </aside>
+
+    <div class="dock__drop" id="queueDrop">
+      Drop files here to stage
+    </div>
+    <div class="dock__list" id="queueList"></div>
+  </section>
+</div>
+
 
     <!-- LEGACY PANELS (preserved but hidden/repositioned) -->
     <div class="legacy-panels" hidden>

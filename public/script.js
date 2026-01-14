@@ -568,6 +568,316 @@ function initStoragePlumes(){
     on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); });
   }
 
+// ---------- WORKSHOP (Phase 1 + 2) ----------
+function initWorkshop(){
+  const root = document.getElementById("workshopRoot");
+  if (!root) return;
+
+  const laneGroups   = document.getElementById("laneGroups");
+  const laneStatus   = document.getElementById("laneStatus");
+  const inkPool      = document.getElementById("inkPool");
+  const inkMenu      = document.getElementById("inkMenu");
+  const inkSearch    = document.getElementById("inkSearch");
+  const inkItems     = document.getElementById("inkItems");
+
+  const noteList     = document.getElementById("noteList");
+  const newNoteBtn   = document.getElementById("newNoteBtn");
+  const pinBtn       = document.getElementById("pinToCanvasBtn");
+  const journalInput = document.getElementById("journalInput");
+
+  const queueDrop    = document.getElementById("queueDrop");
+  const queueList    = document.getElementById("queueList");
+  const openHubBtn   = document.getElementById("openHubBtn");
+
+  const queueCountEl = document.getElementById("queueCount");
+  const noteCountEl  = document.getElementById("noteCount");
+  const unreadCountEl= document.getElementById("unreadCount");
+
+  // ---- state (local, simple) ----
+  const LS_NOTES   = "ameba.workshop.notes.v1";
+  const LS_JOURNAL = "ameba.workshop.journal.v1";
+
+  const state = {
+    events: [],        // awareness events
+    unread: 0,
+    notes: loadJSON(LS_NOTES, []),
+    journal: localStorage.getItem(LS_JOURNAL) || "",
+    queue: []          // staged media
+  };
+
+  if (journalInput) journalInput.value = state.journal;
+
+  function loadJSON(key, fallback){
+    try { return JSON.parse(localStorage.getItem(key) || "") ?? fallback; }
+    catch { return fallback; }
+  }
+  function saveNotes(){ localStorage.setItem(LS_NOTES, JSON.stringify(state.notes)); }
+  function saveJournal(v){ localStorage.setItem(LS_JOURNAL, v || ""); }
+
+  // ---- Awareness: event model ----
+  function pushEvent(ev){
+    state.events.unshift(ev);
+    state.unread += 1;
+    renderLane();
+    renderCounts();
+    // mark “new” highlight for a moment
+    setTimeout(() => {
+      const node = document.querySelector(`[data-ev-id="${ev.id}"]`);
+      node?.classList.remove("is-new");
+    }, 1200);
+  }
+
+  function groupedByPlatform(){
+    const groups = {};
+    for (const ev of state.events.slice(0, 25)){
+      const p = ev.platform || "other";
+      if (!groups[p]) groups[p] = [];
+      groups[p].push(ev);
+    }
+    return groups;
+  }
+
+  function renderLane(){
+    if (!laneGroups) return;
+
+    const groups = groupedByPlatform();
+    const platforms = Object.keys(groups);
+    laneGroups.innerHTML = "";
+
+    if (!platforms.length){
+      laneGroups.innerHTML = `<div class="muted small" style="padding:8px;">No movement yet.</div>`;
+      if (laneStatus) laneStatus.textContent = "quiet";
+      return;
+    }
+
+    if (laneStatus) laneStatus.textContent = "monitoring";
+
+    for (const platform of platforms){
+      const list = groups[platform];
+      const wrap = document.createElement("div");
+      wrap.className = "lane__group";
+      wrap.innerHTML = `
+        <div class="group__row">
+          <div class="group__name">${platform}</div>
+          <div class="group__badge">${list.length}</div>
+        </div>
+        <div class="group__items">
+          ${list.slice(0,3).map(ev => `
+            <div class="lane__item is-new" data-ev-id="${ev.id}">
+              ${escapeHTML(ev.text)}
+            </div>
+          `).join("")}
+        </div>
+      `;
+      laneGroups.appendChild(wrap);
+    }
+  }
+
+  function renderCounts(){
+    if (queueCountEl) queueCountEl.textContent = String(state.queue.length);
+    if (noteCountEl)  noteCountEl.textContent  = String(state.notes.length);
+    if (unreadCountEl)unreadCountEl.textContent= String(state.unread);
+  }
+
+  // ---- Ink commands (Canvas router) ----
+  const commands = [
+    { key: "idea", label: "I have an idea", run: () => createNote("Idea", "") },
+    { key: "post", label: "I wanna post", run: () => openDestinationHub() },
+    { key: "edit", label: "Need to edit", run: () => openTool("dripl-engine") },
+    { key: "note", label: "New note slip", run: () => createNote("Note", "") },
+  ];
+
+  function renderInkMenu(filter=""){
+    if (!inkItems) return;
+    const f = filter.trim().toLowerCase();
+    const items = !f ? commands : commands.filter(c => c.label.toLowerCase().includes(f));
+    inkItems.innerHTML = items.map(c => `
+      <div class="inkmenu__item" data-cmd="${c.key}">
+        ${escapeHTML(c.label)}
+      </div>
+    `).join("");
+
+    inkItems.querySelectorAll(".inkmenu__item").forEach(el => {
+      el.addEventListener("click", () => {
+        const cmd = el.getAttribute("data-cmd");
+        const found = commands.find(c => c.key === cmd);
+        found?.run();
+        closeInk();
+      });
+    });
+  }
+
+  function openInk(){
+    if (!inkMenu) return;
+    inkMenu.hidden = false;
+    renderInkMenu("");
+    inkSearch?.focus();
+  }
+  function closeInk(){
+    if (!inkMenu) return;
+    inkMenu.hidden = true;
+    inkSearch && (inkSearch.value = "");
+  }
+
+  // Cmd+K (or /) opens Ink
+  document.addEventListener("keydown", (e) => {
+    const isCmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+    const isSlash = e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey;
+    if (isCmdK || isSlash){
+      e.preventDefault();
+      openInk();
+    }
+    if (e.key === "Escape" && inkMenu && !inkMenu.hidden){
+      e.preventDefault();
+      closeInk();
+    }
+  });
+
+  // ---- Desk: notes + journal ----
+  function createNote(title, body){
+    const id = crypto?.randomUUID?.() || String(Date.now() + Math.random());
+    state.notes.unshift({ id, title, body, createdAt: Date.now() });
+    saveNotes();
+    renderNotes();
+    renderCounts();
+  }
+
+  function renderNotes(){
+    if (!noteList) return;
+    noteList.innerHTML = state.notes.slice(0, 12).map(n => `
+      <div class="note" data-note-id="${n.id}">
+        <div class="note__title">${escapeHTML(n.title)}</div>
+        <div class="note__body">${escapeHTML(n.body || "…")}</div>
+      </div>
+    `).join("");
+  }
+
+  on(newNoteBtn, "click", () => createNote("Note", "Write here…"));
+  on(pinBtn, "click", () => {
+    // MVP: pin just creates a “Canvas pinned” note
+    createNote("Pinned to Canvas", "A slip surfaced.");
+  });
+
+  on(journalInput, "input", () => {
+    state.journal = journalInput.value || "";
+    saveJournal(state.journal);
+  });
+
+  // Desk tabs switching
+  document.querySelectorAll(".desk__tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".desk__tab").forEach(b => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+
+      const tab = btn.getAttribute("data-tab");
+      document.querySelectorAll(".desk__view").forEach(v => v.classList.remove("is-visible"));
+      document.querySelector(`.desk__view[data-view="${tab}"]`)?.classList.add("is-visible");
+    });
+  });
+
+  // ---- Queue dock: drag drop ----
+  function addToQueue(file){
+    state.queue.unshift({
+      id: crypto?.randomUUID?.() || String(Date.now() + Math.random()),
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      addedAt: Date.now()
+    });
+    renderQueue();
+    renderCounts();
+  }
+
+  function renderQueue(){
+    if (!queueList) return;
+    queueList.innerHTML = state.queue.slice(0, 8).map(q => `
+      <div class="queuecard">
+        <div class="queuecard__name">${escapeHTML(q.name)}</div>
+        <div class="queuecard__meta">${escapeHTML(q.type || "file")} • ${(q.size/1024/1024).toFixed(1)}mb</div>
+      </div>
+    `).join("");
+  }
+
+  function wireDrop(el){
+    if (!el) return;
+    const prevent = (e) => { e.preventDefault(); e.stopPropagation(); };
+    ["dragenter","dragover","dragleave","drop"].forEach(ev => el.addEventListener(ev, prevent));
+    el.addEventListener("drop", (e) => {
+      const files = e.dataTransfer?.files;
+      if (files && files.length) addToQueue(files[0]);
+    });
+  }
+  wireDrop(queueDrop);
+
+  // ---- Routing actions (MVP stubs) ----
+  function openDestinationHub(){
+    // MVP: scroll to top wall / hub and visually indicate it
+    document.getElementById("topWall")?.scrollIntoView({ behavior:"smooth", block:"start" });
+    pushEvent({
+      id: "hub-" + Date.now(),
+      platform: "ameba",
+      text: "Ink opened the Hub.",
+      createdAt: Date.now()
+    });
+  }
+  function openTool(toolKey){
+    // MVP: uses your existing tool shed button if present
+    const shed = document.getElementById("toolShed");
+    shed && (shed.hidden = false);
+    pushEvent({
+      id: "tool-" + Date.now(),
+      platform: "tools",
+      text: `Ink surfaced a tool: ${toolKey}.`,
+      createdAt: Date.now()
+    });
+  }
+
+  on(openHubBtn, "click", openDestinationHub);
+  on(inkPool, "click", () => {
+    if (inkMenu && !inkMenu.hidden) closeInk();
+    else openInk();
+  });
+  on(inkSearch, "input", () => renderInkMenu(inkSearch.value || ""));
+
+  // ---- Awareness mock generator (replace later with API) ----
+  const mockPlatforms = ["youtube", "tiktok", "spotify"];
+  const mockLines = {
+    youtube: ["New comment arrived.", "A like landed.", "Subscriber count stirred."],
+    tiktok:  ["A heart blinked.", "Someone followed.", "A comment splashed in."],
+    spotify: ["A save was added.", "A playlist ripple.", "A listener returned."]
+  };
+
+  function startMockAwareness(){
+    // only if there’s no real events yet
+    setInterval(() => {
+      const p = mockPlatforms[Math.floor(Math.random()*mockPlatforms.length)];
+      const line = mockLines[p][Math.floor(Math.random()*mockLines[p].length)];
+      pushEvent({
+        id: p + "-" + Date.now(),
+        platform: p,
+        text: line,
+        createdAt: Date.now()
+      });
+    }, 12000);
+  }
+
+  // ---- utilities ----
+  function escapeHTML(s){
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  // initial renders
+  renderLane();
+  renderNotes();
+  renderQueue();
+  renderCounts();
+  renderInkMenu("");
+  startMockAwareness();
+}
+
+
   // expose minimal init (call once from inline script)
     window.AmebaInit = function AmebaInit(){
     initUpload();
@@ -575,6 +885,7 @@ function initStoragePlumes(){
     initConvert();
     initStoragePlumes();
     initLibraryView();
+    initWorkshop();
   };
 })();
 
