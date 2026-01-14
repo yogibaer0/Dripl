@@ -612,7 +612,6 @@ function initWorkshop(){
     catch { return fallback; }
   }
   function saveNotes(){ localStorage.setItem(LS_NOTES, JSON.stringify(state.notes)); }
-  function saveArtifacts(){ localStorage.setItem(LS_ARTIFACTS, JSON.stringify(state.artifacts)); }
 //   function saveJournal(v){ localStorage.setItem(LS_JOURNAL, v || ""); }
 
   // ---- Awareness: event model ----
@@ -791,15 +790,6 @@ function initWorkshop(){
   }
 
 //   on(newNoteBtn, "click", () => createNote("Note", "Write here…"));
-//   on(pinBtn, "click", () => {
-//     // MVP: pin just creates a “Canvas pinned” note
-//     createNote("Pinned to Canvas", "A slip surfaced.");
-//   });
-// 
-//   on(journalInput, "input", () => {
-//     state.journal = journalInput.value || "";
-//     saveJournal(state.journal);
-//   });
 
   // Desk tabs switching
   document.querySelectorAll(".desk__tab").forEach(btn => {
