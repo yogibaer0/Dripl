@@ -187,7 +187,16 @@
     
     <div class="workshop" id="workshopRoot">
   <!-- LEFT: Awareness Lane -->
-  <aside class="workshop__lane" id="awarenessLane" aria-label="Awareness Lane">
+  <aside class="workshop__lane is-collapsed" id="awarenessLane" aria-label="Awareness Lane">
+    <!-- Collapsed view (icon + badge) -->
+    <div class="lane__collapsed-view">
+      <div class="lane__icon" id="laneIcon" title="Expand Awareness">
+        <span>👁</span>
+        <span class="lane__unread-badge" id="laneUnreadBadge" hidden>0</span>
+      </div>
+    </div>
+    
+    <!-- Expanded view (full content) -->
     <div class="lane__head">
       <div class="lane__title">Awareness</div>
       <div class="lane__status" id="laneStatus">quiet</div>
@@ -198,7 +207,7 @@
     </div>
 
     <button class="lane__toggle" id="laneToggle" type="button" aria-label="Toggle lane details">
-      Details
+      Collapse
     </button>
   </aside>
 
@@ -233,31 +242,18 @@
   <aside class="workshop__desk" aria-label="Desk" id="deskPanel">
     <div class="desk__head">
       <div class="desk__title">Desk</div>
-      <div class="desk__sub">journal • slips • clutter (optional)</div>
+      <div class="desk__sub">Persistent workspace for artifacts</div>
     </div>
 
-    <div class="desk__tabs">
-      <button class="desk__tab is-active" data-tab="notes" type="button">Notepads</button>
-      <button class="desk__tab" data-tab="calendar" type="button">Calendar</button>
-      <button class="desk__tab" data-tab="journal" type="button">Journal</button>
+    <div class="desk__actions">
+      <button class="btn btn-ghost" id="newNoteBtn" type="button">+ Note</button>
+      <button class="btn btn-ghost" id="newReminderBtn" type="button">+ Reminder</button>
     </div>
 
-    <div class="desk__body">
-      <div class="desk__view is-visible" data-view="notes">
-        <div class="desk__actions">
-          <button class="btn btn-ghost" id="newNoteBtn" type="button">New note</button>
-          <button class="btn btn-ghost" id="pinToCanvasBtn" type="button">Pin to Canvas</button>
-        </div>
-        <div class="desk__list" id="noteList"></div>
-      </div>
-
-      <div class="desk__view" data-view="calendar">
-        <div class="muted small">Calendar (MVP placeholder)</div>
-      </div>
-
-      <div class="desk__view" data-view="journal">
-        <textarea class="textarea" id="journalInput" rows="10" placeholder="Write… (saved locally)"></textarea>
-        <div class="muted small">Autosaves.</div>
+    <div class="desk__stage" id="deskStage">
+      <div class="desk__stage-hint">
+        Drop notes, reminders, and tasks here.
+        <br/>They'll stay until you remove them.
       </div>
     </div>
   </aside>
