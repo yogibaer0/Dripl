@@ -18,11 +18,23 @@
   --shadow:0 8px 24px rgba(0,0,0,.35);
 
   /* Radii / spacing / layout */
-  --radius:16px;
+  --radius:22px;
   --radius-sm:10px;
-  --gap:22px;
+  --gap:20px;
   --space:18px;
   --max:1100px;
+  
+  /* Workshop layout tokens */
+  --page-pad: 28px;
+  --panel-pad: 16px;
+  --panel-gap: 20px;
+  
+  /* Workshop sizing */
+  --awareness-width-collapsed: 56px;
+  --awareness-width-expanded: 220px;
+  --desk-width: 340px;
+  --toolbar-height: 72px;
+  --dock-height: 64px;
 
   /* Satellite rail sizing + reserved layout width
      (these are the knobs you actually tweak) */
@@ -109,8 +121,11 @@ body{
 
 .shell{
   max-width:var(--max);
-  margin:12px auto 100px;
-  padding:0 28px;
+  margin:0 auto;
+  padding:0 var(--page-pad);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .panels{
@@ -2347,36 +2362,42 @@ body{
 }
 
 /* =========================================
-   WORKSHOP (Phase 1 + 2 + 3 - Negative Space First)
+   WORKSHOP (3x3 Grid System with Named Areas)
    ========================================= */
 .workshop{
-  display:grid;
-  grid-template-columns: 18% 46% 36%;
-  grid-template-rows: 1fr auto;
-  gap: 18px;
-  align-items: stretch;
-  min-height: 500px;
-  padding: 0;
+  display: grid;
+  grid-template-columns: var(--awareness-width-collapsed) 1fr var(--desk-width);
+  grid-template-rows: 1fr var(--dock-height);
+  grid-template-areas:
+    "awareness canvas desk"
+    "awareness dock    dock";
+  gap: var(--panel-gap);
+  min-height: calc(100vh - var(--toolbar-height) - var(--page-pad) * 2);
+  flex: 1;
+}
+
+/* Awareness rail expands */
+.workshop:has(.workshop__lane:not(.is-collapsed)){
+  grid-template-columns: var(--awareness-width-expanded) 1fr var(--desk-width);
 }
 
 .workshop__lane{
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  border-radius: 16px;
+  grid-area: awareness;
+  border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,.05);
   background: rgba(255,255,255,.02);
   box-shadow: 0 8px 20px rgba(0,0,0,.50);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  position:relative;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease-out;
+  position: relative;
+  padding: var(--panel-pad);
 }
 
 /* Collapsed state - show platform names + counts only */
 .workshop__lane.is-collapsed{
-  padding: 16px 12px;
+  padding: var(--panel-pad) 12px;
 }
 
 .lane__head{
@@ -2540,20 +2561,19 @@ body{
 }
 
 .workshop__canvas{
-  grid-column: 2;
-  grid-row: 1;
-  border-radius: 20px;
+  grid-area: canvas;
+  border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,.05);
   background:
     radial-gradient(circle at 30% 20%, rgba(167,139,250,.08), transparent 65%),
     rgba(255,255,255,.015);
   box-shadow: 0 8px 20px rgba(0,0,0,.50);
-  padding: 16px;
-  position:relative;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+  padding: var(--panel-pad);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .ink{
@@ -2562,13 +2582,13 @@ body{
   background:
     radial-gradient(circle at 20% 30%, rgba(167,139,250,.14), transparent 60%),
     linear-gradient(135deg, rgba(0,0,0,.28), rgba(255,255,255,.015));
-  border-radius: 20px;
+  border-radius: var(--radius);
   padding: 32px 28px;
   text-align:center;
   cursor:pointer;
   color: rgba(255,255,255,.88);
   box-shadow: 0 10px 24px rgba(0,0,0,.55);
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s ease-out;
   position:relative;
   overflow:hidden;
   min-height: 200px;
@@ -2584,7 +2604,7 @@ body{
   content: "";
   position: absolute;
   inset: -2px;
-  border-radius: 20px;
+  border-radius: var(--radius);
   padding: 2px;
   background: linear-gradient(135deg, 
     rgba(167,139,250,.3), 
@@ -2595,7 +2615,7 @@ body{
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .ink:hover::before{
@@ -2713,9 +2733,8 @@ body{
 }
 
 .workshop__desk{
-  grid-column: 3;
-  grid-row: 1;
-  border-radius: 16px;
+  grid-area: desk;
+  border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,.05);
   background: 
     radial-gradient(circle at 80% 20%, rgba(139,92,246,.06), transparent 50%),
@@ -2723,12 +2742,12 @@ body{
   box-shadow: 
     0 8px 20px rgba(0,0,0,.50),
     inset 0 1px 0 rgba(255,255,255,.03);
-  padding: 16px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  overflow:hidden;
-  position:relative;
+  padding: var(--panel-pad);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  position: relative;
 }
 
 .desk__head{ 
@@ -2941,19 +2960,18 @@ body{
 }
 
 .workshop__dock{
-  grid-column: 2 / span 2;
-  grid-row: 2;
-  border-radius: 10px;
+  grid-area: dock;
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(255,255,255,.05);
   background: rgba(255,255,255,.015);
   box-shadow: 0 4px 12px rgba(0,0,0,.35);
   padding: 6px 12px;
-  display:flex;
-  flex-direction:row;
-  align-items:center;
-  gap:10px;
-  max-height: 50px; /* Within 44-56px range */
-  min-height: 50px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  max-height: var(--dock-height);
+  min-height: var(--dock-height);
 }
 
 .dock__head{ 
