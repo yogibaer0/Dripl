@@ -691,7 +691,7 @@ function initWorkshop(){
     
     if (!platforms.length) {
       collapsedView.innerHTML = `
-        <div class="lane__platform-count">
+        <div class="lane__platform-count" data-action="expand">
           <div class="lane__platform-name">Quiet</div>
           <div class="lane__platform-badge">0</div>
         </div>
@@ -702,17 +702,12 @@ function initWorkshop(){
     collapsedView.innerHTML = platforms.map(platform => {
       const count = groups[platform]?.length || 0;
       return `
-        <div class="lane__platform-count" data-platform="${escapeHTML(platform)}">
+        <div class="lane__platform-count" data-platform="${escapeHTML(platform)}" data-action="expand">
           <div class="lane__platform-name">${escapeHTML(platform)}</div>
           <div class="lane__platform-badge">${count}</div>
         </div>
       `;
     }).join("");
-    
-    // Make platform counts clickable to expand
-    collapsedView.querySelectorAll(".lane__platform-count").forEach(el => {
-      el.addEventListener("click", toggleLane);
-    });
   }
 
   function renderCounts(){
@@ -742,6 +737,17 @@ function initWorkshop(){
 
   if (laneToggle) {
     laneToggle.addEventListener("click", toggleLane);
+  }
+
+  // Event delegation for collapsed platform counts
+  const collapsedView = document.getElementById("laneCollapsedView");
+  if (collapsedView) {
+    collapsedView.addEventListener("click", (e) => {
+      const platformCount = e.target.closest("[data-action='expand']");
+      if (platformCount) {
+        toggleLane();
+      }
+    });
   }
 
   // ---- Ink commands (Canvas router) ----
