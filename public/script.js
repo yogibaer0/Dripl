@@ -568,15 +568,13 @@ function initStoragePlumes(){
     on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); });
   }
 
-// ---------- WORKSHOP (Phase 1 + 2) ----------
+// ---------- WORKSHOP (Phase 1 + 2 + 3) ----------
 function initWorkshop(){
   const root = document.getElementById("workshopRoot");
   if (!root) return;
 
   const awarenessLane = document.getElementById("awarenessLane");
   const laneToggle    = document.getElementById("laneToggle");
-  const laneIcon      = document.getElementById("laneIcon");
-  const laneUnreadBadge = document.getElementById("laneUnreadBadge");
   const laneGroups   = document.getElementById("laneGroups");
   const laneStatus   = document.getElementById("laneStatus");
   const inkPool      = document.getElementById("inkPool");
