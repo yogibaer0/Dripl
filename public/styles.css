@@ -2396,68 +2396,50 @@ body{
 .lane__title{ font-weight: 600; letter-spacing:.02em; font-size: 13px; }
 .lane__status{ font-size: 10px; opacity:.65; }
 
-/* Collapsed icon view */
+/* Collapsed view - platform names + small counts */
 .lane__collapsed-view{
   display: none;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 20px 8px;
-  gap: 16px;
-  height: 100%;
+  gap: 10px;
+  padding: 4px 0;
 }
 
 .workshop__lane.is-collapsed .lane__collapsed-view{
   display: flex;
 }
 
-.lane__icon{
-  width: 38px;
-  height: 38px;
+.lane__platform-count{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.04);
+  font-size: 11px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.lane__platform-count:hover{
+  background: rgba(255,255,255,.04);
+  border-color: rgba(167,139,250,.15);
+}
+
+.lane__platform-name{
+  font-weight: 600;
+  text-transform: capitalize;
+  opacity: .85;
+}
+
+.lane__platform-badge{
+  font-size: 10px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: rgba(167,139,250,.12);
   border: 1px solid rgba(167,139,250,.2);
-  display: grid;
-  place-items: center;
-  font-size: 16px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  position: relative;
-}
-
-.lane__icon:hover{
-  transform: scale(1.08);
-  box-shadow: 0 4px 12px rgba(167,139,250,.3);
-}
-
-/* Pulse animation for new events */
-.lane__icon.is-pulsing{
-  animation: awareness-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes awareness-pulse {
-  0%, 100% { 
-    box-shadow: 0 0 0 0 rgba(167,139,250,.35);
-  }
-  50% { 
-    box-shadow: 0 0 0 6px rgba(167,139,250,0);
-  }
-}
-
-.lane__unread-badge{
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(239,68,68,.9);
-  border: 2px solid var(--bg);
-  font-size: 10px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  padding: 0 4px;
+  min-width: 20px;
+  text-align: center;
 }
 
 .lane__groups{
