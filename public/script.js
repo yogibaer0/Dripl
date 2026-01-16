@@ -696,13 +696,19 @@ function initWorkshop(){
   }
 
   // ---- Awareness Lane: Collapse/Expand ----
+  function updateToggleText(){
+    if (!laneToggle || !awarenessLane) return;
+    const isCollapsed = awarenessLane.classList.contains("is-collapsed");
+    laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
+  }
+
   function toggleLane(){
     if (!awarenessLane) return;
-    const isCollapsed = awarenessLane.classList.toggle("is-collapsed");
-    if (laneToggle) laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
+    awarenessLane.classList.toggle("is-collapsed");
+    updateToggleText();
     
     // Mark unread as read when expanding
-    if (!isCollapsed) {
+    if (!awarenessLane.classList.contains("is-collapsed")) {
       state.unread = 0;
       renderCounts();
     }
@@ -973,11 +979,8 @@ function initWorkshop(){
   renderCounts();
   renderInkMenu("");
   
-  // Set initial toggle text based on collapsed state
-  if (laneToggle && awarenessLane) {
-    const isCollapsed = awarenessLane.classList.contains("is-collapsed");
-    laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
-  }
+  // Set initial toggle text
+  updateToggleText();
   
   startMockAwareness();
 }
