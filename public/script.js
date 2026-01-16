@@ -619,11 +619,6 @@ function initWorkshop(){
     renderLane();
     renderCounts();
     
-    // Add pulse to icon when collapsed
-    if (awarenessLane && awarenessLane.classList.contains("is-collapsed") && laneIcon) {
-      laneIcon.classList.add("is-pulsing");
-      setTimeout(() => laneIcon.classList.remove("is-pulsing"), 2000);
-    }
     // mark “new” highlight for a moment
     setTimeout(() => {
       const node = document.querySelector(`[data-ev-id="${ev.id}"]`);
