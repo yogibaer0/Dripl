@@ -188,12 +188,9 @@
     <div class="workshop" id="workshopRoot">
   <!-- LEFT: Awareness Lane -->
   <aside class="workshop__lane is-collapsed" id="awarenessLane" aria-label="Awareness Lane">
-    <!-- Collapsed view (icon + badge) -->
-    <div class="lane__collapsed-view">
-      <div class="lane__icon" id="laneIcon" title="Expand Awareness">
-        <span>👁</span>
-        <span class="lane__unread-badge" id="laneUnreadBadge" hidden>0</span>
-      </div>
+    <!-- Collapsed view (platform names + counts) -->
+    <div class="lane__collapsed-view" id="laneCollapsedView">
+      <!-- Populated by JS with platform counts -->
     </div>
     
     <!-- Expanded view (full content) -->
@@ -207,7 +204,7 @@
     </div>
 
     <button class="lane__toggle" id="laneToggle" type="button" aria-label="Toggle lane details">
-      Collapse
+      Expand
     </button>
   </aside>
 

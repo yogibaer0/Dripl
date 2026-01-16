@@ -110,7 +110,7 @@ body{
 .shell{
   max-width:var(--max);
   margin:12px auto 100px;
-  padding:0 var(--space);
+  padding:0 28px;
 }
 
 .panels{
@@ -2347,16 +2347,16 @@ body{
 }
 
 /* =========================================
-   WORKSHOP (Phase 1 + 2)
+   WORKSHOP (Phase 1 + 2 + 3 - Negative Space First)
    ========================================= */
 .workshop{
   display:grid;
-  grid-template-columns: 260px 1fr 340px;
+  grid-template-columns: 18% 46% 36%;
   grid-template-rows: 1fr auto;
-  gap: 16px;
+  gap: 18px;
   align-items: stretch;
   min-height: 500px;
-  padding: 8px 4px;
+  padding: 0;
 }
 
 .workshop__lane{
@@ -2371,17 +2371,12 @@ body{
   overflow:hidden;
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   position:relative;
+  padding: 16px;
 }
 
-/* Collapsed state - default view */
+/* Collapsed state - show platform names + counts only */
 .workshop__lane.is-collapsed{
-  width: 56px;
-  min-width: 56px;
-}
-
-/* Expanded state (default width via grid) */
-.workshop__lane:not(.is-collapsed){
-  width: 280px;
+  padding: 16px 12px;
 }
 
 .lane__head{
@@ -2732,22 +2727,7 @@ body{
 }
 
 .canvas__summary{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  justify-content:center;
-  margin-top:auto;
-  padding-top:8px;
-}
-.summary__chip{
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.06);
-  background: rgba(255,255,255,.025);
-  padding: 5px 11px;
-  font-size: 10px;
-  opacity: .8;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  display:none; /* Hide summary chips for even more minimal Canvas */
 }
 
 .workshop__desk{
@@ -2761,7 +2741,7 @@ body{
   box-shadow: 
     0 8px 20px rgba(0,0,0,.50),
     inset 0 1px 0 rgba(255,255,255,.03);
-  padding: 14px;
+  padding: 16px;
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -2990,8 +2970,8 @@ body{
   flex-direction:row;
   align-items:center;
   gap:10px;
-  max-height: 48px; /* Ultra-thin storage tray */
-  min-height: 48px;
+  max-height: 50px; /* Within 44-56px range */
+  min-height: 50px;
 }
 
 .dock__head{ 

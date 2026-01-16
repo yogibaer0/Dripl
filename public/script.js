@@ -653,6 +653,7 @@ function initWorkshop(){
     if (!platforms.length){
       laneGroups.innerHTML = `<div class="muted small" style="padding:8px;">No movement yet.</div>`;
       if (laneStatus) laneStatus.textContent = "quiet";
+      renderCollapsedView({}); // Empty state
       return;
     }
 
@@ -677,22 +678,47 @@ function initWorkshop(){
       `;
       laneGroups.appendChild(wrap);
     }
+    
+    // Update collapsed view
+    renderCollapsedView(groups);
+  }
+
+  function renderCollapsedView(groups){
+    const collapsedView = document.getElementById("laneCollapsedView");
+    if (!collapsedView) return;
+    
+    const platforms = Object.keys(groups);
+    
+    if (!platforms.length) {
+      collapsedView.innerHTML = `
+        <div class="lane__platform-count">
+          <div class="lane__platform-name">Quiet</div>
+          <div class="lane__platform-badge">0</div>
+        </div>
+      `;
+      return;
+    }
+    
+    collapsedView.innerHTML = platforms.map(platform => {
+      const count = groups[platform]?.length || 0;
+      return `
+        <div class="lane__platform-count" data-platform="${escapeHTML(platform)}">
+          <div class="lane__platform-name">${escapeHTML(platform)}</div>
+          <div class="lane__platform-badge">${count}</div>
+        </div>
+      `;
+    }).join("");
+    
+    // Make platform counts clickable to expand
+    collapsedView.querySelectorAll(".lane__platform-count").forEach(el => {
+      el.addEventListener("click", toggleLane);
+    });
   }
 
   function renderCounts(){
     if (queueCountEl) queueCountEl.textContent = String(state.queue.length);
     if (noteCountEl)  noteCountEl.textContent  = String(state.artifacts.length);
     if (unreadCountEl)unreadCountEl.textContent= String(state.unread);
-    
-    // Update badge on collapsed icon
-    if (laneUnreadBadge) {
-      if (state.unread > 0) {
-        laneUnreadBadge.textContent = String(state.unread);
-        laneUnreadBadge.hidden = false;
-      } else {
-        laneUnreadBadge.hidden = true;
-      }
-    }
   }
 
   // ---- Awareness Lane: Collapse/Expand ----
@@ -716,10 +742,6 @@ function initWorkshop(){
 
   if (laneToggle) {
     laneToggle.addEventListener("click", toggleLane);
-  }
-
-  if (laneIcon) {
-    laneIcon.addEventListener("click", toggleLane);
   }
 
   // ---- Ink commands (Canvas router) ----
