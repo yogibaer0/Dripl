@@ -972,6 +972,13 @@ function initWorkshop(){
   renderQueue();
   renderCounts();
   renderInkMenu("");
+  
+  // Set initial toggle text based on collapsed state
+  if (laneToggle && awarenessLane) {
+    const isCollapsed = awarenessLane.classList.contains("is-collapsed");
+    laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
+  }
+  
   startMockAwareness();
 }
 
