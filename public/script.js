@@ -568,15 +568,13 @@ function initStoragePlumes(){
     on(els.pasteLink, "keydown", (e) => { if (e.key === "Enter") handleConvertFromLink(); });
   }
 
-// ---------- WORKSHOP (Phase 1 + 2) ----------
+// ---------- WORKSHOP (Phase 1 + 2 + 3) ----------
 function initWorkshop(){
   const root = document.getElementById("workshopRoot");
   if (!root) return;
 
   const awarenessLane = document.getElementById("awarenessLane");
   const laneToggle    = document.getElementById("laneToggle");
-  const laneIcon      = document.getElementById("laneIcon");
-  const laneUnreadBadge = document.getElementById("laneUnreadBadge");
   const laneGroups   = document.getElementById("laneGroups");
   const laneStatus   = document.getElementById("laneStatus");
   const inkPool      = document.getElementById("inkPool");
@@ -621,11 +619,6 @@ function initWorkshop(){
     renderLane();
     renderCounts();
     
-    // Add pulse to icon when collapsed
-    if (awarenessLane && awarenessLane.classList.contains("is-collapsed") && laneIcon) {
-      laneIcon.classList.add("is-pulsing");
-      setTimeout(() => laneIcon.classList.remove("is-pulsing"), 2000);
-    }
     // mark “new” highlight for a moment
     setTimeout(() => {
       const node = document.querySelector(`[data-ev-id="${ev.id}"]`);
@@ -653,6 +646,7 @@ function initWorkshop(){
     if (!platforms.length){
       laneGroups.innerHTML = `<div class="muted small" style="padding:8px;">No movement yet.</div>`;
       if (laneStatus) laneStatus.textContent = "quiet";
+      renderCollapsedView({}); // Empty state
       return;
     }
 
@@ -677,32 +671,58 @@ function initWorkshop(){
       `;
       laneGroups.appendChild(wrap);
     }
+    
+    // Update collapsed view
+    renderCollapsedView(groups);
+  }
+
+  function renderCollapsedView(groups){
+    const collapsedView = document.getElementById("laneCollapsedView");
+    if (!collapsedView) return;
+    
+    const platforms = Object.keys(groups);
+    
+    if (!platforms.length) {
+      collapsedView.innerHTML = `
+        <div class="lane__platform-count" data-action="expand">
+          <div class="lane__platform-name">Quiet</div>
+          <div class="lane__platform-badge">0</div>
+        </div>
+      `;
+      return;
+    }
+    
+    collapsedView.innerHTML = platforms.map(platform => {
+      const count = groups[platform]?.length || 0;
+      return `
+        <div class="lane__platform-count" data-platform="${escapeHTML(platform)}" data-action="expand">
+          <div class="lane__platform-name">${escapeHTML(platform)}</div>
+          <div class="lane__platform-badge">${count}</div>
+        </div>
+      `;
+    }).join("");
   }
 
   function renderCounts(){
     if (queueCountEl) queueCountEl.textContent = String(state.queue.length);
     if (noteCountEl)  noteCountEl.textContent  = String(state.artifacts.length);
     if (unreadCountEl)unreadCountEl.textContent= String(state.unread);
-    
-    // Update badge on collapsed icon
-    if (laneUnreadBadge) {
-      if (state.unread > 0) {
-        laneUnreadBadge.textContent = String(state.unread);
-        laneUnreadBadge.hidden = false;
-      } else {
-        laneUnreadBadge.hidden = true;
-      }
-    }
   }
 
   // ---- Awareness Lane: Collapse/Expand ----
+  function updateToggleText(){
+    if (!laneToggle || !awarenessLane) return;
+    const isCollapsed = awarenessLane.classList.contains("is-collapsed");
+    laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
+  }
+
   function toggleLane(){
     if (!awarenessLane) return;
-    const isCollapsed = awarenessLane.classList.toggle("is-collapsed");
-    if (laneToggle) laneToggle.textContent = isCollapsed ? "Expand" : "Collapse";
+    awarenessLane.classList.toggle("is-collapsed");
+    updateToggleText();
     
     // Mark unread as read when expanding
-    if (!isCollapsed) {
+    if (!awarenessLane.classList.contains("is-collapsed")) {
       state.unread = 0;
       renderCounts();
     }
@@ -712,8 +732,15 @@ function initWorkshop(){
     laneToggle.addEventListener("click", toggleLane);
   }
 
-  if (laneIcon) {
-    laneIcon.addEventListener("click", toggleLane);
+  // Event delegation for collapsed platform counts
+  const collapsedView = document.getElementById("laneCollapsedView");
+  if (collapsedView) {
+    collapsedView.addEventListener("click", (e) => {
+      const platformCount = e.target.closest("[data-action='expand']");
+      if (platformCount) {
+        toggleLane();
+      }
+    });
   }
 
   // ---- Ink commands (Canvas router) ----
@@ -972,6 +999,10 @@ function initWorkshop(){
   renderQueue();
   renderCounts();
   renderInkMenu("");
+  
+  // Set initial toggle text
+  updateToggleText();
+  
   startMockAwareness();
 }
 
