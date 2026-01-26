@@ -291,7 +291,7 @@ export class Desk {
   
   addObject(type, label, payload = {}) {
     const newObj = {
-      id: `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       type,
       label,
       size: { w: 180, h: 140 },
