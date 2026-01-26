@@ -245,13 +245,15 @@
     <div class="desk__actions">
       <button class="btn btn-ghost" id="newNoteBtn" type="button">+ Note</button>
       <button class="btn btn-ghost" id="newReminderBtn" type="button">+ Reminder</button>
+      <select class="desk__profile-select" id="deskProfileSelect" aria-label="Desk profile">
+        <option value="workshop_L">Workshop L</option>
+        <option value="quadrants_top">Quadrants</option>
+        <option value="full_rect">Full</option>
+      </select>
     </div>
 
     <div class="desk__stage" id="deskStage">
-      <div class="desk__stage-hint">
-        Drop notes, reminders, and tasks here.
-        <br/>They'll stay until you remove them.
-      </div>
+      <!-- Desk surface will be created by desk.js -->
     </div>
   </aside>
 
@@ -509,6 +511,13 @@
   </main>
 
   <script src="/script.js" nonce="{{NONCE}}"></script>
+  
+  <!-- AMEBA Desk modules -->
+  <script type="module" src="/desk-types.js" nonce="{{NONCE}}"></script>
+  <script type="module" src="/desk-geometry.js" nonce="{{NONCE}}"></script>
+  <script type="module" src="/desk-store.js" nonce="{{NONCE}}"></script>
+  <script type="module" src="/desk.js" nonce="{{NONCE}}"></script>
+  <script type="module" src="/desk-init.js" nonce="{{NONCE}}"></script>
 
   <!-- small dropzone glow helper; keep or move into script.js -->
   <script nonce="{{NONCE}}">
@@ -534,6 +543,17 @@
         console.error('[ameba] Initialization error:', e);
       }
     }
+    
+    // Initialize Desk (delay slightly to ensure modules load)
+    setTimeout(() => {
+      if (typeof window.initDesk === 'function') {
+        try {
+          window.initDesk();
+        } catch (e) {
+          console.error('[ameba] Desk initialization error:', e);
+        }
+      }
+    }, 100);
   </script>
 </body>
 </html>
