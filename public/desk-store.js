@@ -102,7 +102,7 @@ export function getInitialObjects() {
       type: "checklist",
       label: "Quick Tasks",
       size: { w: 160, h: 120 },
-      pos: { nx: 0.3, ny: 0.1 },
+      pos: { nx: 0.55, ny: 0.15 },
       z: 2,
       payload: {
         items: [
