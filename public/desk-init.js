@@ -1,21 +1,36 @@
 /* =========================================================
-   AMEBA Desk – Initialization
+   AMEBA Desk – Initialization (LayoutKernel-based)
    ========================================================= */
 
 import { Desk } from './desk.js';
+import { PanelSurface } from './layout-kernel.js';
 
 /**
- * Initialize the AMEBA Desk
+ * Initialize the AMEBA Desk using PanelSurface
+ * @param {import('./layout-kernel.js').LayoutKernel} layoutKernel - Layout kernel instance
  * @returns {Desk|null}
  */
-export function initDesk() {
-  const deskStage = document.getElementById('deskStage');
+export function initDesk(layoutKernel) {
+  if (!layoutKernel) {
+    console.error('[desk] LayoutKernel required');
+    return null;
+  }
+  
   const newNoteBtn = document.getElementById('newNoteBtn');
   const newReminderBtn = document.getElementById('newReminderBtn');
   const profileSelect = document.getElementById('deskProfileSelect');
   
-  if (!deskStage) {
-    console.warn('[desk] Desk stage element not found');
+  // Create PanelSurface for desk
+  let panelSurface;
+  try {
+    panelSurface = new PanelSurface('desk', layoutKernel);
+  } catch (err) {
+    console.error('[desk] Failed to create PanelSurface:', err);
+    return null;
+  }
+  
+  if (!panelSurface.isMounted()) {
+    console.warn('[desk] Desk panel not mounted by LayoutKernel');
     return null;
   }
   
@@ -34,8 +49,8 @@ export function initDesk() {
     }
   }
   
-  // Create desk instance
-  const desk = new Desk(deskStage, { profileId: initialProfile });
+  // Create desk instance with PanelSurface
+  const desk = new Desk(panelSurface, { profileId: initialProfile });
   
   // Set profile select value
   if (profileSelect) {

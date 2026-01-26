@@ -88,6 +88,22 @@ body{
 }
 
 /* ==========================================================================
+   Layout Kernel Zones
+   ========================================================================== */
+
+.layout-zone {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.panel-mounted {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ==========================================================================
    Hero (REDUCED/HIDDEN for Workshop)
    ========================================================================== */
 
@@ -126,6 +142,7 @@ body{
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative; /* For layout zones */
 }
 
 .panels{

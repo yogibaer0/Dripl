@@ -1,5 +1,5 @@
 /* =========================================================
-   AMEBA Desk – Main Desk Manager
+   AMEBA Desk – Main Desk Manager (PanelSurface-based)
    ========================================================= */
 
 import { DESK_PROFILES } from './desk-types.js';
@@ -18,10 +18,14 @@ import {
 
 /**
  * Desk class manages the zone, objects, and interactions
+ * Now uses PanelSurface primitive for placement
  */
 export class Desk {
-  constructor(containerElement, options = {}) {
-    this.container = containerElement;
+  constructor(panelSurface, options = {}) {
+    // Use PanelSurface instead of direct container
+    this.panelSurface = panelSurface;
+    this.container = panelSurface.element;
+    
     this.profileId = options.profileId || 'workshop_L';
     this.profile = DESK_PROFILES[this.profileId];
     

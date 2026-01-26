@@ -512,6 +512,9 @@
 
   <script src="/script.js" nonce="{{NONCE}}"></script>
   
+  <!-- AMEBA Layout Kernel (foundation) -->
+  <script type="module" src="/layout-kernel.js" nonce="{{NONCE}}"></script>
+  
   <!-- AMEBA Desk modules -->
   <script type="module" src="/desk-types.js" nonce="{{NONCE}}"></script>
   <script type="module" src="/desk-geometry.js" nonce="{{NONCE}}"></script>
@@ -544,14 +547,20 @@
       }
     }
     
-    // Initialize Desk (delay slightly to ensure modules load)
+    // Initialize LayoutKernel and Desk (delay to ensure modules load)
     setTimeout(() => {
-      if (typeof window.initDesk === 'function') {
-        try {
-          window.initDesk();
-        } catch (e) {
-          console.error('[ameba] Desk initialization error:', e);
+      try {
+        // Initialize LayoutKernel first
+        if (window.layoutKernel) {
+          window.layoutKernel.init('workshop');
         }
+        
+        // Then initialize Desk with LayoutKernel
+        if (typeof window.initDesk === 'function' && window.layoutKernel) {
+          window.initDesk(window.layoutKernel);
+        }
+      } catch (e) {
+        console.error('[ameba] Desk initialization error:', e);
       }
     }, 100);
   </script>
