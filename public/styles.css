@@ -88,6 +88,22 @@ body{
 }
 
 /* ==========================================================================
+   Layout Kernel Zones
+   ========================================================================== */
+
+.layout-zone {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.panel-mounted {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ==========================================================================
    Hero (REDUCED/HIDDEN for Workshop)
    ========================================================================== */
 
@@ -126,6 +142,7 @@ body{
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative; /* For layout zones */
 }
 
 .panels{
@@ -2926,6 +2943,30 @@ body{
   gap:7px; 
   margin-bottom:10px; 
   flex-wrap:wrap;
+  align-items: center;
+}
+
+.desk__profile-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.3);
+  color: rgba(232,231,255,0.9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.desk__profile-select:hover {
+  border-color: rgba(167,139,250,.4);
+  background: rgba(0,0,0,.4);
+}
+
+.desk__profile-select:focus {
+  outline: none;
+  border-color: rgba(167,139,250,.6);
+  box-shadow: 0 0 0 2px rgba(167,139,250,.2);
 }
 
 .desk__list{ 
@@ -3385,5 +3426,187 @@ body{
 
 .dock__open {
   display: none !important;
+}
+
+/* ==========================================================================
+   AMEBA Desk — Portable Zone Surface
+   ========================================================================== */
+
+/* Desk surface: subtle texture + minimal depth */
+.desk-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  
+  /* Layered gradients for subtle texture */
+  background:
+    /* Noise-like gradient overlay */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.008) 2px,
+      rgba(255,255,255,0.008) 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.01) 2px,
+      rgba(0,0,0,0.01) 4px
+    ),
+    /* Base gradient */
+    radial-gradient(ellipse at 30% 40%, rgba(139,92,246,0.08) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(22,22,37,0.95) 0%, rgba(27,27,46,0.98) 100%);
+  
+  /* Professional minimal depth */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 2px rgba(0,0,0,0.15),
+    0 4px 12px rgba(0,0,0,0.25);
+  
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Desk objects: draggable cards */
+.desk-object {
+  position: absolute;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(27,27,46,0.95) 0%, rgba(22,22,37,0.98) 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 12px;
+  cursor: move;
+  user-select: none;
+  
+  /* Subtle lift */
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.desk-object:hover {
+  border-color: rgba(167,139,250,0.4);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.4),
+    0 2px 4px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 0 1px rgba(167,139,250,0.2);
+  transform: translateY(-1px);
+}
+
+.desk-object.is-dragging {
+  cursor: grabbing;
+  border-color: rgba(167,139,250,0.6);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.5),
+    0 4px 8px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 0 0 2px rgba(167,139,250,0.3);
+  transform: scale(1.02);
+}
+
+/* Object header */
+.desk-object__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.desk-object__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.desk-object__label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(232,231,255,0.95);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Note content */
+.desk-object__note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(167,167,201,0.9);
+  white-space: pre-wrap;
+  overflow: hidden;
+  max-height: 90px;
+}
+
+/* Checklist content */
+.desk-object__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.desk-object__checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(167,167,201,0.9);
+}
+
+.desk-object__checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.desk-object__checkbox.checked {
+  background: rgba(167,139,250,0.7);
+  border-color: rgba(167,139,250,0.9);
+}
+
+.desk-object__checkbox.checked::after {
+  content: '✓';
+  display: block;
+  text-align: center;
+  font-size: 10px;
+  line-height: 12px;
+  color: white;
+  font-weight: bold;
+}
+
+/* Type-specific colors */
+.desk-object--note {
+  border-left: 3px solid rgba(167,139,250,0.5);
+}
+
+.desk-object--calendar {
+  border-left: 3px solid rgba(139,200,250,0.5);
+}
+
+.desk-object--checklist {
+  border-left: 3px solid rgba(139,250,200,0.5);
+}
+
+.desk-object--timer {
+  border-left: 3px solid rgba(250,200,139,0.5);
+}
+
+.desk-object--shortcut {
+  border-left: 3px solid rgba(250,139,200,0.5);
 }
 
