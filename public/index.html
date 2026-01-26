@@ -550,9 +550,9 @@
     // Initialize LayoutKernel and Desk (delay to ensure modules load)
     setTimeout(() => {
       try {
-        // Initialize LayoutKernel first
-        if (window.layoutKernel) {
-          window.layoutKernel.init('workshop');
+        // Initialize LayoutKernel first using factory
+        if (window.createLayoutKernel) {
+          window.layoutKernel = window.createLayoutKernel('workshop');
         }
         
         // Then initialize Desk with LayoutKernel

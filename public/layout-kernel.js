@@ -234,10 +234,10 @@ export class LayoutKernel {
    * Create zone container elements
    */
   createZones() {
+    // Container should be .shell or main element with position: relative
     const container = document.querySelector('.shell') || document.querySelector('main');
     if (!container) {
-      console.error('[LayoutKernel] No container found for zones');
-      return;
+      throw new Error('[LayoutKernel] No layout container found. Ensure .shell or main element exists.');
     }
 
     // Clear existing zones
@@ -267,7 +267,12 @@ export class LayoutKernel {
    * @param {ZoneDef} zoneDef - Zone definition
    */
   applyZoneGeometry(element, zoneDef) {
-    // For now, use the first rect (multi-rect support can be added later)
+    if (!zoneDef.rects || zoneDef.rects.length === 0) {
+      console.error('[LayoutKernel] Zone has no rects defined');
+      return;
+    }
+    
+    // For now, use the first rect (multi-rect union support can be added later)
     const rect = zoneDef.rects[0];
     
     element.style.position = 'absolute';
@@ -416,14 +421,29 @@ export class PanelSurface {
   }
 }
 
-// Export singleton instance
-export const layoutKernel = new LayoutKernel();
+// ============================================================
+// LAYOUT KERNEL FACTORY
+// ============================================================
 
-// Make available globally
+/**
+ * Create a new LayoutKernel instance
+ * @param {PageType} pageType - Initial page type
+ * @returns {LayoutKernel}
+ */
+export function createLayoutKernel(pageType = 'workshop') {
+  const kernel = new LayoutKernel();
+  kernel.init(pageType);
+  return kernel;
+}
+
+// Make classes and factory available globally
 if (typeof window !== 'undefined') {
   window.LayoutKernel = LayoutKernel;
   window.PanelSurface = PanelSurface;
-  window.layoutKernel = layoutKernel;
+  window.createLayoutKernel = createLayoutKernel;
   window.LAYOUT_PROFILES = LAYOUT_PROFILES;
   window.PANEL_REGISTRY = PANEL_REGISTRY;
+  
+  // Create singleton for convenience (can be replaced by user)
+  window.layoutKernel = null;
 }

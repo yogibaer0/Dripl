@@ -29,9 +29,14 @@ export function initDesk(layoutKernel) {
     return null;
   }
   
-  if (!panelSurface.isMounted()) {
-    console.warn('[desk] Desk panel not mounted by LayoutKernel');
+  // Verify panel is in the layout
+  if (!panelSurface.element) {
+    console.error('[desk] Desk panel element not found');
     return null;
+  }
+  
+  if (!panelSurface.zoneDef) {
+    console.warn('[desk] Desk not assigned to a zone in current layout');
   }
   
   // Get initial profile from localStorage or default
