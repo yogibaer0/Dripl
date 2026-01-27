@@ -277,7 +277,7 @@ const TUNER_STYLES = `
 // LAYOUT TUNER CLASS
 // ============================================================
 
-export class LayoutTuner {
+class LayoutTuner {
   constructor(layoutKernel) {
     if (!layoutKernel) {
       throw new Error('[LayoutTuner] LayoutKernel instance required');
