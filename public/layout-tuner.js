@@ -19,13 +19,17 @@
 
 // Only enable in development
 const isDev = (() => {
-  // Check for dev environment indicators
-  return (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.port !== '' ||
-    localStorage.getItem('AMEBA_DEV_MODE') === 'true'
-  );
+  try {
+    // Check for dev environment indicators
+    return (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.port !== '' ||
+      (typeof localStorage !== 'undefined' && localStorage.getItem('AMEBA_DEV_MODE') === 'true')
+    );
+  } catch (e) {
+    return false;
+  }
 })();
 
 if (!isDev) {
@@ -283,6 +287,10 @@ class LayoutTuner {
       throw new Error('[LayoutTuner] LayoutKernel instance required');
     }
 
+    if (!window.LAYOUT_PROFILES || !window.LAYOUT_PROFILES.workshop || !window.LAYOUT_PROFILES.platform) {
+      throw new Error('[LayoutTuner] LAYOUT_PROFILES not found. Ensure layout-kernel.js is loaded first.');
+    }
+
     this.layoutKernel = layoutKernel;
     this.enabled = false;
     this.panel = null;
@@ -301,7 +309,7 @@ class LayoutTuner {
     };
 
     // Store original profiles for reset
-    this.defaultProfiles = JSON.parse(JSON.stringify(window.LAYOUT_PROFILES || {}));
+    this.defaultProfiles = JSON.parse(JSON.stringify(window.LAYOUT_PROFILES));
     
     this.init();
   }
@@ -669,32 +677,44 @@ h: ${rect.h.toFixed(3)}`;
     
     const json = JSON.stringify(exportData, null, 2);
     
-    // Copy to clipboard
-    navigator.clipboard.writeText(json).then(() => {
-      console.log('[LayoutTuner] JSON copied to clipboard');
-      this.showNotification('✓ JSON copied to clipboard');
-    }).catch(err => {
-      console.error('[LayoutTuner] Failed to copy:', err);
-      this.showNotification('✗ Failed to copy JSON');
-    });
+    // Copy to clipboard with fallback
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).then(() => {
+        console.log('[LayoutTuner] JSON copied to clipboard');
+        this.showNotification('✓ JSON copied to clipboard');
+      }).catch(err => {
+        console.error('[LayoutTuner] Failed to copy:', err);
+        this.showNotification('✗ Failed to copy JSON');
+      });
+    } else {
+      // Fallback: log to console
+      console.log('[LayoutTuner] Clipboard API not available. JSON output:');
+      console.log(json);
+      this.showNotification('⚠ JSON logged to console (clipboard unavailable)');
+    }
   }
 
   saveToLocalStorage() {
-    const profiles = {
-      workshop: window.LAYOUT_PROFILES.workshop,
-      platform: window.LAYOUT_PROFILES.platform
-    };
-    
-    localStorage.setItem('AMEBA_LAYOUT_PROFILES', JSON.stringify(profiles));
-    console.log('[LayoutTuner] Saved to localStorage');
-    this.showNotification('✓ Saved to localStorage');
+    try {
+      const profiles = {
+        workshop: window.LAYOUT_PROFILES.workshop,
+        platform: window.LAYOUT_PROFILES.platform
+      };
+      
+      localStorage.setItem('AMEBA_LAYOUT_PROFILES', JSON.stringify(profiles));
+      console.log('[LayoutTuner] Saved to localStorage');
+      this.showNotification('✓ Saved to localStorage');
+    } catch (e) {
+      console.error('[LayoutTuner] Failed to save to localStorage:', e);
+      this.showNotification('✗ Failed to save to localStorage');
+    }
   }
 
   loadSavedState() {
-    const saved = localStorage.getItem('AMEBA_LAYOUT_PROFILES');
-    if (!saved) return;
-    
     try {
+      const saved = localStorage.getItem('AMEBA_LAYOUT_PROFILES');
+      if (!saved) return;
+      
       const profiles = JSON.parse(saved);
       
       // Merge saved profiles
@@ -721,7 +741,11 @@ h: ${rect.h.toFixed(3)}`;
     window.LAYOUT_PROFILES.platform = JSON.parse(JSON.stringify(this.defaultProfiles.platform));
     
     // Clear localStorage
-    localStorage.removeItem('AMEBA_LAYOUT_PROFILES');
+    try {
+      localStorage.removeItem('AMEBA_LAYOUT_PROFILES');
+    } catch (e) {
+      console.warn('[LayoutTuner] Could not clear localStorage:', e);
+    }
     
     // Re-apply current profile
     this.layoutKernel.currentProfile = window.LAYOUT_PROFILES[this.layoutKernel.currentPageType];
