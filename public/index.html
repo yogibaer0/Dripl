@@ -521,6 +521,9 @@
   <script type="module" src="/desk-store.js" nonce="{{NONCE}}"></script>
   <script type="module" src="/desk.js" nonce="{{NONCE}}"></script>
   <script type="module" src="/desk-init.js" nonce="{{NONCE}}"></script>
+  
+  <!-- AMEBA Layout Tuner (dev-only) -->
+  <script type="module" src="/layout-tuner.js" nonce="{{NONCE}}"></script>
 
   <!-- small dropzone glow helper; keep or move into script.js -->
   <script nonce="{{NONCE}}">
@@ -558,6 +561,11 @@
         // Then initialize Desk with LayoutKernel
         if (typeof window.initDesk === 'function' && window.layoutKernel) {
           window.initDesk(window.layoutKernel);
+        }
+        
+        // Initialize Layout Tuner (dev-only)
+        if (typeof window.initLayoutTuner === 'function') {
+          window.initLayoutTuner();
         }
       } catch (e) {
         console.error('[ameba] Desk initialization error:', e);
