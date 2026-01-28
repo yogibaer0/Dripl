@@ -68,7 +68,41 @@ Current files:
 /public/index.template.html  → base HTML structure
 /public/styles.css           → core styles (hub, panel, satellites)
 /public/script.js            → logic for hub + satellite behavior
+/public/layout-kernel.js     → layout system (zones + panels)
+/public/layout-tuner.js      → dev-only layout editor
 ```
+
+---
+
+## 🎨 Layout Tuner (Developer Tool)
+
+The Layout Tuner is a developer-only overlay for adjusting zone spacing and positioning without manually editing code.
+
+### Features
+- **Toggle with Ctrl+Shift+L** or click the floating "L" button
+- **Visual zone outlines** with labels (topNav, leftRail, centerStage, etc.)
+- **Draggable zone edges** for live resizing
+- **Copy JSON** to export updated layouts in the exact format used by profiles
+- **Save to localStorage** for persistent dev tuning
+- **Reset to defaults** to restore original layout
+- **Page type switching** between workshop and platform layouts
+
+### How to Use
+1. Start the dev server: `npm run dev`
+2. Press **Ctrl+Shift+L** or click the purple "L" button to open the tuner
+3. Drag zone edges to resize (infrastructure ready)
+4. Switch between workshop/platform page types
+5. Click "Copy JSON" to export your changes
+6. Click "Save to localStorage" to persist changes during development
+7. Press **Ctrl+Shift+L** again to close the tuner
+
+### Dev-Only Mode
+The Layout Tuner automatically disables in production. It only runs when:
+- Hostname is `localhost` or `127.0.0.1`
+- Running on a non-standard port
+- `AMEBA_DEV_MODE=true` is set in localStorage
+
+---
 
 ## Philosophy
 

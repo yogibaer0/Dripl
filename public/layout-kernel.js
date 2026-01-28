@@ -384,6 +384,20 @@ export class PanelSurface {
     this.zoneDef = this.layoutKernel.getZoneForPanel(this.panelId);
     if (this.zoneDef) {
       console.log(`[PanelSurface:${this.panelId}] Mounted in zone: ${this.zoneDef.id}`);
+    } else {
+      // Dev warning: Panel not mounted to any zone
+      try {
+        const isDev = (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port !== ''
+        );
+        if (isDev) {
+          console.warn(`[PanelSurface:${this.panelId}] ⚠️  Panel is not mounted to any zone in current layout!`);
+        }
+      } catch (e) {
+        // Silently ignore if environment check fails
+      }
     }
   }
 
