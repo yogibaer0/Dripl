@@ -2762,7 +2762,7 @@ body{
   padding: var(--panel-pad);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0; /* No gap needed - header/actions are absolutely positioned */
   overflow: hidden;
   position: relative;
 }
