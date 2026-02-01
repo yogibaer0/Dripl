@@ -143,6 +143,8 @@ export class Desk {
     
     if (this.workspaceLabel.fontFamily) {
       this.workspaceLabelEl.style.fontFamily = this.workspaceLabel.fontFamily;
+    } else {
+      this.workspaceLabelEl.style.fontFamily = '';
     }
   }
   
