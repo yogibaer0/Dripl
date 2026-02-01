@@ -3,14 +3,38 @@
    ========================================================= */
 
 const STORAGE_KEY = "ameba_desk_v2";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
+
+/**
+ * @typedef {Object} WorkspaceLabelSettings
+ * @property {string} text - Label text
+ * @property {number} fontSize - Font size in px
+ * @property {number} fontWeight - Font weight (100-900)
+ * @property {number} letterSpacing - Letter spacing in em
+ * @property {string} [fontFamily] - Optional font family
+ */
 
 /**
  * @typedef {Object} DeskState
  * @property {number} version - Schema version
  * @property {string} profileId - Active profile ID
  * @property {Object[]} objects - Desk objects
+ * @property {WorkspaceLabelSettings} [workspaceLabel] - Workspace label settings
  */
+
+/**
+ * Get default workspace label settings
+ * @returns {WorkspaceLabelSettings}
+ */
+export function getDefaultWorkspaceLabel() {
+  return {
+    text: "Workspace",
+    fontSize: 18,
+    fontWeight: 600,
+    letterSpacing: 0.01,
+    fontFamily: undefined
+  };
+}
 
 /**
  * Load desk state from localStorage
@@ -23,8 +47,12 @@ export function loadDeskState() {
     
     const state = JSON.parse(raw);
     
-    // Validate schema version
-    if (state.version !== SCHEMA_VERSION) {
+    // Handle version migration
+    if (state.version === 2) {
+      // Migrate from v2 to v3 (add workspace label)
+      state.version = 3;
+      state.workspaceLabel = getDefaultWorkspaceLabel();
+    } else if (state.version !== SCHEMA_VERSION) {
       console.warn("[desk] Schema version mismatch, ignoring saved state");
       return null;
     }
@@ -40,9 +68,10 @@ export function loadDeskState() {
  * Save desk state to localStorage
  * @param {string} profileId - Active profile ID
  * @param {Object[]} objects - Desk objects
+ * @param {WorkspaceLabelSettings} [workspaceLabel] - Workspace label settings
  * @returns {boolean} Success status
  */
-export function saveDeskState(profileId, objects) {
+export function saveDeskState(profileId, objects, workspaceLabel) {
   try {
     const state = {
       version: SCHEMA_VERSION,
@@ -55,7 +84,8 @@ export function saveDeskState(profileId, objects) {
         pos: { ...obj.pos },
         z: obj.z,
         payload: { ...obj.payload }
-      }))
+      })),
+      workspaceLabel: workspaceLabel || getDefaultWorkspaceLabel()
     };
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
