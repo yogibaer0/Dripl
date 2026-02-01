@@ -16,10 +16,6 @@ export function initDesk(layoutKernel) {
     return null;
   }
   
-  const newNoteBtn = document.getElementById('newNoteBtn');
-  const newReminderBtn = document.getElementById('newReminderBtn');
-  const profileSelect = document.getElementById('deskProfileSelect');
-  
   // Create PanelSurface for desk
   let panelSurface;
   try {
@@ -56,44 +52,6 @@ export function initDesk(layoutKernel) {
   
   // Create desk instance with PanelSurface
   const desk = new Desk(panelSurface, { profileId: initialProfile });
-  
-  // Set profile select value
-  if (profileSelect) {
-    profileSelect.value = initialProfile;
-    
-    // Handle profile switching
-    profileSelect.addEventListener('change', (e) => {
-      desk.switchProfile(e.target.value);
-      console.log('[desk] Switched to profile:', e.target.value);
-    });
-  }
-  
-  // Handle new note button
-  if (newNoteBtn) {
-    newNoteBtn.addEventListener('click', () => {
-      const noteContent = prompt('Note content:');
-      if (noteContent) {
-        desk.addObject('note', 'Quick Note', {
-          content: noteContent,
-          color: '#a78bfa'
-        });
-      }
-    });
-  }
-  
-  // Handle new reminder button
-  if (newReminderBtn) {
-    newReminderBtn.addEventListener('click', () => {
-      const reminderText = prompt('Reminder:');
-      if (reminderText) {
-        desk.addObject('checklist', 'To-Do', {
-          items: [
-            { id: Date.now(), text: reminderText, done: false }
-          ]
-        });
-      }
-    });
-  }
   
   // Listen for desk object open events
   window.addEventListener('ameba:desk-open', (e) => {

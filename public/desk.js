@@ -13,7 +13,8 @@ import {
 import {
   loadDeskState,
   saveDeskState,
-  getInitialObjects
+  getInitialObjects,
+  getDefaultWorkspaceLabel
 } from './desk-store.js';
 
 /**
@@ -40,9 +41,11 @@ export class Desk {
     if (saved && saved.objects && saved.objects.length > 0) {
       this.objects = saved.objects;
       this.maxZ = Math.max(...this.objects.map(o => o.z), 0);
+      this.workspaceLabel = saved.workspaceLabel || getDefaultWorkspaceLabel();
     } else {
       this.objects = getInitialObjects();
       this.maxZ = Math.max(...this.objects.map(o => o.z), 0);
+      this.workspaceLabel = getDefaultWorkspaceLabel();
     }
     
     // Setup
@@ -50,6 +53,9 @@ export class Desk {
   }
   
   init() {
+    // Create header rail
+    this.createHeaderRail();
+    
     // Create desk surface
     this.surface = document.createElement('div');
     this.surface.className = 'desk-surface';
@@ -70,6 +76,203 @@ export class Desk {
     
     // Auto-save on changes
     this.autoSaveDebounced = this.debounce(() => this.save(), 500);
+  }
+  
+  createHeaderRail() {
+    // Create header rail container
+    this.headerRail = document.createElement('div');
+    this.headerRail.className = 'desk-header-rail';
+    
+    // Left section: Your Influence button
+    const leftSection = document.createElement('div');
+    leftSection.className = 'desk-header-left';
+    
+    const profileBtn = document.createElement('button');
+    profileBtn.className = 'desk-profile-btn';
+    profileBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" class="desk-profile-icon" aria-hidden="true">
+        <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.85"/>
+        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="currentColor" opacity="0.65"/>
+      </svg>
+      <span>Your Influence</span>
+    `;
+    profileBtn.title = "Your Influence profile (coming soon)";
+    profileBtn.addEventListener('click', () => {
+      console.log('[desk] Your Influence clicked - stub');
+      // TODO: Open profile overlay/modal
+    });
+    
+    leftSection.appendChild(profileBtn);
+    
+    // Center section: Editable workspace label
+    const centerSection = document.createElement('div');
+    centerSection.className = 'desk-header-center';
+    
+    this.workspaceLabelEl = document.createElement('div');
+    this.workspaceLabelEl.className = 'desk-workspace-label';
+    this.workspaceLabelEl.textContent = this.workspaceLabel.text;
+    this.applyWorkspaceLabelStyles();
+    
+    // Edit icon
+    const editIcon = document.createElement('button');
+    editIcon.className = 'desk-label-edit-icon';
+    editIcon.innerHTML = '✎';
+    editIcon.title = 'Edit workspace label';
+    editIcon.addEventListener('click', () => this.openLabelEditor());
+    
+    centerSection.appendChild(this.workspaceLabelEl);
+    centerSection.appendChild(editIcon);
+    
+    // Double-click to edit
+    this.workspaceLabelEl.addEventListener('dblclick', () => this.openLabelEditor());
+    
+    // Assemble header
+    this.headerRail.appendChild(leftSection);
+    this.headerRail.appendChild(centerSection);
+    
+    // Add to container
+    this.container.appendChild(this.headerRail);
+  }
+  
+  applyWorkspaceLabelStyles() {
+    if (!this.workspaceLabelEl) return;
+    
+    this.workspaceLabelEl.style.fontSize = `${this.workspaceLabel.fontSize}px`;
+    this.workspaceLabelEl.style.fontWeight = this.workspaceLabel.fontWeight;
+    this.workspaceLabelEl.style.letterSpacing = `${this.workspaceLabel.letterSpacing}em`;
+    
+    if (this.workspaceLabel.fontFamily) {
+      this.workspaceLabelEl.style.fontFamily = this.workspaceLabel.fontFamily;
+    } else {
+      this.workspaceLabelEl.style.fontFamily = '';
+    }
+  }
+  
+  openLabelEditor() {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'desk-label-editor-modal';
+    
+    const editor = document.createElement('div');
+    editor.className = 'desk-label-editor';
+    
+    editor.innerHTML = `
+      <div class="desk-label-editor-header">
+        <h3>Edit Workspace Label</h3>
+        <button class="desk-label-editor-close">×</button>
+      </div>
+      
+      <div class="desk-label-editor-body">
+        <div class="desk-label-field">
+          <label>Text</label>
+          <input type="text" class="desk-label-text" value="${this.workspaceLabel.text}" maxlength="50" />
+        </div>
+        
+        <div class="desk-label-field">
+          <label>Font Size (px)</label>
+          <input type="range" class="desk-label-fontsize" min="14" max="28" value="${this.workspaceLabel.fontSize}" />
+          <span class="desk-label-fontsize-value">${this.workspaceLabel.fontSize}px</span>
+        </div>
+        
+        <div class="desk-label-field">
+          <label>Font Weight</label>
+          <select class="desk-label-fontweight">
+            <option value="400" ${this.workspaceLabel.fontWeight === 400 ? 'selected' : ''}>Normal (400)</option>
+            <option value="500" ${this.workspaceLabel.fontWeight === 500 ? 'selected' : ''}>Medium (500)</option>
+            <option value="600" ${this.workspaceLabel.fontWeight === 600 ? 'selected' : ''}>Semibold (600)</option>
+            <option value="700" ${this.workspaceLabel.fontWeight === 700 ? 'selected' : ''}>Bold (700)</option>
+          </select>
+        </div>
+        
+        <div class="desk-label-field">
+          <label>Letter Spacing (em)</label>
+          <input type="range" class="desk-label-letterspacing" min="0" max="0.2" step="0.01" value="${this.workspaceLabel.letterSpacing}" />
+          <span class="desk-label-letterspacing-value">${this.workspaceLabel.letterSpacing}em</span>
+        </div>
+        
+        <div class="desk-label-field">
+          <label>Font Family (optional)</label>
+          <select class="desk-label-fontfamily">
+            <option value="">Default</option>
+            <option value="Inter, sans-serif" ${this.workspaceLabel.fontFamily === 'Inter, sans-serif' ? 'selected' : ''}>Inter</option>
+            <option value="Roboto, sans-serif" ${this.workspaceLabel.fontFamily === 'Roboto, sans-serif' ? 'selected' : ''}>Roboto</option>
+            <option value="monospace" ${this.workspaceLabel.fontFamily === 'monospace' ? 'selected' : ''}>Monospace</option>
+          </select>
+        </div>
+        
+        <div class="desk-label-preview">
+          <div class="desk-label-preview-text">${this.workspaceLabel.text}</div>
+        </div>
+      </div>
+      
+      <div class="desk-label-editor-footer">
+        <button class="btn btn-ghost desk-label-cancel">Cancel</button>
+        <button class="btn btn--primary desk-label-save">Save</button>
+      </div>
+    `;
+    
+    modal.appendChild(editor);
+    document.body.appendChild(modal);
+    
+    // Get elements
+    const textInput = editor.querySelector('.desk-label-text');
+    const fontSizeInput = editor.querySelector('.desk-label-fontsize');
+    const fontSizeValue = editor.querySelector('.desk-label-fontsize-value');
+    const fontWeightInput = editor.querySelector('.desk-label-fontweight');
+    const letterSpacingInput = editor.querySelector('.desk-label-letterspacing');
+    const letterSpacingValue = editor.querySelector('.desk-label-letterspacing-value');
+    const fontFamilyInput = editor.querySelector('.desk-label-fontfamily');
+    const preview = editor.querySelector('.desk-label-preview-text');
+    const closeBtn = editor.querySelector('.desk-label-editor-close');
+    const cancelBtn = editor.querySelector('.desk-label-cancel');
+    const saveBtn = editor.querySelector('.desk-label-save');
+    
+    // Live preview updates
+    const updatePreview = () => {
+      preview.textContent = textInput.value;
+      preview.style.fontSize = `${fontSizeInput.value}px`;
+      preview.style.fontWeight = fontWeightInput.value;
+      preview.style.letterSpacing = `${letterSpacingInput.value}em`;
+      preview.style.fontFamily = fontFamilyInput.value || '';
+      
+      fontSizeValue.textContent = `${fontSizeInput.value}px`;
+      letterSpacingValue.textContent = `${letterSpacingInput.value}em`;
+    };
+    
+    textInput.addEventListener('input', updatePreview);
+    fontSizeInput.addEventListener('input', updatePreview);
+    fontWeightInput.addEventListener('change', updatePreview);
+    letterSpacingInput.addEventListener('input', updatePreview);
+    fontFamilyInput.addEventListener('change', updatePreview);
+    
+    // Close handlers
+    const closeModal = () => modal.remove();
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+    
+    // Save handler
+    saveBtn.addEventListener('click', () => {
+      this.workspaceLabel = {
+        text: textInput.value,
+        fontSize: parseInt(fontSizeInput.value),
+        fontWeight: parseInt(fontWeightInput.value),
+        letterSpacing: parseFloat(letterSpacingInput.value),
+        fontFamily: fontFamilyInput.value || undefined
+      };
+      
+      this.workspaceLabelEl.textContent = this.workspaceLabel.text;
+      this.applyWorkspaceLabelStyles();
+      this.save();
+      
+      closeModal();
+    });
+    
+    // Focus text input
+    textInput.focus();
+    textInput.select();
   }
   
   updateGeometry() {
@@ -321,7 +524,7 @@ export class Desk {
   }
   
   save() {
-    saveDeskState(this.profileId, this.objects);
+    saveDeskState(this.profileId, this.objects, this.workspaceLabel);
   }
   
   debounce(fn, delay) {
