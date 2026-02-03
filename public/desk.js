@@ -16,6 +16,11 @@ import {
   getInitialObjects
 } from './desk-store.js';
 
+// Constants
+const DEFAULT_OBJECT_WIDTH = 180;
+const DEFAULT_OBJECT_HEIGHT = 140;
+const MAT_EXCLUSION_PADDING = 8;
+
 /**
  * Desk class manages the zone, objects, and interactions
  * Now uses PanelSurface primitive for placement
@@ -34,6 +39,7 @@ export class Desk {
     this.pixelRects = [];
     this.maxZ = 0;
     this.dragState = null;
+    this.objectIdCounter = 0;
     
     // Load saved state or use initial objects
     const saved = loadDeskState();
@@ -50,10 +56,18 @@ export class Desk {
   }
   
   init() {
-    // Create desk surface
+    // Create desk surface (tabletop)
     this.surface = document.createElement('div');
-    this.surface.className = 'desk-surface';
+    this.surface.className = 'ameba-desk-surface';
     this.container.appendChild(this.surface);
+    
+    // Create mat/tray area (bottom inset)
+    this.mat = document.createElement('div');
+    this.mat.className = 'desk-mat';
+    this.surface.appendChild(this.mat);
+    
+    // Create source icons in mat
+    this.createMatIcons();
     
     // Measure and calculate pixel rects
     this.updateGeometry();
@@ -77,10 +91,263 @@ export class Desk {
     this.zoneWidth = rect.width;
     this.zoneHeight = rect.height;
     
+    // Get desk and mat rect helpers
+    this.deskRect = this.getDeskRectPx();
+    this.matRect = this.getMatRectPx();
+    
     // Convert normalized rects to pixel rects
     this.pixelRects = this.profile.shape.rects.map(r =>
       rectToPx(r, this.zoneWidth, this.zoneHeight, this.profile.padding)
     );
+  }
+  
+  /**
+   * Get desk surface bounds in pixels
+   * @returns {{x: number, y: number, w: number, h: number}}
+   */
+  getDeskRectPx() {
+    const rect = this.surface.getBoundingClientRect();
+    return {
+      x: 0,
+      y: 0,
+      w: rect.width,
+      h: rect.height
+    };
+  }
+  
+  /**
+   * Get mat area bounds in pixels (relative to desk surface)
+   * @returns {{x: number, y: number, w: number, h: number}}
+   */
+  getMatRectPx() {
+    if (!this.mat) return { x: 0, y: 0, w: 0, h: 0 };
+    
+    const surfaceRect = this.surface.getBoundingClientRect();
+    const matRect = this.mat.getBoundingClientRect();
+    
+    return {
+      x: matRect.left - surfaceRect.left,
+      y: matRect.top - surfaceRect.top,
+      w: matRect.width,
+      h: matRect.height
+    };
+  }
+  
+  /**
+   * Create source icons in the mat area
+   */
+  createMatIcons() {
+    const icons = [
+      { id: 'sticky', emoji: '📝', type: 'note', label: 'Note' },
+      { id: 'notebook', emoji: '📓', type: 'note', label: 'Notebook' },
+      { id: 'calendar', emoji: '📅', type: 'calendar', label: 'Calendar' },
+      { id: 'file', emoji: '📄', type: 'note', label: 'File' }
+    ];
+    
+    icons.forEach(icon => {
+      const btn = document.createElement('button');
+      btn.className = 'mat-icon';
+      btn.dataset.iconType = icon.type;
+      btn.dataset.iconId = icon.id;
+      btn.setAttribute('aria-label', icon.label);
+      btn.textContent = icon.emoji;
+      
+      // Click to spawn
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.spawnObjectFromIcon(icon);
+      });
+      
+      // Drag from icon
+      btn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        this.startDragFromIcon(e, icon);
+      });
+      
+      this.mat.appendChild(btn);
+    });
+  }
+  
+  /**
+   * Generate unique object ID
+   */
+  generateObjectId(type) {
+    return `${type}-${Date.now()}-${++this.objectIdCounter}`;
+  }
+  
+  /**
+   * Spawn a new object from a mat icon (click)
+   */
+  spawnObjectFromIcon(icon) {
+    // Position object just above the mat
+    const matRect = this.getMatRectPx();
+    const padding = 16;
+    
+    // Calculate position in pixels (centered above mat)
+    const px = (this.zoneWidth - DEFAULT_OBJECT_WIDTH) / 2;
+    const py = matRect.y - DEFAULT_OBJECT_HEIGHT - padding;
+    
+    // Convert to normalized coordinates
+    const normalized = pxToNormalized(
+      px,
+      py,
+      this.zoneWidth,
+      this.zoneHeight,
+      this.profile.padding
+    );
+    
+    // Create object
+    const newObj = {
+      id: this.generateObjectId(icon.type),
+      type: icon.type,
+      label: icon.label,
+      size: { w: DEFAULT_OBJECT_WIDTH, h: DEFAULT_OBJECT_HEIGHT },
+      pos: { nx: normalized.nx, ny: normalized.ny },
+      z: ++this.maxZ,
+      payload: icon.type === 'note' ? { content: '', color: '#a78bfa' } : {}
+    };
+    
+    this.objects.push(newObj);
+    this.render();
+    this.save();
+  }
+  
+  /**
+   * Start dragging a new object from a mat icon
+   */
+  startDragFromIcon(e, icon) {
+    // Create new object at pointer position
+    const surfaceRect = this.surface.getBoundingClientRect();
+    
+    const px = e.clientX - surfaceRect.left - DEFAULT_OBJECT_WIDTH / 2;
+    const py = e.clientY - surfaceRect.top - DEFAULT_OBJECT_HEIGHT / 2;
+    
+    // Convert to normalized coordinates
+    const normalized = pxToNormalized(
+      px,
+      py,
+      this.zoneWidth,
+      this.zoneHeight,
+      this.profile.padding
+    );
+    
+    // Create object
+    const newObj = {
+      id: this.generateObjectId(icon.type),
+      type: icon.type,
+      label: icon.label,
+      size: { w: DEFAULT_OBJECT_WIDTH, h: DEFAULT_OBJECT_HEIGHT },
+      pos: { nx: normalized.nx, ny: normalized.ny },
+      z: ++this.maxZ,
+      payload: icon.type === 'note' ? { content: '', color: '#a78bfa' } : {}
+    };
+    
+    this.objects.push(newObj);
+    this.render();
+    
+    // Immediately start dragging the new object
+    const el = this.surface.querySelector(`[data-id="${newObj.id}"]`);
+    if (el) {
+      // Trigger drag manually
+      this.startObjectDrag(el, newObj, e);
+    }
+  }
+  
+  /**
+   * Helper to start dragging an object programmatically
+   */
+  startObjectDrag(el, obj, initialEvent) {
+    const startX = initialEvent.clientX;
+    const startY = initialEvent.clientY;
+    
+    const rect = el.getBoundingClientRect();
+    const initialLeft = rect.left - this.surface.getBoundingClientRect().left;
+    const initialTop = rect.top - this.surface.getBoundingClientRect().top;
+    
+    el.classList.add('is-dragging');
+    
+    const onMouseMove = (e) => {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      
+      let newX = initialLeft + dx;
+      let newY = initialTop + dy;
+      
+      // Clamp to desk zone, excluding mat
+      const clamped = this.clampToDeskExcludingMat(newX, newY, obj.size.w, obj.size.h);
+      
+      // Apply snap
+      const snapped = applySnap(clamped.x, clamped.y, this.profile.snap);
+      
+      el.style.left = `${snapped.x}px`;
+      el.style.top = `${snapped.y}px`;
+    };
+    
+    const onMouseUp = (e) => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      
+      // Update normalized position
+      const currentLeft = parseFloat(el.style.left);
+      const currentTop = parseFloat(el.style.top);
+      
+      const normalized = pxToNormalized(
+        currentLeft,
+        currentTop,
+        this.zoneWidth,
+        this.zoneHeight,
+        this.profile.padding
+      );
+      
+      obj.pos.nx = normalized.nx;
+      obj.pos.ny = normalized.ny;
+      
+      el.classList.remove('is-dragging');
+      this.autoSaveDebounced();
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+  
+  /**
+   * Clamp object position to desk zone, preventing overlap with mat
+   */
+  clampToDeskExcludingMat(x, y, objWidth, objHeight) {
+    const deskRect = this.deskRect;
+    const matRect = this.matRect;
+    
+    // First clamp to desk bounds
+    let clampedX = Math.max(deskRect.x, Math.min(x, deskRect.x + deskRect.w - objWidth));
+    let clampedY = Math.max(deskRect.y, Math.min(y, deskRect.y + deskRect.h - objHeight));
+    
+    // Check if object overlaps mat
+    const objRect = {
+      x: clampedX,
+      y: clampedY,
+      w: objWidth,
+      h: objHeight
+    };
+    
+    if (this.rectsOverlap(objRect, matRect)) {
+      // Position object above mat
+      clampedY = matRect.y - objHeight - MAT_EXCLUSION_PADDING;
+      
+      // Ensure it's still within desk bounds
+      clampedY = Math.max(deskRect.y, clampedY);
+    }
+    
+    return { x: clampedX, y: clampedY };
+  }
+  
+  /**
+   * Check if two rectangles overlap
+   */
+  rectsOverlap(rect1, rect2) {
+    return !(rect1.x + rect1.w < rect2.x ||
+             rect2.x + rect2.w < rect1.x ||
+             rect1.y + rect1.h < rect2.y ||
+             rect2.y + rect2.h < rect1.y);
   }
   
   render() {
@@ -201,14 +468,8 @@ export class Desk {
         let newX = initialLeft + dx;
         let newY = initialTop + dy;
         
-        // Clamp to zone
-        const clamped = clampToZone(
-          newX,
-          newY,
-          obj.size.w,
-          obj.size.h,
-          this.pixelRects
-        );
+        // Clamp to desk zone, excluding mat
+        const clamped = this.clampToDeskExcludingMat(newX, newY, obj.size.w, obj.size.h);
         
         // Apply snap
         const snapped = applySnap(clamped.x, clamped.y, this.profile.snap);
@@ -295,10 +556,10 @@ export class Desk {
   
   addObject(type, label, payload = {}) {
     const newObj = {
-      id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      id: this.generateObjectId(type),
       type,
       label,
-      size: { w: 180, h: 140 },
+      size: { w: DEFAULT_OBJECT_WIDTH, h: DEFAULT_OBJECT_HEIGHT },
       pos: { nx: 0.1 + Math.random() * 0.3, ny: 0.1 + Math.random() * 0.3 },
       z: ++this.maxZ,
       payload
