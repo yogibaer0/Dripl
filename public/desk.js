@@ -16,6 +16,11 @@ import {
   getInitialObjects
 } from './desk-store.js';
 
+// Constants
+const DEFAULT_OBJECT_WIDTH = 180;
+const DEFAULT_OBJECT_HEIGHT = 140;
+const MAT_EXCLUSION_PADDING = 8;
+
 /**
  * Desk class manages the zone, objects, and interactions
  * Now uses PanelSurface primitive for placement
@@ -34,6 +39,7 @@ export class Desk {
     this.pixelRects = [];
     this.maxZ = 0;
     this.dragState = null;
+    this.objectIdCounter = 0;
     
     // Load saved state or use initial objects
     const saved = loadDeskState();
@@ -163,18 +169,23 @@ export class Desk {
   }
   
   /**
+   * Generate unique object ID
+   */
+  generateObjectId(type) {
+    return `${type}-${Date.now()}-${++this.objectIdCounter}`;
+  }
+  
+  /**
    * Spawn a new object from a mat icon (click)
    */
   spawnObjectFromIcon(icon) {
     // Position object just above the mat
     const matRect = this.getMatRectPx();
-    const objWidth = 180;
-    const objHeight = 140;
     const padding = 16;
     
     // Calculate position in pixels (centered above mat)
-    const px = (this.zoneWidth - objWidth) / 2;
-    const py = matRect.y - objHeight - padding;
+    const px = (this.zoneWidth - DEFAULT_OBJECT_WIDTH) / 2;
+    const py = matRect.y - DEFAULT_OBJECT_HEIGHT - padding;
     
     // Convert to normalized coordinates
     const normalized = pxToNormalized(
@@ -187,10 +198,10 @@ export class Desk {
     
     // Create object
     const newObj = {
-      id: `${icon.type}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      id: this.generateObjectId(icon.type),
       type: icon.type,
       label: icon.label,
-      size: { w: objWidth, h: objHeight },
+      size: { w: DEFAULT_OBJECT_WIDTH, h: DEFAULT_OBJECT_HEIGHT },
       pos: { nx: normalized.nx, ny: normalized.ny },
       z: ++this.maxZ,
       payload: icon.type === 'note' ? { content: '', color: '#a78bfa' } : {}
@@ -207,11 +218,9 @@ export class Desk {
   startDragFromIcon(e, icon) {
     // Create new object at pointer position
     const surfaceRect = this.surface.getBoundingClientRect();
-    const objWidth = 180;
-    const objHeight = 140;
     
-    const px = e.clientX - surfaceRect.left - objWidth / 2;
-    const py = e.clientY - surfaceRect.top - objHeight / 2;
+    const px = e.clientX - surfaceRect.left - DEFAULT_OBJECT_WIDTH / 2;
+    const py = e.clientY - surfaceRect.top - DEFAULT_OBJECT_HEIGHT / 2;
     
     // Convert to normalized coordinates
     const normalized = pxToNormalized(
@@ -224,10 +233,10 @@ export class Desk {
     
     // Create object
     const newObj = {
-      id: `${icon.type}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      id: this.generateObjectId(icon.type),
       type: icon.type,
       label: icon.label,
-      size: { w: objWidth, h: objHeight },
+      size: { w: DEFAULT_OBJECT_WIDTH, h: DEFAULT_OBJECT_HEIGHT },
       pos: { nx: normalized.nx, ny: normalized.ny },
       z: ++this.maxZ,
       payload: icon.type === 'note' ? { content: '', color: '#a78bfa' } : {}
@@ -307,7 +316,6 @@ export class Desk {
   clampToDeskExcludingMat(x, y, objWidth, objHeight) {
     const deskRect = this.deskRect;
     const matRect = this.matRect;
-    const padding = 8;
     
     // First clamp to desk bounds
     let clampedX = Math.max(deskRect.x, Math.min(x, deskRect.x + deskRect.w - objWidth));
@@ -323,7 +331,7 @@ export class Desk {
     
     if (this.rectsOverlap(objRect, matRect)) {
       // Position object above mat
-      clampedY = matRect.y - objHeight - padding;
+      clampedY = matRect.y - objHeight - MAT_EXCLUSION_PADDING;
       
       // Ensure it's still within desk bounds
       clampedY = Math.max(deskRect.y, clampedY);
@@ -548,10 +556,10 @@ export class Desk {
   
   addObject(type, label, payload = {}) {
     const newObj = {
-      id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      id: this.generateObjectId(type),
       type,
       label,
-      size: { w: 180, h: 140 },
+      size: { w: DEFAULT_OBJECT_WIDTH, h: DEFAULT_OBJECT_HEIGHT },
       pos: { nx: 0.1 + Math.random() * 0.3, ny: 0.1 + Math.random() * 0.3 },
       z: ++this.maxZ,
       payload
