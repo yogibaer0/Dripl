@@ -127,7 +127,8 @@ export const LAYOUT_PROFILES = {
       leftRail: 'awareness',
       centerStage: 'canvas',
       rightRail: 'desk',
-      dockEdge: 'dock'
+      bottomRail: 'storage',
+      dockEdge: 'dock',
     }
   },
 
