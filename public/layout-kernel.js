@@ -4,8 +4,8 @@
 
 /**
  * @typedef {'workshop' | 'platform'} PageType
- * @typedef {'topNav' | 'leftRail' | 'centerStage' | 'rightRail' | 'bottomRail' | 'dockEdge'} ZoneId
- * @typedef {'desk' | 'canvas' | 'storage' | 'queue' | 'dock' | 'awareness'} PanelId
+ * @typedef {'topNav' | 'leftRail' | | 'leftDock' | 'centerStage' | 'rightRail' | 'bottomRail' | 'dockEdge'} ZoneId
+ * @typedef {'desk' | 'canvas' | 'storage' | 'queue' | 'awareness' | 'heroTitle' | 'influence'} PanelId
  */
 
 /**
@@ -71,15 +71,22 @@ export const PANEL_REGISTRY = {
   queue: {
     id: 'queue',
     displayName: 'Queue',
-    elementId: 'queueList',
+    elementId: 'queueDock',
     required: false
   },
-  dock: {
-    id: 'dock',
-    displayName: 'Dock',
-    elementId: 'queueDock',
-    required: true
-  }
+heroTitle: {
+  id: 'heroTitle',
+  displayName: 'Hero Title',
+  elementId: 'heroTitle',      // <section id="heroTitle">...</section>
+  required: false
+},
+influence: {
+  id: 'influence',
+  displayName: 'Your Influence',
+  elementId: 'influencePanel', // <section id="influencePanel">...</section>
+  required: false
+},
+
 };
 
 // ============================================================
@@ -88,49 +95,87 @@ export const PANEL_REGISTRY = {
 
 /** @type {Record<PageType, LayoutProfile>} */
 export const LAYOUT_PROFILES = {
-  // WORKSHOP PAGE: 3-column layout with awareness rail, canvas center, desk right
-  workshop: {
-    pageType: 'workshop',
-    zones: {
-      topNav: {
-        id: 'topNav',
-        rects: [{ x: 0, y: 0, w: 1, h: 0.08 }],
-        paddingPx: 0
-      },
-      leftRail: {
-        id: 'leftRail',
-        rects: [{ x: 0, y: 0.08, w: 0.08, h: 0.82 }],
-        paddingPx: 12
-      },
-      centerStage: {
-        id: 'centerStage',
-        rects: [{ x: 0.08, y: 0.08, w: 0.52, h: 0.82 }],
-        paddingPx: 16
-      },
-      rightRail: {
-        id: 'rightRail',
-        rects: [{ x: 0.60, y: 0.08, w: 0.40, h: 0.82 }],
-        paddingPx: 16
-      },
-      bottomRail: {
-        id: 'bottomRail',
-        rects: [{ x: 0.08, y: 0.90, w: 0.92, h: 0.10 }],
-        paddingPx: 12
-      },
-      dockEdge: {
-        id: 'dockEdge',
-        rects: [{ x: 0.08, y: 0.90, w: 0.92, h: 0.10 }],
-        paddingPx: 12
-      }
+  // WORKSHOP PAGE: awareness left, canvas center, header+influence top-right, desk right, storage bottom
+workshop: {
+  pageType: 'workshop',
+  zones: {
+    topNav: {
+      id: 'topNav',
+      rects: [{ x: 0.077, y: 0.0, w: 0.923, h: 0.053 }],
+      paddingPx: 0
     },
-    mountMap: {
-      leftRail: 'awareness',
-      centerStage: 'canvas',
-      rightRail: 'desk',
-      bottomRail: 'storage',
-      dockEdge: 'dock',
+
+    leftRail: {
+      id: 'leftRail',
+      rects: [{ x: 0.08, y: 0.12, w: 0.114, h: 0.64 }],
+      paddingPx: 12
+    },
+
+    // Queue moved back under awareness (separate zone)
+    leftDock: {
+      id: 'leftDock',
+      rects: [{ x: 0.08, y: 0.78, w: 0.114, h: 0.12 }],
+      paddingPx: 12
+    },
+
+    centerStage: {
+      id: 'centerStage',
+      rects: [{ x: 0.296, y: 0.176, w: 0.322, h: 0.572 }],
+      paddingPx: 16
+    },
+
+    // NEW: Hero title sits above the right side of canvas, NOT inside desk
+    heroTitle: {
+      id: 'heroTitle',
+      rects: [{ x: 0.445, y: 0.051, w: 0.286, h: 0.093 }],
+      paddingPx: 0
+    },
+
+    // NEW: Your Influence panel aligned with hero row
+    influence: {
+      id: 'influence',
+      rects: [{ x: 0.765, y: 0.05, w: 0.083, h: 0.11 }],
+      paddingPx: 12
+    },
+
+    // Desk-only column
+    rightRail: {
+      id: 'rightRail',
+      rects: [{ x: 0.717, y: 0.173, w: 0.134, h: 0.574 }],
+      paddingPx: 0
+    },
+
+    bottomRail: {
+      id: 'bottomRail',
+      rects: [{ x: 0.113, y: 0.9, w: 0.887, h: 0.1 }],
+      paddingPx: 12
     }
   },
+
+  mountMap: {
+    leftRail: 'awareness',
+    leftDock: 'queue',
+    centerStage: 'canvas',
+    heroTitle: 'heroTitle',
+    influence: 'influence',
+    rightRail: 'desk',
+    bottomRail: 'storage'
+  }
+},
+
+  hero: {
+    id: 'hero',
+    displayName: 'Hero Title',
+    elementId: 'heroTitle',
+    required: false
+  },
+  influence: {
+    id: 'influence',
+    displayName: 'Your Influence',
+    elementId: 'influencePanel',
+    required: false
+  },
+
 
   // PLATFORM PAGE: 4-quadrant layout with desk in larger quadrant
   platform: {

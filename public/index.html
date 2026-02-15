@@ -252,13 +252,26 @@
       </select>
     </div>
 
-    <div class="desk__stage" id="deskStage">
-      <!-- Desk surface will be created by desk.js -->
-    </div>
-  </aside>
+      <aside class="workshop__desk" aria-label="Desk" id="deskPanel">
+  <div class="desk__stage" id="deskStage">
+    <!-- desk.js injects .ameba-desk-surface here -->
+  </div>
+</aside>
+
+
+<section id="heroTitle" class="panel-surface ws-card hero-sign" aria-label="Page Title">
+  <div class="hero-sign__text">WORKSHOP</div>
+</section>
+
+<section id="influencePanel" class="panel-surface ws-card influence-card" aria-label="Your Influence">
+  <div class="influence-card__label">Your Influence</div>
+  <div class="influence-card__hint">Aggregate profile snapshot</div>
+</section>
+
 
   <!-- BOTTOM-RIGHT: Queue Dock -->
-  <section class="workshop__dock" aria-label="Queue Dock">
+  <section class="workshop__dock" id="queueDock" aria-label="Queue Dock">
+
     <div class="dock__head">
       <div class="dock__title">Queue</div>
       <button class="dock__open btn btn-ghost" id="openHubBtn" type="button">Open Hub</button>
@@ -270,6 +283,9 @@
     <div class="dock__list" id="queueList"></div>
   </section>
 </div>
+
+<div id="storagePanel" class="panel-surface ws-card"></div>
+
 
 
     <!-- LEGACY PANELS (preserved but hidden/repositioned) -->

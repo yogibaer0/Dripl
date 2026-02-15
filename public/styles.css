@@ -58,6 +58,10 @@
   --hub-card-width-offset: 100px; /* how much narrower than the full container */
 }
 
+:root{
+  --desk-surface-min-h: 0px; /* or 400px if you want a default minimum */
+}
+
 
 /* ==========================================================================
    Base / Utilities
@@ -2753,19 +2757,23 @@ body{
   grid-area: desk;
   border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,.05);
-  background: 
-    radial-gradient(circle at 80% 20%, rgba(139,92,246,.06), transparent 50%),
-    rgba(255,255,255,.02);
+  background: transparent;
   box-shadow: 
     0 8px 20px rgba(0,0,0,.50),
     inset 0 1px 0 rgba(255,255,255,.03);
-  padding: var(--panel-pad);
+  padding: 0;
+
+  /* critical: allow the panel to stretch inside the zone */
+  height: 100%;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   overflow: hidden;
   position: relative;
 }
+
 
 .desk__head{ 
   display: none; /* Hidden for AMEBA Desk v1 */
@@ -2813,14 +2821,16 @@ body{
 
 /* Desk stage - tabletop surface where artifacts land */
 .desk__stage{
-  flex:1;
-  border-radius: 12px;
-  border: none; /* Remove border for AMEBA Desk v1 */
-  background: transparent; /* Transparent - desk surface will show through */
-  padding: 0; /* No padding - surface handles it */
-  position:relative;
-  overflow:hidden; /* Keep objects inside */
-  box-shadow: none; /* No shadow - surface handles it */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  /* IMPORTANT:
+     This element should NOT center children or add padding.
+     It’s a mount container for the desk surface. */
+  padding: 0;
+  background: none;
+  border: 0;
 }
 
 .desk__stage-hint{
@@ -2840,6 +2850,30 @@ body{
   display:none;
 }
 
+/* Make the desk panel a real “container” */
+#deskPanel{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;            /* key: don’t shrink the tan by outer padding */
+}
+
+/* Desk stage: must stretch and provide a real height context */
+.workshop__desk #deskStage{
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+/* Tan surface: fill the stage (no auto height) */
+.workshop__desk #deskStage .ameba-desk-surface{
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
 /* Artifact items on tabletop - physical object appearance */
 .desk__artifact{
   position:relative;
@@ -3404,6 +3438,82 @@ body{
   color: rgba(232,231,255,0.96);
 }
 
+.ws-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 10px 14px;
+}
+
+.ws-hero__title{
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+
+  /* neon vibe */
+  color: rgba(255,255,255,0.92);
+  text-shadow:
+    0 0 8px rgba(167,139,250,0.55),
+    0 0 18px rgba(167,139,250,0.35),
+    0 0 36px rgba(167,139,250,0.22);
+}
+
+/* ===== HERO SIGN (WORKSHOP) ===== */
+.hero-sign {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-sign::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    0 0 18px rgba(164, 118, 255, 0.25),
+    inset 0 0 18px rgba(164, 118, 255, 0.12);
+}
+
+.hero-sign__text {
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  font-size: clamp(20px, 2.8vw, 44px);
+  color: rgba(245, 240, 255, 0.95);
+  text-shadow:
+    0 0 10px rgba(180, 150, 255, 0.55),
+    0 0 22px rgba(140, 90, 255, 0.35);
+}
+
+/* ===== INFLUENCE CARD ===== */
+.influence-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.influence-card__label {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.9);
+}
+
+.influence-card__hint {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+}
+
+
+
+
 /* Mobile: stack */
 @media (max-width: 1100px){
   .workshop-grid{
@@ -3429,13 +3539,21 @@ body{
    AMEBA Desk — Portable Zone Surface
    ========================================================================== */
 
-/* AMEBA Desk Surface: Warm tan tabletop with subtle grain */
 .ameba-desk-surface {
   position: relative;
+
+  /* KEY: fill the stage */
+  flex: 1 1 auto;
   width: 100%;
   height: 100%;
+
+  /* Keep your var (you set this earlier in :root) */
+  min-height: var(--desk-surface-min-h);
+
   border-radius: 16px;
   overflow: hidden;
+
+  /* Warm tan tabletop with subtle texture/grain */
   
   /* Warm tan tabletop with subtle texture/grain */
   background:
