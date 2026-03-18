@@ -13,6 +13,7 @@
 
   <!-- ===== Styles ===== -->
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/workshop.css" />
 
   <!-- ===== Security: local UMD + CSP nonce ===== -->
   <script {{SUPABASE_SRI_ATTR}} src="/vendor/supabase.min.js" nonce="{{NONCE}}"></script>
@@ -32,7 +33,7 @@
 </head>
 
 <body>
-  <header class="hero">
+  <header class="hero" style="display:none">
     <h1 class="hero__title">AMEBA</h1>
     <div class="glow-line">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 10" preserveAspectRatio="none">
@@ -42,7 +43,7 @@
   </header>
 
 <!-- TOP TOOLBAR (global) -->
-<nav class="top-toolbar" id="topToolbar" aria-label="Primary navigation">
+<nav class="top-toolbar" id="topToolbar" style="display:none" aria-label="Primary navigation">
   <div class="top-toolbar__inner">
     <div class="top-toolbar__brand">
       <button class="top-toolbar__avatar" id="toolbarAvatar" aria-label="Open tool shed">
@@ -69,6 +70,85 @@
     </div>
   </div>
 </nav>
+
+<!-- ===== NEW AMEBA WORKSHOP SHELL ===== -->
+<div class="ameba-shell" id="amebaShell">
+
+  <!-- LEFT NAV -->
+  <nav class="ameba-nav" id="amebaNav" aria-label="Primary navigation">
+    <div class="ameba-nav__brand">
+      <svg viewBox="0 0 28 28" class="ameba-nav__logo" aria-hidden="true">
+        <ellipse cx="14" cy="13" rx="9" ry="10" fill="none" stroke="#a78bfa" stroke-width="2"/>
+        <ellipse cx="18" cy="9" rx="4" ry="4.5" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.5"/>
+        <ellipse cx="9" cy="18" rx="3.5" ry="4" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.5"/>
+      </svg>
+      <span class="ameba-nav__wordmark">ameba</span>
+    </div>
+    <ul class="ameba-nav__list" role="list">
+      <li>
+        <button class="ameba-nav__item is-active" data-page="workshop" aria-current="page">
+          <svg viewBox="0 0 20 20" class="ameba-nav__icon" aria-hidden="true">
+            <rect x="2" y="2" width="7" height="7" rx="2" fill="currentColor" opacity="0.8"/>
+            <rect x="11" y="2" width="7" height="7" rx="2" fill="currentColor" opacity="0.4"/>
+            <rect x="2" y="11" width="7" height="7" rx="2" fill="currentColor" opacity="0.4"/>
+            <rect x="11" y="11" width="7" height="7" rx="2" fill="currentColor" opacity="0.4"/>
+          </svg>
+          <span class="ameba-nav__label">Workshop</span>
+        </button>
+      </li>
+      <li>
+        <button class="ameba-nav__item" data-page="campaign">
+          <svg viewBox="0 0 20 20" class="ameba-nav__icon" aria-hidden="true">
+            <path d="M3 10 L10 3 L17 10 L17 18 H3 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <rect x="7" y="13" width="6" height="5" rx="1" fill="currentColor" opacity="0.6"/>
+          </svg>
+          <span class="ameba-nav__label">Campaign</span>
+        </button>
+      </li>
+      <li>
+        <button class="ameba-nav__item" data-page="supply">
+          <svg viewBox="0 0 20 20" class="ameba-nav__icon" aria-hidden="true">
+            <rect x="2" y="5" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6 5 V3 a4 4 0 0 1 8 0 V5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="10" cy="11" r="2" fill="currentColor" opacity="0.7"/>
+          </svg>
+          <span class="ameba-nav__label">Supply</span>
+        </button>
+      </li>
+    </ul>
+    <div class="ameba-nav__footer">
+      <button class="ameba-nav__avatar" id="amebaNavAvatar" aria-label="Account">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="10" cy="7" r="4" fill="currentColor" opacity="0.8"/>
+          <path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- CENTER WORKSPACE -->
+  <main class="ameba-workspace" id="amebaWorkspace" aria-label="Main workspace">
+    <!-- Workshop Page (default) -->
+    <div class="page-view page-view--workshop is-active" id="pageWorkshop" data-view="workshop">
+      <!-- injected by JS -->
+    </div>
+    <!-- Campaign Page (placeholder) -->
+    <div class="page-view page-view--campaign" id="pageCampaign" data-view="campaign" hidden>
+      <!-- injected by JS -->
+    </div>
+    <!-- Supply Page (placeholder) -->
+    <div class="page-view page-view--supply" id="pageSupply" data-view="supply" hidden>
+      <!-- injected by JS -->
+    </div>
+  </main>
+
+  <!-- RIGHT: AMEBA RAIL -->
+  <aside class="ameba-rail" id="amebaRail" aria-label="Ameba context rail">
+    <!-- injected by JS -->
+  </aside>
+
+</div>
+<!-- ===== END AMEBA WORKSHOP SHELL ===== -->
 
 
   <!-- Hidden input for local picker (must not be display:none) -->
@@ -588,6 +668,7 @@
       }
     }, 100);
   </script>
+  <script src="/workshop.js" nonce="{{NONCE}}"></script>
 </body>
 </html>
 
