@@ -385,6 +385,11 @@
     const shell = document.getElementById("amebaShell");
     if (!shell) return;
 
+    // Seed campaign storage from defaults if not yet initialised
+    if (window.AMEBA && window.AMEBA.storage && window.AMEBA.storage.campaign) {
+      window.AMEBA.storage.campaign.init();
+    }
+
     // Wire nav buttons
     document.querySelectorAll(".ameba-nav__item").forEach(btn => {
       btn.addEventListener("click", () => activatePage(btn.dataset.page));

@@ -11,149 +11,10 @@
     focus:   null        // deliverable id or null
   };
 
-  /* ---------- Mock Data --------------------------------------------------- */
-  var CAMPAIGN = {
-    name:          "Summer Drop 2025",
-    client:        "Natura Vitae",
-    goal:          "Launch seasonal product line with creator-led storytelling",
-    type:          "Product Launch",
-    duration:      "Jun 1 – Aug 31, 2025",
-    platforms:     ["Instagram", "TikTok", "YouTube"],
-    target:        "18–34, wellness-focused millennials",
-    audience:      "Health-conscious consumers and lifestyle enthusiasts seeking clean beauty",
-    location:      "US, CA, UK",
-    campaignGoals: "Drive 40% awareness uplift and 15% conversion on new summer SKUs",
-    messaging:     "Pure, natural, summer vitality — effortless wellness woven into your everyday routine",
-
-    production: {
-      deliverables: [
-        { id: "d1", title: "Hero Reel — Launch Day",      status: "In Review",     platform: "Instagram", owner: "Yuki T.",    version: "v2" },
-        { id: "d2", title: "Summer Glow Tutorial",         status: "In Production", platform: "YouTube",   owner: "Sophie M.", version: "v1" },
-        { id: "d3", title: "Product Close-up Teaser",      status: "Approved",      platform: "TikTok",    owner: "Carlos L.", version: "v3" },
-        { id: "d4", title: "Creator Testimonial Cut",      status: "Draft",         platform: "Instagram", owner: "Amara K.",  version: "v1" },
-        { id: "d5", title: "BTS Story Set",                status: "In Review",     platform: "Instagram", owner: "Yuki T.",   version: "v1" }
-      ]
-    },
-
-    assets: {
-      files: [
-        { id: "a1", name: "hero-shot-final.mp4",      type: "Raw",       size: "2.3 GB", date: "Mar 15", linked: true  },
-        { id: "a2", name: "brand-kit-2025.zip",       type: "Brand",     size: "145 MB", date: "Mar 10", linked: true  },
-        { id: "a3", name: "product-close-edit.mp4",   type: "Edit",      size: "890 MB", date: "Mar 17", linked: false },
-        { id: "a4", name: "thumbnail-set-v2.psd",     type: "Thumbnail", size: "78 MB",  date: "Mar 18", linked: true  },
-        { id: "a5", name: "campaign-brief.pdf",       type: "Document",  size: "4.2 MB", date: "Mar 8",  linked: true  },
-        { id: "a6", name: "raw-footage-day1.mov",     type: "Raw",       size: "8.1 GB", date: "Mar 12", linked: false }
-      ]
-    },
-
-    delivery: {
-      items: [
-        { id: "e1", title: "Product Close-up Teaser", status: "Ready",     platform: "TikTok",    owner: "Carlos L.", notes: "Approved by client Mar 15" },
-        { id: "e2", title: "Hero Reel — Launch Day",  status: "In Review", platform: "Instagram", owner: "Yuki T.",   notes: "Final client approval pending" },
-        { id: "e3", title: "Creator Testimonial Cut", status: "Draft",     platform: "Instagram", owner: "Amara K.",  notes: "Awaiting final footage" }
-      ],
-      readiness:   72,
-      exportNotes: "Hero Reel pending final color grade. TikTok cut ready for export."
-    }
-  };
-
-  var DELIVERABLE_DETAIL = {
-    d1: {
-      bio:      "The flagship launch reel for Summer Drop 2025. Full-format vertical for Instagram feed + Reels. Hero product storytelling with lifestyle overlay and voice-over narration.",
-      caption:  "Summer is here. Your glow, elevated. 🌿 #NaturaVitae #SummerDrop25",
-      tasks: [
-        { id: "t1", text: "Final color grade review",    done: true  },
-        { id: "t2", text: "Sound mix approval",          done: true  },
-        { id: "t3", text: "Client brand sign-off",       done: false },
-        { id: "t4", text: "Export 4K archive + web cut", done: false }
-      ],
-      timeline: [
-        { date: "Mar 10", event: "Brief received"              },
-        { date: "Mar 13", event: "v1 delivered to client"      },
-        { date: "Mar 16", event: "v2 delivered after feedback" },
-        { date: "Mar 20", event: "Final delivery deadline"     }
-      ],
-      assets:   ["hero-shot-final.mp4", "brand-kit-2025.zip"],
-      feedback: "Color grade is excellent on v2. Just need final sign-off from client brand team before final export.",
-      analytics: { views: "—", engagement: "—", status: "Pre-release" }
-    },
-    d2: {
-      bio:     "Long-form tutorial for YouTube. Step-by-step product usage with creator voice-over. Warm, educational tone with clear CTAs.",
-      caption: "Your summer glow routine, simplified. Watch now 🌞 #NaturaVitae",
-      tasks: [
-        { id: "t1", text: "Script finalization",  done: true  },
-        { id: "t2", text: "B-roll shot list",      done: true  },
-        { id: "t3", text: "Primary shoot",         done: false },
-        { id: "t4", text: "First edit assembly",   done: false }
-      ],
-      timeline: [
-        { date: "Mar 12", event: "Script approved"       },
-        { date: "Mar 19", event: "Shoot scheduled"       },
-        { date: "Mar 26", event: "First cut delivery"    },
-        { date: "Apr 3",  event: "Final deadline"        }
-      ],
-      assets:   ["raw-footage-day1.mov", "brand-kit-2025.zip"],
-      feedback: "Script looks great. Ready to shoot next week.",
-      analytics: { views: "—", engagement: "—", status: "Pre-production" }
-    },
-    d3: {
-      bio:     "Short-form product close-up for TikTok. High visual impact, no dialogue. Clean beauty shots with kinetic editing and trending audio.",
-      caption: "Clean beauty that moves 💫 #SummerDrop #NaturaVitae #CleanBeauty",
-      tasks: [
-        { id: "t1", text: "Visual brief approved",      done: true },
-        { id: "t2", text: "Product shots captured",     done: true },
-        { id: "t3", text: "Edit v1 + v2 + v3 complete", done: true },
-        { id: "t4", text: "Client sign-off received",   done: true }
-      ],
-      timeline: [
-        { date: "Mar 5",  event: "Shot list approved" },
-        { date: "Mar 8",  event: "Shoot completed"    },
-        { date: "Mar 12", event: "v1 delivered"       },
-        { date: "Mar 15", event: "Approved by client" }
-      ],
-      assets:   ["product-close-edit.mp4", "thumbnail-set-v2.psd"],
-      feedback: "Perfect. Approved. Ready for delivery pipeline.",
-      analytics: { views: "—", engagement: "—", status: "Ready for export" }
-    },
-    d4: {
-      bio:     "Creator testimonial cut featuring Amara K. giving her personal story about the product. Authentic, unscripted feel with light editing.",
-      caption: "This changed my morning routine 🌿 @NaturaVitae #GlowFromWithin",
-      tasks: [
-        { id: "t1", text: "Creator brief sent",   done: true  },
-        { id: "t2", text: "Filming scheduled",    done: false },
-        { id: "t3", text: "Raw footage received", done: false },
-        { id: "t4", text: "First edit",           done: false }
-      ],
-      timeline: [
-        { date: "Mar 14", event: "Creator briefed"      },
-        { date: "Mar 22", event: "Filming date"         },
-        { date: "Mar 28", event: "First cut delivery"   },
-        { date: "Apr 4",  event: "Final deadline"       }
-      ],
-      assets:   ["brand-kit-2025.zip", "campaign-brief.pdf"],
-      feedback: "Waiting on creator to confirm filming date.",
-      analytics: { views: "—", engagement: "—", status: "Pre-production" }
-    },
-    d5: {
-      bio:     "Instagram Story set documenting behind-the-scenes of the Summer Drop shoot. Casual, authentic day-in-the-life format. 6–8 story slides.",
-      caption: "Behind the scenes of our favourite shoot yet 📸 #NaturaVitae",
-      tasks: [
-        { id: "t1", text: "Story structure outline",   done: true  },
-        { id: "t2", text: "BTS footage compiled",      done: true  },
-        { id: "t3", text: "Story design + overlays",   done: false },
-        { id: "t4", text: "Client review",             done: false }
-      ],
-      timeline: [
-        { date: "Mar 11", event: "Footage collected" },
-        { date: "Mar 17", event: "v1 assembled"      },
-        { date: "Mar 21", event: "Client review"     },
-        { date: "Mar 24", event: "Final delivery"    }
-      ],
-      assets:   ["hero-shot-final.mp4", "thumbnail-set-v2.psd"],
-      feedback: "BTS footage is great. Need to add Natura Vitae story overlays and branded frames.",
-      analytics: { views: "—", engagement: "—", status: "In review" }
-    }
-  };
+  /* ---------- Store shorthand -------------------------------------------- */
+  function store() {
+    return window.AMEBA && window.AMEBA.storage && window.AMEBA.storage.campaign;
+  }
 
   /* ---------- Helpers ----------------------------------------------------- */
   function el(tag, cls, html) {
@@ -210,10 +71,16 @@
     _container = container;
     container.innerHTML = "";
 
+    var CAMPAIGN = store() && store().getCampaign();
+    if (!CAMPAIGN) {
+      container.innerHTML = '<p style="color:#6060a0;padding:24px">Campaign data unavailable.</p>';
+      return;
+    }
+
     var shell = el("div", "camp-shell");
 
     // Header (always shown)
-    shell.appendChild(_renderHeader());
+    shell.appendChild(_renderHeader(CAMPAIGN));
 
     // Sub-nav (hidden when in deliverable focus)
     if (!state.focus) {
@@ -223,15 +90,15 @@
     // Main content area
     var content = el("div", "camp-content");
     if (state.focus) {
-      _renderDeliverableFocus(content, state.focus);
+      _renderDeliverableFocus(content, state.focus, CAMPAIGN);
     } else {
       switch (state.section) {
-        case "overview":   _renderOverview(content);   break;
-        case "production": _renderProduction(content); break;
-        case "strategy":   _renderStrategy(content);   break;
-        case "assets":     _renderAssets(content);     break;
-        case "delivery":   _renderDelivery(content);   break;
-        default:           _renderOverview(content);
+        case "overview":   _renderOverview(content, CAMPAIGN);   break;
+        case "production": _renderProduction(content, CAMPAIGN); break;
+        case "strategy":   _renderStrategy(content, CAMPAIGN);   break;
+        case "assets":     _renderAssets(content, CAMPAIGN);     break;
+        case "delivery":   _renderDelivery(content, CAMPAIGN);   break;
+        default:           _renderOverview(content, CAMPAIGN);
       }
     }
     shell.appendChild(content);
@@ -239,39 +106,43 @@
   }
 
   /* ---------- Header ------------------------------------------------------ */
-  function _renderHeader() {
+  function _renderHeader(CAMPAIGN) {
     var h = el("div", "camp-header");
     var breadcrumb = el("div", "camp-breadcrumb");
 
     if (state.focus) {
-      var focusItem = CAMPAIGN.production.deliverables.filter(function(d) { return d.id === state.focus; })[0];
+      var deliverables = CAMPAIGN.production.deliverables;
+      var focusItem = null;
+      for (var i = 0; i < deliverables.length; i++) {
+        if (deliverables[i].id === state.focus) { focusItem = deliverables[i]; break; }
+      }
       breadcrumb.innerHTML =
-        "<button class=\"camp-breadcrumb__link\" id=\"campBcCampaign\">Campaign</button>" +
-        "<span class=\"camp-breadcrumb__sep\">›</span>" +
-        "<button class=\"camp-breadcrumb__link\" id=\"campBcProduction\">Production</button>" +
-        "<span class=\"camp-breadcrumb__sep\">›</span>" +
-        "<span class=\"camp-breadcrumb__current\">" + (focusItem ? focusItem.title : "Deliverable") + "</span>";
+        '<button class="camp-breadcrumb__link" id="campBcCampaign">Campaign</button>' +
+        '<span class="camp-breadcrumb__sep">\u203a</span>' +
+        '<button class="camp-breadcrumb__link" id="campBcProduction">Production</button>' +
+        '<span class="camp-breadcrumb__sep">\u203a</span>' +
+        '<span class="camp-breadcrumb__current">' + (focusItem ? focusItem.title : "Deliverable") + '</span>';
     } else if (state.section === "overview") {
-      breadcrumb.innerHTML = "<span class=\"camp-breadcrumb__current\">Campaign</span>";
+      breadcrumb.innerHTML = '<span class="camp-breadcrumb__current">Campaign</span>';
     } else {
       var label = state.section.charAt(0).toUpperCase() + state.section.slice(1);
       breadcrumb.innerHTML =
-        "<button class=\"camp-breadcrumb__link\" id=\"campBcCampaign\">Campaign</button>" +
-        "<span class=\"camp-breadcrumb__sep\">›</span>" +
-        "<span class=\"camp-breadcrumb__current\">" + label + "</span>";
+        '<button class="camp-breadcrumb__link" id="campBcCampaign">Campaign</button>' +
+        '<span class="camp-breadcrumb__sep">\u203a</span>' +
+        '<span class="camp-breadcrumb__current">' + label + '</span>';
     }
     h.appendChild(breadcrumb);
 
     var main = el("div", "camp-header__main");
     main.innerHTML =
-      "<h1 class=\"camp-header__name\">" + CAMPAIGN.name + "</h1>" +
-      "<div class=\"camp-header__meta\">" +
-        "<span class=\"camp-header__client\">" + CAMPAIGN.client + "</span>" +
-        "<span class=\"camp-header__dot\">·</span>" +
-        "<span class=\"camp-header__type\">" + CAMPAIGN.type + "</span>" +
-        "<span class=\"camp-header__dot\">·</span>" +
-        "<span class=\"camp-header__duration\">" + CAMPAIGN.duration + "</span>" +
-      "</div>";
+      '<h1 class="camp-header__name">' + CAMPAIGN.name + '</h1>' +
+      '<div class="camp-header__meta">' +
+        '<span class="camp-header__client">' + CAMPAIGN.client + '</span>' +
+        '<span class="camp-header__dot">\u00b7</span>' +
+        '<span class="camp-header__type">' + CAMPAIGN.type + '</span>' +
+        '<span class="camp-header__dot">\u00b7</span>' +
+        '<span class="camp-header__duration">' + CAMPAIGN.duration + '</span>' +
+      '</div>';
     h.appendChild(main);
 
     // Wire breadcrumb links after mount
@@ -304,7 +175,7 @@
   }
 
   /* ---------- Overview ---------------------------------------------------- */
-  function _renderOverview(container) {
+  function _renderOverview(container, CAMPAIGN) {
     var d        = CAMPAIGN.production.deliverables;
     var inReview = d.filter(function(x) { return x.status === "In Review"; }).length;
     var a        = CAMPAIGN.assets.files;
@@ -314,40 +185,40 @@
 
     var intro = el("div", "camp-overview-intro");
     intro.innerHTML =
-      "<h2 class=\"camp-overview-intro__title\">Campaign Workspace</h2>" +
-      "<p class=\"camp-overview-intro__subtitle\">Operational hub for " + CAMPAIGN.name + ". Navigate any section to dig in.</p>";
+      '<h2 class="camp-overview-intro__title">Campaign Workspace</h2>' +
+      '<p class="camp-overview-intro__subtitle">Operational hub for ' + CAMPAIGN.name + '. Navigate any section to dig in.</p>';
     container.appendChild(intro);
 
     var grid = el("div", "camp-overview-grid");
 
     // Production card
     var prodPills = d.slice(0, 3).map(function(x) {
-      return "<span class=\"camp-ov-pill\" style=\"--c:" + statusColor(x.status) + ";--b:" + statusBg(x.status) + "\">" + x.title + "</span>";
+      return '<span class="camp-ov-pill" style="--c:' + statusColor(x.status) + ';--b:' + statusBg(x.status) + '">' + x.title + '</span>';
     }).join("");
 
     grid.appendChild(_ovCard({
       section: "production",
       label:   "Production",
-      icon:    "<svg viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><circle cx=\"10\" cy=\"10\" r=\"7\"/><polygon points=\"8,7 8,13 14,10\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.8\"/></svg>",
+      icon:    '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><polygon points="8,7 8,13 14,10" fill="currentColor" stroke="none" opacity="0.8"/></svg>',
       accent:  "#a78bfa",
-      summary: d.length + " deliverables · " + inReview + " in review",
+      summary: d.length + " deliverables \u00b7 " + inReview + " in review",
       items:   prodPills,
-      cta:     "Go to Production →"
+      cta:     "Go to Production \u2192"
     }));
 
     // Strategy card
     var platformTags = CAMPAIGN.platforms.map(function(p) {
-      return "<span class=\"camp-ov-tag\">" + p + "</span>";
+      return '<span class="camp-ov-tag">' + p + '</span>';
     }).join("");
 
     grid.appendChild(_ovCard({
       section: "strategy",
       label:   "Strategy",
-      icon:    "<svg viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M3 5h14M3 10h10M3 15h7\" stroke-linecap=\"round\"/></svg>",
+      icon:    '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h14M3 10h10M3 15h7" stroke-linecap="round"/></svg>',
       accent:  "#f59e0b",
-      summary: CAMPAIGN.type + " · " + CAMPAIGN.target,
+      summary: CAMPAIGN.type + " \u00b7 " + CAMPAIGN.target,
       items:   platformTags,
-      cta:     "Go to Strategy →"
+      cta:     "Go to Strategy \u2192"
     }));
 
     // Assets card
@@ -355,33 +226,33 @@
     var assetTags = assetTypes.map(function(t) {
       var count = a.filter(function(x) { return x.type === t; }).length;
       return count > 0
-        ? "<span class=\"camp-ov-tag\" style=\"--c:" + assetTypeColor(t) + "\">" + t + " (" + count + ")</span>"
+        ? '<span class="camp-ov-tag" style="--c:' + assetTypeColor(t) + '">' + t + ' (' + count + ')</span>'
         : "";
     }).join("");
 
     grid.appendChild(_ovCard({
       section: "assets",
       label:   "Assets",
-      icon:    "<svg viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"2\" y=\"4\" width=\"16\" height=\"13\" rx=\"2\"/><path d=\"M2 8h16\" stroke-linecap=\"round\"/></svg>",
+      icon:    '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="16" height="13" rx="2"/><path d="M2 8h16" stroke-linecap="round"/></svg>',
       accent:  "#34d399",
-      summary: a.length + " files · " + linked + " linked to deliverables",
+      summary: a.length + " files \u00b7 " + linked + " linked to deliverables",
       items:   assetTags,
-      cta:     "Go to Assets →"
+      cta:     "Go to Assets \u2192"
     }));
 
     // Delivery card
     var deliveryItems =
-      "<div class=\"camp-ov-bar\"><div class=\"camp-ov-bar__fill\" style=\"width:" + del.readiness + "%\"></div></div>" +
-      "<p class=\"camp-ov-note\">" + del.exportNotes + "</p>";
+      '<div class="camp-ov-bar"><div class="camp-ov-bar__fill" style="width:' + del.readiness + '%"></div></div>' +
+      '<p class="camp-ov-note">' + del.exportNotes + '</p>';
 
     grid.appendChild(_ovCard({
       section: "delivery",
       label:   "Delivery",
-      icon:    "<svg viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M4 10l4 4 8-8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+      icon:    '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
       accent:  "#4ade80",
-      summary: ready + " ready · " + del.readiness + "% export readiness",
+      summary: ready + " ready \u00b7 " + del.readiness + "% export readiness",
       items:   deliveryItems,
-      cta:     "Go to Delivery →"
+      cta:     "Go to Delivery \u2192"
     }));
 
     container.appendChild(grid);
@@ -391,43 +262,43 @@
     var card = el("div", "camp-ov-card");
     card.style.setProperty("--accent", opts.accent);
     card.innerHTML =
-      "<div class=\"camp-ov-card__head\">" +
-        "<div class=\"camp-ov-card__icon\">" + opts.icon + "</div>" +
-        "<div class=\"camp-ov-card__label\">" + opts.label + "</div>" +
-      "</div>" +
-      "<div class=\"camp-ov-card__summary\">" + opts.summary + "</div>" +
-      "<div class=\"camp-ov-card__items\">" + opts.items + "</div>" +
-      "<button class=\"camp-ov-card__cta\">" + opts.cta + "</button>";
+      '<div class="camp-ov-card__head">' +
+        '<div class="camp-ov-card__icon">' + opts.icon + '</div>' +
+        '<div class="camp-ov-card__label">' + opts.label + '</div>' +
+      '</div>' +
+      '<div class="camp-ov-card__summary">' + opts.summary + '</div>' +
+      '<div class="camp-ov-card__items">' + opts.items + '</div>' +
+      '<button class="camp-ov-card__cta">' + opts.cta + '</button>';
     card.addEventListener("click", function() { _navigate(opts.section); });
     return card;
   }
 
   /* ---------- Production -------------------------------------------------- */
-  function _renderProduction(container) {
+  function _renderProduction(container, CAMPAIGN) {
     var d        = CAMPAIGN.production.deliverables;
     var inReview = d.filter(function(x) { return x.status === "In Review"; }).length;
     var approved = d.filter(function(x) { return x.status === "Approved"; }).length;
 
     var header = el("div", "camp-page-header");
     header.innerHTML =
-      "<h2 class=\"camp-page-title\">Production</h2>" +
-      "<p class=\"camp-page-subtitle\">" + d.length + " deliverables · " + inReview + " in review · " + approved + " approved</p>";
+      '<h2 class="camp-page-title">Production</h2>' +
+      '<p class="camp-page-subtitle">' + d.length + ' deliverables \u00b7 ' + inReview + ' in review \u00b7 ' + approved + ' approved</p>';
     container.appendChild(header);
 
     var grid = el("div", "camp-deliverable-grid");
     d.forEach(function(item) {
       var card = el("div", "camp-deliverable-card");
       card.innerHTML =
-        "<div class=\"camp-deliverable-card__top\">" +
-          "<div class=\"camp-deliverable-card__status\" style=\"color:" + statusColor(item.status) + ";background:" + statusBg(item.status) + "\">" + item.status + "</div>" +
-          "<div class=\"camp-deliverable-card__version\">" + item.version + "</div>" +
-        "</div>" +
-        "<div class=\"camp-deliverable-card__title\">" + item.title + "</div>" +
-        "<div class=\"camp-deliverable-card__meta\">" +
-          "<span class=\"camp-deliverable-card__platform\">" + item.platform + "</span>" +
-          "<span class=\"camp-deliverable-card__owner\">" + item.owner + "</span>" +
-        "</div>" +
-        "<div class=\"camp-deliverable-card__action\">Open Focus View →</div>";
+        '<div class="camp-deliverable-card__top">' +
+          '<div class="camp-deliverable-card__status" style="color:' + statusColor(item.status) + ';background:' + statusBg(item.status) + '">' + item.status + '</div>' +
+          '<div class="camp-deliverable-card__version">' + item.version + '</div>' +
+        '</div>' +
+        '<div class="camp-deliverable-card__title">' + item.title + '</div>' +
+        '<div class="camp-deliverable-card__meta">' +
+          '<span class="camp-deliverable-card__platform">' + item.platform + '</span>' +
+          '<span class="camp-deliverable-card__owner">' + item.owner + '</span>' +
+        '</div>' +
+        '<div class="camp-deliverable-card__action">Open Focus View \u2192</div>';
       card.addEventListener("click", (function(id) {
         return function() { _navigate("production", id); };
       }(item.id)));
@@ -437,17 +308,16 @@
   }
 
   /* ---------- Deliverable Focus ------------------------------------------ */
-  function _renderDeliverableFocus(container, focusId) {
-    var deliverable = CAMPAIGN.production.deliverables.filter(function(d) { return d.id === focusId; })[0];
-    var detail      = DELIVERABLE_DETAIL[focusId] || {};
+  function _renderDeliverableFocus(container, focusId, CAMPAIGN) {
+    var deliverable = store() ? store().getDeliverable(focusId) : null;
 
     if (!deliverable) {
-      container.innerHTML = "<p class=\"camp-muted\">Deliverable not found.</p>";
+      container.innerHTML = '<p class="camp-muted">Deliverable not found.</p>';
       return;
     }
 
     // Back button
-    var back = el("button", "camp-focus-back", "← Back to Production");
+    var back = el("button", "camp-focus-back", "\u2190 Back to Production");
     back.addEventListener("click", function() { _navigate("production"); });
     container.appendChild(back);
 
@@ -459,84 +329,105 @@
     // Focus header
     var focusHeader = el("div", "camp-focus-header");
     focusHeader.innerHTML =
-      "<div class=\"camp-focus-header__top\">" +
-        "<h2 class=\"camp-focus-header__title\">" + deliverable.title + "</h2>" +
-        "<div class=\"camp-focus-header__badges\">" +
-          "<span class=\"camp-focus-badge\" style=\"color:" + statusColor(deliverable.status) + ";background:" + statusBg(deliverable.status) + "\">" + deliverable.status + "</span>" +
-          "<span class=\"camp-focus-badge camp-focus-badge--platform\">" + deliverable.platform + "</span>" +
-          "<span class=\"camp-focus-badge camp-focus-badge--version\">" + deliverable.version + "</span>" +
-        "</div>" +
-      "</div>" +
-      "<div class=\"camp-focus-owner\">Owner: <strong>" + deliverable.owner + "</strong></div>";
+      '<div class="camp-focus-header__top">' +
+        '<h2 class="camp-focus-header__title">' + deliverable.title + '</h2>' +
+        '<div class="camp-focus-header__badges">' +
+          '<span class="camp-focus-badge" style="color:' + statusColor(deliverable.status) + ';background:' + statusBg(deliverable.status) + '">' + deliverable.status + '</span>' +
+          '<span class="camp-focus-badge camp-focus-badge--platform">' + deliverable.platform + '</span>' +
+          '<span class="camp-focus-badge camp-focus-badge--version">' + deliverable.version + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="camp-focus-owner">Owner: <strong>' + deliverable.owner + '</strong></div>';
     main.appendChild(focusHeader);
 
     // Brief / Caption
-    if (detail.bio) {
+    if (deliverable.bio) {
       var bioCard = el("div", "camp-focus-card");
       bioCard.innerHTML =
-        "<div class=\"camp-focus-card__label\">Brief</div>" +
-        "<p class=\"camp-focus-card__text\">" + detail.bio + "</p>" +
-        (detail.caption
-          ? "<div class=\"camp-focus-card__caption\">&ldquo;" + detail.caption + "&rdquo;</div>"
+        '<div class="camp-focus-card__label">Brief</div>' +
+        '<p class="camp-focus-card__text">' + deliverable.bio + '</p>' +
+        (deliverable.caption
+          ? '<div class="camp-focus-card__caption">\u201c' + deliverable.caption + '\u201d</div>'
           : "");
       main.appendChild(bioCard);
     }
 
-    // Tasks
-    if (detail.tasks && detail.tasks.length) {
+    // Tasks -- interactive: clicking a row toggles done and persists to store
+    if (deliverable.tasks && deliverable.tasks.length) {
       var tasksCard = el("div", "camp-focus-card");
-      var taskListHTML = "<div class=\"camp-focus-card__label\">Tasks</div><ul class=\"camp-focus-tasks\">";
-      detail.tasks.forEach(function(t) {
-        taskListHTML +=
-          "<li class=\"camp-focus-task" + (t.done ? " is-done" : "") + "\">" +
-            "<span class=\"camp-focus-task__check\">" + (t.done ? "✓" : "○") + "</span>" +
-            "<span class=\"camp-focus-task__text\">" + t.text + "</span>" +
-          "</li>";
+      var taskLabel = el("div", "camp-focus-card__label", "Tasks");
+      tasksCard.appendChild(taskLabel);
+
+      var taskList = el("ul", "camp-focus-tasks");
+      deliverable.tasks.forEach(function(t) {
+        var li = el("li", "camp-focus-task" + (t.done ? " is-done" : ""));
+
+        var check = el("span", "camp-focus-task__check", t.done ? "\u2713" : "\u25cb");
+        var text  = el("span", "camp-focus-task__text", t.text);
+
+        li.appendChild(check);
+        li.appendChild(text);
+
+        li.addEventListener("click", (function(taskId, delId) {
+          return function() {
+            if (!store()) return;
+            store().updateDeliverable(delId, function(d) {
+              d.tasks = d.tasks.map(function(task) {
+                return task.id === taskId
+                  ? { id: task.id, text: task.text, done: !task.done }
+                  : task;
+              });
+              return d;
+            });
+            if (_container) _draw(_container);
+          };
+        }(t.id, focusId)));
+
+        taskList.appendChild(li);
       });
-      taskListHTML += "</ul>";
-      tasksCard.innerHTML = taskListHTML;
+      tasksCard.appendChild(taskList);
       main.appendChild(tasksCard);
     }
 
     // Timeline
-    if (detail.timeline && detail.timeline.length) {
+    if (deliverable.timeline && deliverable.timeline.length) {
       var tlCard = el("div", "camp-focus-card");
-      var tlHTML = "<div class=\"camp-focus-card__label\">Timeline</div><ul class=\"camp-focus-timeline\">";
-      detail.timeline.forEach(function(t, i) {
-        var isLast = (i === detail.timeline.length - 1);
+      var tlHTML = '<div class="camp-focus-card__label">Timeline</div><ul class="camp-focus-timeline">';
+      deliverable.timeline.forEach(function(t, i) {
+        var isLast = (i === deliverable.timeline.length - 1);
         tlHTML +=
-          "<li class=\"camp-focus-tl-item\">" +
-            "<span class=\"camp-focus-tl-item__date\">" + t.date + "</span>" +
-            "<div class=\"camp-focus-tl-item__dot-wrap\">" +
-              "<span class=\"camp-focus-tl-item__dot" + (isLast ? " is-last" : "") + "\"></span>" +
-              "<span class=\"camp-focus-tl-item__line\"></span>" +
-            "</div>" +
-            "<span class=\"camp-focus-tl-item__event\">" + t.event + "</span>" +
-          "</li>";
+          '<li class="camp-focus-tl-item">' +
+            '<span class="camp-focus-tl-item__date">' + t.date + '</span>' +
+            '<div class="camp-focus-tl-item__dot-wrap">' +
+              '<span class="camp-focus-tl-item__dot' + (isLast ? ' is-last' : '') + '"></span>' +
+              '<span class="camp-focus-tl-item__line"></span>' +
+            '</div>' +
+            '<span class="camp-focus-tl-item__event">' + t.event + '</span>' +
+          '</li>';
       });
-      tlHTML += "</ul>";
+      tlHTML += '</ul>';
       tlCard.innerHTML = tlHTML;
       main.appendChild(tlCard);
     }
 
     // Assets used
-    if (detail.assets && detail.assets.length) {
+    if (deliverable.assets && deliverable.assets.length) {
       var assetsCard = el("div", "camp-focus-card");
-      var assetsHTML = "<div class=\"camp-focus-card__label\">Assets Used</div><ul class=\"camp-focus-asset-list\">";
-      detail.assets.forEach(function(a) {
-        assetsHTML += "<li class=\"camp-focus-asset-item\"><span class=\"camp-focus-asset-icon\">📎</span>" + a + "</li>";
+      var assetsHTML = '<div class="camp-focus-card__label">Assets Used</div><ul class="camp-focus-asset-list">';
+      deliverable.assets.forEach(function(a) {
+        assetsHTML += '<li class="camp-focus-asset-item"><span class="camp-focus-asset-icon">\ud83d\udcce</span>' + a + '</li>';
       });
-      assetsHTML += "</ul>";
+      assetsHTML += '</ul>';
       assetsCard.innerHTML = assetsHTML;
       main.appendChild(assetsCard);
     }
 
     // Feedback
-    if (detail.feedback) {
+    if (deliverable.feedback) {
       var fbCard = el("div", "camp-focus-card");
       fbCard.innerHTML =
-        "<div class=\"camp-focus-card__label\">Latest Feedback</div>" +
-        "<p class=\"camp-focus-card__feedback\">" + detail.feedback + "</p>";
+        '<div class="camp-focus-card__label">Latest Feedback</div>' +
+        '<p class="camp-focus-card__feedback">' + deliverable.feedback + '</p>';
       main.appendChild(fbCard);
     }
 
@@ -548,41 +439,41 @@
     // Media preview placeholder
     var preview = el("div", "camp-focus-preview");
     preview.innerHTML =
-      "<div class=\"camp-focus-preview__placeholder\">" +
-        "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\">" +
-          "<rect x=\"4\" y=\"6\" width=\"32\" height=\"24\" rx=\"3\"/>" +
-          "<polygon points=\"16,12 16,22 26,17\" fill=\"currentColor\" stroke=\"none\" opacity=\"0.6\"/>" +
-        "</svg>" +
-        "<span>Media Preview</span>" +
-      "</div>";
+      '<div class="camp-focus-preview__placeholder">' +
+        '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">' +
+          '<rect x="4" y="6" width="32" height="24" rx="3"/>' +
+          '<polygon points="16,12 16,22 26,17" fill="currentColor" stroke="none" opacity="0.6"/>' +
+        '</svg>' +
+        '<span>Media Preview</span>' +
+      '</div>';
     sidebar.appendChild(preview);
 
     // Analytics
-    if (detail.analytics) {
+    if (deliverable.analytics) {
       var analyticsCard = el("div", "camp-focus-analytics");
       analyticsCard.innerHTML =
-        "<div class=\"camp-focus-card__label\">Analytics</div>" +
-        "<div class=\"camp-focus-analytics__grid\">" +
-          "<div class=\"camp-focus-analytics__item\">" +
-            "<span class=\"camp-focus-analytics__val\">" + detail.analytics.views + "</span>" +
-            "<span class=\"camp-focus-analytics__key\">Views</span>" +
-          "</div>" +
-          "<div class=\"camp-focus-analytics__item\">" +
-            "<span class=\"camp-focus-analytics__val\">" + detail.analytics.engagement + "</span>" +
-            "<span class=\"camp-focus-analytics__key\">Engagement</span>" +
-          "</div>" +
-        "</div>" +
-        "<div class=\"camp-focus-analytics__status\">" + detail.analytics.status + "</div>";
+        '<div class="camp-focus-card__label">Analytics</div>' +
+        '<div class="camp-focus-analytics__grid">' +
+          '<div class="camp-focus-analytics__item">' +
+            '<span class="camp-focus-analytics__val">' + deliverable.analytics.views + '</span>' +
+            '<span class="camp-focus-analytics__key">Views</span>' +
+          '</div>' +
+          '<div class="camp-focus-analytics__item">' +
+            '<span class="camp-focus-analytics__val">' + deliverable.analytics.engagement + '</span>' +
+            '<span class="camp-focus-analytics__key">Engagement</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="camp-focus-analytics__status">' + deliverable.analytics.status + '</div>';
       sidebar.appendChild(analyticsCard);
     }
 
     // Strategy recall button
     var strategyBtn = el("button", "camp-focus-strategy-recall");
     strategyBtn.innerHTML =
-      "<svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\">" +
-        "<path d=\"M2 4h12M2 8h9M2 12h6\" stroke-linecap=\"round\"/>" +
-      "</svg>" +
-      "Strategy Brief";
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">' +
+        '<path d="M2 4h12M2 8h9M2 12h6" stroke-linecap="round"/>' +
+      '</svg>' +
+      'Strategy Brief';
     strategyBtn.addEventListener("click", function() { _navigate("strategy"); });
     sidebar.appendChild(strategyBtn);
 
@@ -591,7 +482,7 @@
   }
 
   /* ---------- Strategy ---------------------------------------------------- */
-  function _renderStrategy(container) {
+  function _renderStrategy(container, CAMPAIGN) {
     var layout = el("div", "camp-strategy-layout");
 
     /* ---- Main content ---- */
@@ -599,41 +490,41 @@
 
     var header = el("div", "camp-page-header");
     header.innerHTML =
-      "<h2 class=\"camp-page-title\">Strategy</h2>" +
-      "<p class=\"camp-page-subtitle\">Campaign reference framework for " + CAMPAIGN.name + "</p>";
+      '<h2 class="camp-page-title">Strategy</h2>' +
+      '<p class="camp-page-subtitle">Campaign reference framework for ' + CAMPAIGN.name + '</p>';
     main.appendChild(header);
 
     var sections = [
-      { label: "Campaign Goal",      value: CAMPAIGN.goal          },
-      { label: "Target Audience",    value: CAMPAIGN.target + " — " + CAMPAIGN.audience },
-      { label: "Geographic Focus",   value: CAMPAIGN.location      },
-      { label: "Campaign Objectives",value: CAMPAIGN.campaignGoals },
-      { label: "Core Messaging",     value: CAMPAIGN.messaging     }
+      { label: "Campaign Goal",       value: CAMPAIGN.goal          },
+      { label: "Target Audience",     value: CAMPAIGN.target + " \u2014 " + CAMPAIGN.audience },
+      { label: "Geographic Focus",    value: CAMPAIGN.location      },
+      { label: "Campaign Objectives", value: CAMPAIGN.campaignGoals },
+      { label: "Core Messaging",      value: CAMPAIGN.messaging     }
     ];
 
     sections.forEach(function(s) {
       var card = el("div", "camp-strategy-card");
       card.innerHTML =
-        "<div class=\"camp-strategy-card__label\">" + s.label + "</div>" +
-        "<div class=\"camp-strategy-card__value\">" + s.value + "</div>";
+        '<div class="camp-strategy-card__label">' + s.label + '</div>' +
+        '<div class="camp-strategy-card__value">' + s.value + '</div>';
       main.appendChild(card);
     });
 
     // Platforms
     var platCard = el("div", "camp-strategy-card");
     var platTags = CAMPAIGN.platforms.map(function(p) {
-      return "<span class=\"camp-strategy-tag\">" + p + "</span>";
+      return '<span class="camp-strategy-tag">' + p + '</span>';
     }).join("");
     platCard.innerHTML =
-      "<div class=\"camp-strategy-card__label\">Platforms</div>" +
-      "<div class=\"camp-strategy-card__tags\">" + platTags + "</div>";
+      '<div class="camp-strategy-card__label">Platforms</div>' +
+      '<div class="camp-strategy-card__tags">' + platTags + '</div>';
     main.appendChild(platCard);
 
     layout.appendChild(main);
 
     /* ---- Campaign Strategy Rail ---- */
     var rail = el("aside", "camp-strategy-rail");
-    rail.innerHTML = "<div class=\"camp-strategy-rail__title\">Campaign Strategy</div>";
+    rail.innerHTML = '<div class="camp-strategy-rail__title">Campaign Strategy</div>';
 
     var railFields = [
       { label: "Name",           value: CAMPAIGN.name          },
@@ -652,8 +543,8 @@
     railFields.forEach(function(f) {
       var row = el("div", "camp-strategy-rail__row");
       row.innerHTML =
-        "<div class=\"camp-strategy-rail__label\">" + f.label + "</div>" +
-        "<div class=\"camp-strategy-rail__value\">" + f.value + "</div>";
+        '<div class="camp-strategy-rail__label">' + f.label + '</div>' +
+        '<div class="camp-strategy-rail__value">' + f.value + '</div>';
       rail.appendChild(row);
     });
 
@@ -662,14 +553,14 @@
   }
 
   /* ---------- Assets ------------------------------------------------------ */
-  function _renderAssets(container) {
+  function _renderAssets(container, CAMPAIGN) {
     var a      = CAMPAIGN.assets.files;
     var linked = a.filter(function(x) { return x.linked; }).length;
 
     var header = el("div", "camp-page-header");
     header.innerHTML =
-      "<h2 class=\"camp-page-title\">Assets</h2>" +
-      "<p class=\"camp-page-subtitle\">" + a.length + " files · " + linked + " linked to deliverables · " + CAMPAIGN.name + "</p>";
+      '<h2 class="camp-page-title">Assets</h2>' +
+      '<p class="camp-page-subtitle">' + a.length + ' files \u00b7 ' + linked + ' linked to deliverables \u00b7 ' + CAMPAIGN.name + '</p>';
     container.appendChild(header);
 
     // Category summary
@@ -680,8 +571,8 @@
       var catChip = el("div", "camp-asset-cat" + (count === 0 ? " is-empty" : ""));
       catChip.style.setProperty("--c", assetTypeColor(c));
       catChip.innerHTML =
-        "<span class=\"camp-asset-cat__label\">" + c + "</span>" +
-        "<span class=\"camp-asset-cat__count\">" + count + "</span>";
+        '<span class="camp-asset-cat__label">' + c + '</span>' +
+        '<span class="camp-asset-cat__count">' + count + '</span>';
       catRow.appendChild(catChip);
     });
     container.appendChild(catRow);
@@ -693,13 +584,13 @@
       var rgb = _hexToRgb(c);
       var item = el("div", "camp-asset-item");
       item.innerHTML =
-        "<div class=\"camp-asset-item__type\" style=\"color:" + c + ";background:rgba(" + rgb + ",0.1)\">" + file.type + "</div>" +
-        "<div class=\"camp-asset-item__name\">" + file.name + "</div>" +
-        "<div class=\"camp-asset-item__meta\">" +
-          "<span>" + file.size + "</span>" +
-          "<span>" + file.date + "</span>" +
-          (file.linked ? "<span class=\"camp-asset-item__linked\">Linked</span>" : "") +
-        "</div>";
+        '<div class="camp-asset-item__type" style="color:' + c + ';background:rgba(' + rgb + ',0.1)">' + file.type + '</div>' +
+        '<div class="camp-asset-item__name">' + file.name + '</div>' +
+        '<div class="camp-asset-item__meta">' +
+          '<span>' + file.size + '</span>' +
+          '<span>' + file.date + '</span>' +
+          (file.linked ? '<span class="camp-asset-item__linked">Linked</span>' : "") +
+        '</div>';
       list.appendChild(item);
     });
     container.appendChild(list);
@@ -713,25 +604,25 @@
   }
 
   /* ---------- Delivery ---------------------------------------------------- */
-  function _renderDelivery(container) {
+  function _renderDelivery(container, CAMPAIGN) {
     var del   = CAMPAIGN.delivery;
     var ready = del.items.filter(function(x) { return x.status === "Ready"; }).length;
 
     var header = el("div", "camp-page-header");
     header.innerHTML =
-      "<h2 class=\"camp-page-title\">Delivery</h2>" +
-      "<p class=\"camp-page-subtitle\">" + ready + " ready for export · " + del.readiness + "% campaign package readiness</p>";
+      '<h2 class="camp-page-title">Delivery</h2>' +
+      '<p class="camp-page-subtitle">' + ready + ' ready for export \u00b7 ' + del.readiness + '% campaign package readiness</p>';
     container.appendChild(header);
 
     // Export readiness bar
     var readinessCard = el("div", "camp-delivery-readiness");
     readinessCard.innerHTML =
-      "<div class=\"camp-delivery-readiness__label\">Campaign Package Readiness</div>" +
-      "<div class=\"camp-delivery-readiness__bar\">" +
-        "<div class=\"camp-delivery-readiness__fill\" style=\"width:" + del.readiness + "%\"></div>" +
-      "</div>" +
-      "<div class=\"camp-delivery-readiness__pct\">" + del.readiness + "%</div>" +
-      "<p class=\"camp-delivery-readiness__notes\">" + del.exportNotes + "</p>";
+      '<div class="camp-delivery-readiness__label">Campaign Package Readiness</div>' +
+      '<div class="camp-delivery-readiness__bar">' +
+        '<div class="camp-delivery-readiness__fill" style="width:' + del.readiness + '%"></div>' +
+      '</div>' +
+      '<div class="camp-delivery-readiness__pct">' + del.readiness + '%</div>' +
+      '<p class="camp-delivery-readiness__notes">' + del.exportNotes + '</p>';
     container.appendChild(readinessCard);
 
     // Delivery items
@@ -739,16 +630,16 @@
     del.items.forEach(function(item) {
       var card = el("div", "camp-delivery-item");
       card.innerHTML =
-        "<div class=\"camp-delivery-item__top\">" +
-          "<span class=\"camp-delivery-item__status\" style=\"color:" + statusColor(item.status) + ";background:" + statusBg(item.status) + "\">" + item.status + "</span>" +
-          "<span class=\"camp-delivery-item__platform\">" + item.platform + "</span>" +
-        "</div>" +
-        "<div class=\"camp-delivery-item__title\">" + item.title + "</div>" +
-        "<div class=\"camp-delivery-item__meta\">" +
-          "<span class=\"camp-delivery-item__owner\">" + item.owner + "</span>" +
-          "<span class=\"camp-delivery-item__notes\">" + item.notes + "</span>" +
-        "</div>" +
-        (item.status === "Ready" ? "<button class=\"camp-delivery-item__export\">Export →</button>" : "");
+        '<div class="camp-delivery-item__top">' +
+          '<span class="camp-delivery-item__status" style="color:' + statusColor(item.status) + ';background:' + statusBg(item.status) + '">' + item.status + '</span>' +
+          '<span class="camp-delivery-item__platform">' + item.platform + '</span>' +
+        '</div>' +
+        '<div class="camp-delivery-item__title">' + item.title + '</div>' +
+        '<div class="camp-delivery-item__meta">' +
+          '<span class="camp-delivery-item__owner">' + item.owner + '</span>' +
+          '<span class="camp-delivery-item__notes">' + item.notes + '</span>' +
+        '</div>' +
+        (item.status === "Ready" ? '<button class="camp-delivery-item__export">Export \u2192</button>' : "");
       list.appendChild(card);
     });
     container.appendChild(list);

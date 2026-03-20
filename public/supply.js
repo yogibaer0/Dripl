@@ -1,25 +1,14 @@
 /* ==========================================================================
-   AMEBA Supply Module — Campaign-aware Asset Browser Placeholder
+   AMEBA Supply Module — Campaign-aware Asset Browser
    ========================================================================== */
 
 (function SupplyModule() {
   "use strict";
 
-  /* ---------- Mock Data --------------------------------------------------- */
-  var RECENT = [
-    { id: "r1", name: "hero-shot-final.mp4",      type: "Video",  size: "2.3 GB",  campaign: "Summer Drop 2025",    date: "Mar 15" },
-    { id: "r2", name: "brand-kit-2025.zip",        type: "Bundle", size: "145 MB",  campaign: "Summer Drop 2025",    date: "Mar 10" },
-    { id: "r3", name: "raw-footage-day1.mov",      type: "Video",  size: "8.1 GB",  campaign: "Summer Drop 2025",    date: "Mar 12" },
-    { id: "r4", name: "influencer-brief-v2.pdf",   type: "Doc",    size: "3.8 MB",  campaign: "Influencer Collab #4",date: "Mar 8"  },
-    { id: "r5", name: "brand-reset-deck.pptx",     type: "Slide",  size: "12 MB",   campaign: "Brand Reset Q3",      date: "Mar 5"  }
-  ];
-
-  var LINKED = [
-    { id: "l1", name: "thumbnail-set-v2.psd",    campaign: "Summer Drop 2025", deliverable: "Hero Reel — Launch Day"    },
-    { id: "l2", name: "campaign-brief.pdf",       campaign: "Summer Drop 2025", deliverable: "All deliverables"          },
-    { id: "l3", name: "brand-kit-2025.zip",       campaign: "Summer Drop 2025", deliverable: "All deliverables"          },
-    { id: "l4", name: "product-close-edit.mp4",   campaign: "Summer Drop 2025", deliverable: "Product Close-up Teaser"   }
-  ];
+  /* ---------- Store shorthand -------------------------------------------- */
+  function store() {
+    return window.AMEBA && window.AMEBA.storage && window.AMEBA.storage.campaign;
+  }
 
   /* ---------- Helpers ----------------------------------------------------- */
   function el(tag, cls, html) {
@@ -29,9 +18,47 @@
     return e;
   }
 
+  /* ---------- Derive data from campaign store ----------------------------- */
+  function getRecentAssets() {
+    if (!store()) return [];
+    var campaign = store().getCampaign();
+    if (!campaign) return [];
+    return campaign.assets.files.map(function(f) {
+      return {
+        id:       f.id,
+        name:     f.name,
+        type:     f.type,
+        size:     f.size,
+        campaign: campaign.name,
+        date:     f.date
+      };
+    });
+  }
+
+  /* ---------- Placeholder upload: adds a demo asset to the store --------- */
+  function handleUploadClick(rerender, container) {
+    if (!store()) return;
+    var demo = {
+      id:     "demo-" + Date.now(),
+      name:   "upload-demo-" + Date.now() + ".mp4",
+      type:   "Raw",
+      size:   "—",
+      date:   "Just now",
+      linked: false
+    };
+    store().updateCampaign(function(campaign) {
+      campaign.assets.files.unshift(demo);
+      return campaign;
+    });
+    rerender(container);
+  }
+
   /* ---------- Render ------------------------------------------------------ */
   function render(container) {
     container.innerHTML = "";
+
+    var RECENT = getRecentAssets();
+    var LINKED = store() ? store().getLinkedAssets() : [];
 
     var shell = el("div", "supply-shell");
 
@@ -54,6 +81,13 @@
       "<div class=\"supply-upload__label\">Drop files here or click to upload</div>" +
       "<div class=\"supply-upload__hint\">Any format · Automatically linked to the active campaign</div>" +
       "<button class=\"supply-upload__btn\">Choose Files</button>";
+    // Wire upload button: placeholder behavior — adds a demo asset and re-renders
+    var uploadBtn = uploadZone.querySelector(".supply-upload__btn");
+    if (uploadBtn) {
+      uploadBtn.addEventListener("click", function() {
+        handleUploadClick(render, container);
+      });
+    }
     shell.appendChild(uploadZone);
 
     // Two-column grid: recent + linked
