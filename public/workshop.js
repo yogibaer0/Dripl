@@ -199,39 +199,22 @@
     return card;
   }
 
-  /* ---------- Campaign Placeholder --------------------------------------- */
+  /* ---------- Campaign Page ---------------------------------------------- */
   function renderCampaign(container) {
-    container.innerHTML = `
-      <div class="placeholder-view">
-        <div class="placeholder-view__icon">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-            <path d="M3 10 L10 3 L17 10 L17 18 H3 Z"/>
-            <rect x="7" y="13" width="6" height="5" rx="1" fill="currentColor" opacity="0.5" stroke="none"/>
-          </svg>
-        </div>
-        <span class="placeholder-view__badge">Coming in Pass 2</span>
-        <h1 class="placeholder-view__title">Campaign Workspace</h1>
-        <p class="placeholder-view__subtitle">Full campaign management — strategy, production, assets, delivery, and deliverable views — are coming in the next pass.</p>
-      </div>
-    `;
+    if (window.CampaignModule) {
+      window.CampaignModule.render(container);
+    } else {
+      container.innerHTML = '<p style="color:#6060a0;padding:24px">Campaign module loading…</p>';
+    }
   }
 
-  /* ---------- Supply Placeholder ----------------------------------------- */
+  /* ---------- Supply Page ------------------------------------------------ */
   function renderSupply(container) {
-    container.innerHTML = `
-      <div class="placeholder-view">
-        <div class="placeholder-view__icon">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="2" y="5" width="16" height="12" rx="2"/>
-            <path d="M6 5 V3 a4 4 0 0 1 8 0 V5" stroke-linecap="round"/>
-            <circle cx="10" cy="11" r="2" fill="currentColor" opacity="0.6" stroke="none"/>
-          </svg>
-        </div>
-        <span class="placeholder-view__badge">Coming in Pass 2</span>
-        <h1 class="placeholder-view__title">Supply</h1>
-        <p class="placeholder-view__subtitle">Campaign-aware assets, uploads, recent files, and linked supply — arriving in the next pass with full campaign context.</p>
-      </div>
-    `;
+    if (window.SupplyModule) {
+      window.SupplyModule.render(container);
+    } else {
+      container.innerHTML = '<p style="color:#6060a0;padding:24px">Supply module loading…</p>';
+    }
   }
 
   /* ---------- Ameba Rail -------------------------------------------------- */
