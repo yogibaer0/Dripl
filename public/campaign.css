@@ -526,6 +526,15 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  transition: background 0.15s;
+}
+
+.camp-focus-task:hover {
+  background: rgba(167,139,250,0.08);
 }
 
 .camp-focus-task__check {
