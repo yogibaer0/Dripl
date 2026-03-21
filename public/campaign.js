@@ -410,17 +410,79 @@
       main.appendChild(tlCard);
     }
 
-    // Assets used
-    if (deliverable.assets && deliverable.assets.length) {
-      var assetsCard = el("div", "camp-focus-card");
-      var assetsHTML = '<div class="camp-focus-card__label">Assets Used</div><ul class="camp-focus-asset-list">';
-      deliverable.assets.forEach(function(a) {
-        assetsHTML += '<li class="camp-focus-asset-item"><span class="camp-focus-asset-icon">\ud83d\udcce</span>' + a + '</li>';
-      });
-      assetsHTML += '</ul>';
-      assetsCard.innerHTML = assetsHTML;
+    // Linked assets — resolved from assetIds via store
+    (function() {
+      var linkedAssets = store() ? store().getAssetsForDeliverable(focusId) : [];
+      var assetsCard   = el("div", "camp-focus-card");
+
+      var cardLabel = el("div", "camp-focus-card__label", "Linked Assets");
+      assetsCard.appendChild(cardLabel);
+
+      if (linkedAssets.length) {
+        var assetList = el("ul", "camp-focus-asset-list");
+        linkedAssets.forEach(function(asset) {
+          var li      = el("li", "camp-focus-asset-item");
+          var icon    = el("span", "camp-focus-asset-icon", "\ud83d\udcce");
+          var info    = el("div", "camp-focus-asset-info");
+          var name    = el("span", "camp-focus-asset-name", asset.name);
+          var meta    = el("span", "camp-focus-asset-meta", asset.type + " \u00b7 " + asset.size + " \u00b7 " + asset.date);
+          var unlinkBtn = el("button", "camp-focus-asset-unlink", "\u00d7");
+          unlinkBtn.title = "Unlink asset";
+          unlinkBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            if (!store()) return;
+            store().unlinkAssetFromDeliverable(asset.id, focusId);
+            if (_container) _draw(_container);
+          });
+
+          info.appendChild(name);
+          info.appendChild(meta);
+          li.appendChild(icon);
+          li.appendChild(info);
+          li.appendChild(unlinkBtn);
+          assetList.appendChild(li);
+        });
+        assetsCard.appendChild(assetList);
+      } else {
+        var emptyNote = el("p", "camp-focus-asset-empty", "No assets linked yet.");
+        assetsCard.appendChild(emptyNote);
+      }
+
+      // "Link from Supply" placeholder
+      var linkRow = el("div", "camp-focus-asset-link-row");
+
+      var allAssets    = store() ? store().getAssets() : [];
+      var linkedIds    = linkedAssets.map(function(a) { return a.id; });
+      var available    = allAssets.filter(function(a) { return linkedIds.indexOf(a.id) === -1; });
+
+      if (available.length) {
+        var linkSelect = el("select", "camp-focus-asset-select");
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Add linked asset\u2026";
+        linkSelect.appendChild(placeholder);
+        available.forEach(function(a) {
+          var opt = document.createElement("option");
+          opt.value = a.id;
+          opt.textContent = a.name + " (" + a.type + ")";
+          linkSelect.appendChild(opt);
+        });
+
+        var linkBtn = el("button", "camp-focus-asset-link-btn", "Link");
+        linkBtn.addEventListener("click", function() {
+          var selectedId = linkSelect.value;
+          if (!selectedId || !store()) return;
+          store().linkAssetToDeliverable(selectedId, focusId);
+          if (_container) _draw(_container);
+        });
+
+        linkRow.appendChild(linkSelect);
+        linkRow.appendChild(linkBtn);
+      }
+
+      assetsCard.appendChild(linkRow);
       main.appendChild(assetsCard);
-    }
+    }());
 
     // Feedback
     if (deliverable.feedback) {

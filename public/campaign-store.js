@@ -40,7 +40,7 @@
             { date: "Mar 16", event: "v2 delivered after feedback" },
             { date: "Mar 20", event: "Final delivery deadline"     }
           ],
-          assets:   ["hero-shot-final.mp4", "brand-kit-2025.zip"],
+          assetIds: ["a1", "a2"],
           feedback: "Color grade is excellent on v2. Just need final sign-off from client brand team before final export.",
           analytics: { views: "—", engagement: "—", status: "Pre-release" }
         },
@@ -61,7 +61,7 @@
             { date: "Mar 26", event: "First cut delivery" },
             { date: "Apr 3",  event: "Final deadline"     }
           ],
-          assets:   ["raw-footage-day1.mov", "brand-kit-2025.zip"],
+          assetIds: ["a6", "a2"],
           feedback: "Script looks great. Ready to shoot next week.",
           analytics: { views: "—", engagement: "—", status: "Pre-production" }
         },
@@ -82,7 +82,7 @@
             { date: "Mar 12", event: "v1 delivered"       },
             { date: "Mar 15", event: "Approved by client" }
           ],
-          assets:   ["product-close-edit.mp4", "thumbnail-set-v2.psd"],
+          assetIds: ["a3", "a4"],
           feedback: "Perfect. Approved. Ready for delivery pipeline.",
           analytics: { views: "—", engagement: "—", status: "Ready for export" }
         },
@@ -103,7 +103,7 @@
             { date: "Mar 28", event: "First cut delivery"  },
             { date: "Apr 4",  event: "Final deadline"      }
           ],
-          assets:   ["brand-kit-2025.zip", "campaign-brief.pdf"],
+          assetIds: ["a2", "a5"],
           feedback: "Waiting on creator to confirm filming date.",
           analytics: { views: "—", engagement: "—", status: "Pre-production" }
         },
@@ -124,7 +124,7 @@
             { date: "Mar 21", event: "Client review"     },
             { date: "Mar 24", event: "Final delivery"    }
           ],
-          assets:   ["hero-shot-final.mp4", "thumbnail-set-v2.psd"],
+          assetIds: ["a1", "a4"],
           feedback: "BTS footage is great. Need to add Natura Vitae story overlays and branded frames.",
           analytics: { views: "—", engagement: "—", status: "In review" }
         }
@@ -135,10 +135,10 @@
       files: [
         { id: "a1", name: "hero-shot-final.mp4",    type: "Raw",       size: "2.3 GB", date: "Mar 15", linked: true  },
         { id: "a2", name: "brand-kit-2025.zip",     type: "Brand",     size: "145 MB", date: "Mar 10", linked: true  },
-        { id: "a3", name: "product-close-edit.mp4", type: "Edit",      size: "890 MB", date: "Mar 17", linked: false },
+        { id: "a3", name: "product-close-edit.mp4", type: "Edit",      size: "890 MB", date: "Mar 17", linked: true  },
         { id: "a4", name: "thumbnail-set-v2.psd",   type: "Thumbnail", size: "78 MB",  date: "Mar 18", linked: true  },
         { id: "a5", name: "campaign-brief.pdf",     type: "Document",  size: "4.2 MB", date: "Mar 8",  linked: true  },
-        { id: "a6", name: "raw-footage-day1.mov",   type: "Raw",       size: "8.1 GB", date: "Mar 12", linked: false }
+        { id: "a6", name: "raw-footage-day1.mov",   type: "Raw",       size: "8.1 GB", date: "Mar 12", linked: true  }
       ]
     },
 
@@ -153,17 +153,64 @@
     }
   };
 
+  /* ---------- Migration -------------------------------------------------- */
+  /**
+   * Migrate legacy campaign data (assets: [string]) to the normalised model
+   * (assetIds: [id]). Also refreshes the `linked` flag on every asset file
+   * to match the actual assetIds references across all deliverables.
+   * Safe to call on already-migrated data (idempotent).
+   */
+  function _migrate(campaign) {
+    if (!campaign) return campaign;
+
+    var files = (campaign.assets && campaign.assets.files) ? campaign.assets.files : [];
+
+    // Build a name → id lookup for legacy migration
+    var nameToId = {};
+    files.forEach(function (f) { nameToId[f.name] = f.id; });
+
+    // Convert deliverables that still use string asset arrays
+    if (campaign.production && campaign.production.deliverables) {
+      campaign.production.deliverables = campaign.production.deliverables.map(function (d) {
+        if (d.assets && !d.assetIds) {
+          d.assetIds = d.assets
+            .map(function (name) { return nameToId[name]; })
+            .filter(Boolean);
+          delete d.assets;
+        } else if (!d.assetIds) {
+          d.assetIds = [];
+        }
+        return d;
+      });
+
+      // Re-compute `linked` flag on every asset file
+      var linkedIds = {};
+      campaign.production.deliverables.forEach(function (d) {
+        (d.assetIds || []).forEach(function (id) { linkedIds[id] = true; });
+      });
+      files.forEach(function (f) { f.linked = !!linkedIds[f.id]; });
+    }
+
+    return campaign;
+  }
+
   /* ---------- Store API --------------------------------------------------- */
   var store = {
 
     /**
      * Seed localStorage with defaultData (or built-in defaults) if empty.
-     * Preserves existing data on subsequent loads.
+     * Applies migration for legacy data on subsequent loads.
      */
     init: function (defaultData) {
       try {
-        if (!localStorage.getItem(STORAGE_KEY)) {
+        var existing = localStorage.getItem(STORAGE_KEY);
+        if (!existing) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData || DEFAULT_CAMPAIGN));
+        } else {
+          // Migrate legacy string-based asset references if present
+          var parsed   = JSON.parse(existing);
+          var migrated = _migrate(parsed);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
         }
       } catch (e) {
         console.warn("[ameba] Campaign store: localStorage unavailable, running in-memory only.", e);
@@ -201,11 +248,15 @@
       return updated;
     },
 
+    /** Return all deliverables. */
+    getDeliverables: function () {
+      var campaign = this.getCampaign();
+      return campaign ? campaign.production.deliverables : [];
+    },
+
     /** Return one deliverable by id, or null. */
     getDeliverable: function (id) {
-      var campaign = this.getCampaign();
-      if (!campaign) return null;
-      var deliverables = campaign.production.deliverables;
+      var deliverables = this.getDeliverables();
       for (var i = 0; i < deliverables.length; i++) {
         if (deliverables[i].id === id) return deliverables[i];
       }
@@ -231,35 +282,123 @@
       return campaign ? campaign.assets.files : [];
     },
 
+    /** Return a single asset object by its stable id, or null. */
+    getAssetById: function (id) {
+      var files = this.getAssets();
+      for (var i = 0; i < files.length; i++) {
+        if (files[i].id === id) return files[i];
+      }
+      return null;
+    },
+
+    /**
+     * Return the full asset objects linked to a given deliverable id.
+     * Returns an empty array if the deliverable or assets are not found.
+     */
+    getAssetsForDeliverable: function (deliverableId) {
+      var self       = this;
+      var deliverable = this.getDeliverable(deliverableId);
+      if (!deliverable) return [];
+      return (deliverable.assetIds || [])
+        .map(function (id) { return self.getAssetById(id); })
+        .filter(Boolean);
+    },
+
+    /**
+     * Link an asset to a deliverable by storing the assetId in
+     * deliverable.assetIds and setting asset.linked = true.
+     * Idempotent — will not add duplicates.
+     */
+    linkAssetToDeliverable: function (assetId, deliverableId) {
+      this.updateCampaign(function (campaign) {
+        // Update deliverable assetIds
+        campaign.production.deliverables = campaign.production.deliverables.map(function (d) {
+          if (d.id === deliverableId) {
+            var ids = d.assetIds || [];
+            if (ids.indexOf(assetId) === -1) {
+              d.assetIds = ids.concat([assetId]);
+            }
+          }
+          return d;
+        });
+
+        // Mark asset as linked
+        campaign.assets.files = campaign.assets.files.map(function (f) {
+          if (f.id === assetId) f.linked = true;
+          return f;
+        });
+
+        return campaign;
+      });
+    },
+
+    /**
+     * Unlink an asset from a specific deliverable.
+     * Clears asset.linked only when the asset is not referenced by any other deliverable.
+     */
+    unlinkAssetFromDeliverable: function (assetId, deliverableId) {
+      this.updateCampaign(function (campaign) {
+        // Remove assetId from the target deliverable
+        campaign.production.deliverables = campaign.production.deliverables.map(function (d) {
+          if (d.id === deliverableId) {
+            d.assetIds = (d.assetIds || []).filter(function (id) { return id !== assetId; });
+          }
+          return d;
+        });
+
+        // Determine whether the asset is still referenced by any deliverable
+        var stillLinked = campaign.production.deliverables.some(function (d) {
+          return (d.assetIds || []).indexOf(assetId) !== -1;
+        });
+
+        // Update the linked flag on the asset
+        campaign.assets.files = campaign.assets.files.map(function (f) {
+          if (f.id === assetId) f.linked = stillLinked;
+          return f;
+        });
+
+        return campaign;
+      });
+    },
+
+    /**
+     * Return asset files that are not currently linked to any deliverable.
+     */
+    getUnlinkedAssets: function () {
+      return this.getAssets().filter(function (f) { return !f.linked; });
+    },
+
     /**
      * Return assets that are referenced by at least one deliverable.
-     * Each entry: { id, name, campaign, deliverable }.
+     * Each entry: { id, name, type, size, date, campaign, deliverables[] }.
      */
     getLinkedAssets: function () {
       var campaign = this.getCampaign();
       if (!campaign) return [];
 
-      // Build a map: asset name → first deliverable title that references it
-      var assetToDeliverable = {};
+      // Build a map: assetId → array of deliverable titles that reference it
+      var assetToDeliverables = {};
       campaign.production.deliverables.forEach(function (d) {
-        if (d.assets) {
-          d.assets.forEach(function (assetName) {
-            if (!assetToDeliverable[assetName]) {
-              assetToDeliverable[assetName] = d.title;
-            }
-          });
-        }
+        (d.assetIds || []).forEach(function (aid) {
+          if (!assetToDeliverables[aid]) assetToDeliverables[aid] = [];
+          assetToDeliverables[aid].push(d.title);
+        });
       });
 
       var campaignName = campaign.name;
       return campaign.assets.files
-        .filter(function (f) { return assetToDeliverable[f.name] !== undefined; })
+        .filter(function (f) { return assetToDeliverables[f.id]; })
         .map(function (f) {
+          var delivTitles = assetToDeliverables[f.id];
           return {
             id:          f.id,
             name:        f.name,
+            type:        f.type,
+            size:        f.size,
+            date:        f.date,
             campaign:    campaignName,
-            deliverable: assetToDeliverable[f.name]
+            deliverable: delivTitles[0],            // primary deliverable (first)
+            deliverables: delivTitles               // all deliverables
           };
         });
     }
