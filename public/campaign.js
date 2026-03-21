@@ -71,7 +71,7 @@
     _container = container;
     container.innerHTML = "";
 
-    var CAMPAIGN = store() && store().getCampaign();
+    var CAMPAIGN = store() && store().getActiveCampaign();
     if (!CAMPAIGN) {
       container.innerHTML = '<p style="color:#6060a0;padding:24px">Campaign data unavailable.</p>';
       return;
@@ -179,7 +179,14 @@
     var d        = CAMPAIGN.production.deliverables;
     var inReview = d.filter(function(x) { return x.status === "In Review"; }).length;
     var a        = CAMPAIGN.assets.files;
-    var linked   = a.filter(function(x) { return x.linked; }).length;
+
+    // Derive linked asset count from deliverable.assetIds — source of truth
+    var linkedIdSet = {};
+    d.forEach(function(deliv) {
+      (deliv.assetIds || []).forEach(function(id) { linkedIdSet[id] = true; });
+    });
+    var linked = a.filter(function(x) { return !!linkedIdSet[x.id]; }).length;
+
     var del      = CAMPAIGN.delivery;
     var ready    = del.items.filter(function(x) { return x.status === "Ready"; }).length;
 
@@ -616,8 +623,14 @@
 
   /* ---------- Assets ------------------------------------------------------ */
   function _renderAssets(container, CAMPAIGN) {
-    var a      = CAMPAIGN.assets.files;
-    var linked = a.filter(function(x) { return x.linked; }).length;
+    var a = CAMPAIGN.assets.files;
+
+    // Derive linked count from deliverable.assetIds — source of truth
+    var linkedIdSet = {};
+    (CAMPAIGN.production.deliverables || []).forEach(function(d) {
+      (d.assetIds || []).forEach(function(id) { linkedIdSet[id] = true; });
+    });
+    var linked = a.filter(function(x) { return !!linkedIdSet[x.id]; }).length;
 
     var header = el("div", "camp-page-header");
     header.innerHTML =
@@ -651,7 +664,7 @@
         '<div class="camp-asset-item__meta">' +
           '<span>' + file.size + '</span>' +
           '<span>' + file.date + '</span>' +
-          (file.linked ? '<span class="camp-asset-item__linked">Linked</span>' : "") +
+          (linkedIdSet[file.id] ? '<span class="camp-asset-item__linked">Linked</span>' : "") +
         '</div>';
       list.appendChild(item);
     });

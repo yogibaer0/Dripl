@@ -21,7 +21,7 @@
   /* ---------- Derive data from campaign store ----------------------------- */
   function getRecentAssets() {
     if (!store()) return [];
-    var campaign = store().getCampaign();
+    var campaign = store().getActiveCampaign();
     if (!campaign) return [];
     return campaign.assets.files.map(function(f) {
       return {
@@ -30,8 +30,7 @@
         type:     f.type,
         size:     f.size,
         campaign: campaign.name,
-        date:     f.date,
-        linked:   !!f.linked
+        date:     f.date
       };
     });
   }
@@ -56,14 +55,13 @@
   function handleUploadClick(rerender, container) {
     if (!store()) return;
     var demo = {
-      id:     "demo-" + Date.now(),
-      name:   "upload-demo-" + Date.now() + ".mp4",
-      type:   "Raw",
-      size:   "—",
-      date:   "Just now",
-      linked: false
+      id:   "demo-" + Date.now(),
+      name: "upload-demo-" + Date.now() + ".mp4",
+      type: "Raw",
+      size: "\u2014",
+      date: "Just now"
     };
-    store().updateCampaign(function(campaign) {
+    store().updateActiveCampaign(function(campaign) {
       campaign.assets.files.unshift(demo);
       return campaign;
     });
@@ -85,9 +83,13 @@
 
     // Header
     var header = el("div", "supply-header");
+    var activeCampaign = store() ? store().getActiveCampaign() : null;
+    var activeCampaignName = activeCampaign ? activeCampaign.name : "";
     header.innerHTML =
       "<h1 class=\"supply-header__title\">Supply</h1>" +
-      "<p class=\"supply-header__subtitle\">Campaign-aware asset browser. Uploads, linked files, and recent assets — ready for storage integration.</p>";
+      "<p class=\"supply-header__subtitle\">Campaign-aware asset browser. Uploads, linked files, and recent assets \u2014 ready for storage integration." +
+      (activeCampaignName ? " <span class=\"supply-header__campaign\">" + activeCampaignName + "</span>" : "") +
+      "</p>";
     shell.appendChild(header);
 
     // Upload zone (placeholder)
