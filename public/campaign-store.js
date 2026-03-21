@@ -363,9 +363,16 @@
 
     /**
      * Return asset files that are not currently linked to any deliverable.
+     * Derived from deliverable.assetIds — the authoritative source of truth.
      */
     getUnlinkedAssets: function () {
-      return this.getAssets().filter(function (f) { return !f.linked; });
+      var campaign = this.getCampaign();
+      if (!campaign) return [];
+      var linkedIds = {};
+      campaign.production.deliverables.forEach(function (d) {
+        (d.assetIds || []).forEach(function (id) { linkedIds[id] = true; });
+      });
+      return campaign.assets.files.filter(function (f) { return !linkedIds[f.id]; });
     },
 
     /**

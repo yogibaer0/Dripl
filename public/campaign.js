@@ -714,6 +714,6 @@
     _draw(container);
   }
 
-  window.CampaignModule = { render: render };
+  window.CampaignModule = { render: render, navigate: _navigate };
 
 }());
