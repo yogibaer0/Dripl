@@ -134,7 +134,8 @@
       info.appendChild(nameEl);
       info.appendChild(metaEl);
 
-      // Linked deliverable badges (existing links)
+      // Linked deliverable badges (existing links) + derive linked state from assetIds map
+      var isLinked = assetLinks.length > 0;
       if (assetLinks.length) {
         var badgeRow = el("div", "supply-item__link-badges");
         assetLinks.forEach(function(dl) {
@@ -147,8 +148,8 @@
       // Inline link control
       var linkCtrl = el("div", "supply-item__link-ctrl");
 
-      var linkToggle = el("button", "supply-link-toggle", (r.linked ? "Linked" : "Link") + ARROW);
-      if (r.linked) linkToggle.classList.add("supply-link-toggle--linked");
+      var linkToggle = el("button", "supply-link-toggle", (isLinked ? "Linked" : "Link") + ARROW);
+      if (isLinked) linkToggle.classList.add("supply-link-toggle--linked");
 
       var linkPanel = el("div", "supply-link-panel supply-link-panel--hidden");
 
