@@ -911,3 +911,136 @@
   padding: 4px 12px;
   border-radius: 20px;
 }
+
+/* ==========================================================================
+   Multi-Campaign List — Workshop
+   ========================================================================== */
+
+.ws-campaigns-list-card {
+  padding: 18px 20px;
+}
+
+.ws-campaigns-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-campaign-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ws-campaign-item:hover {
+  background: rgba(167,139,250,0.08);
+  border-color: rgba(167,139,250,0.2);
+}
+
+.ws-campaign-item--active {
+  background: rgba(167,139,250,0.1);
+  border-color: rgba(167,139,250,0.35);
+}
+
+.ws-campaign-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  flex-shrink: 0;
+}
+
+.ws-campaign-item__dot--active {
+  background: #a78bfa;
+  box-shadow: 0 0 6px rgba(167,139,250,0.6);
+}
+
+.ws-campaign-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ws-campaign-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e9d5ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-campaign-item__meta {
+  font-size: 11px;
+  color: #6060a0;
+}
+
+.ws-campaign-item__stats {
+  font-size: 11px;
+  color: #5050a0;
+}
+
+.ws-campaign-item__active-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  background: rgba(167,139,250,0.15);
+  padding: 3px 9px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.ws-campaign-item__switch-btn {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6060a0;
+  background: rgba(255,255,255,0.05);
+  padding: 3px 9px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ws-campaign-item:hover .ws-campaign-item__switch-btn {
+  color: #c4b5fd;
+  background: rgba(167,139,250,0.12);
+}
+
+/* Rail — other campaigns */
+.rail-campaign-row--other {
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.rail-campaign-row--other:hover {
+  opacity: 1;
+}
+
+/* Supply — active campaign badge in header
+   Defined here (workshop.css) because all page-level CSS shares this sheet
+   and supply.css focuses on component-level layout only. */
+.supply-header__campaign {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a78bfa;
+  background: rgba(167,139,250,0.12);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}

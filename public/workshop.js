@@ -97,9 +97,11 @@
   }
 
   /* ---------- Campaign Metrics ------------------------------------------- */
-  function getCampaignMetrics() {
+  function getCampaignMetrics(campaignId) {
     if (!store()) return null;
-    const campaign = store().getCampaign();
+    const campaign = campaignId
+      ? store().getCampaignById(campaignId)
+      : store().getActiveCampaign();
     if (!campaign) return null;
 
     const deliverables = campaign.production.deliverables || [];
@@ -163,23 +165,87 @@
     const grid = el("div", "ws-grid");
     container.appendChild(grid);
 
-    // 1 — Active Campaign Panel (full width)
+    // 1 — Campaigns List (full width)
+    const campaignsWrap = el("div", "ws-grid--full");
+    campaignsWrap.appendChild(renderCampaignsListCard(container));
+    grid.appendChild(campaignsWrap);
+
+    // 2 — Active Campaign Panel (full width)
     const campaignWrap = el("div", "ws-grid--full");
     campaignWrap.appendChild(renderActiveCampaignPanel(metrics));
     grid.appendChild(campaignWrap);
 
-    // 2 — Production Status (col 1) + Deadlines (col 2)
+    // 3 — Production Status (col 1) + Deadlines (col 2)
     grid.appendChild(renderProductionStatusCard(metrics));
     grid.appendChild(renderDeadlinesCard(metrics));
 
-    // 3 — Assets & Delivery (col 1) + Interactions (col 2)
+    // 4 — Assets & Delivery (col 1) + Interactions (col 2)
     grid.appendChild(renderAssetsDeliveryCard(metrics));
     grid.appendChild(renderInteractionsCard());
 
-    // 4 — Team (full width)
+    // 5 — Team (full width)
     const teamWrap = el("div", "ws-grid--full");
     teamWrap.appendChild(renderTeamCard());
     grid.appendChild(teamWrap);
+  }
+
+  /* ---------- Campaigns List Card ----------------------------------------- */
+  function renderCampaignsListCard(workshopContainer) {
+    const campaigns       = store() ? store().getCampaigns()         : [];
+    const activeCampaignId = store() ? store().getActiveCampaignId() : null;
+
+    const card = el("div", "ws-card ws-campaigns-list-card");
+
+    const titleRow = el("h2", "ws-card__title");
+    titleRow.innerHTML = `Active Campaigns <span class="ws-card__count">${campaigns.length}</span>`;
+    card.appendChild(titleRow);
+
+    const list = el("ul", "ws-campaigns-list");
+    campaigns.forEach(c => {
+      const isActive = c.id === activeCampaignId;
+      const m        = getCampaignMetrics(c.id);
+      const phase    = m ? m.phase : "—";
+      const total    = m ? m.total : 0;
+      const inReview = m ? m.inReview : 0;
+
+      const item = el("li", `ws-campaign-item${isActive ? " ws-campaign-item--active" : ""}`);
+
+      const dot = el("span", `ws-campaign-item__dot${isActive ? " ws-campaign-item__dot--active" : ""}`);
+      const info = el("div", "ws-campaign-item__info");
+      info.innerHTML =
+        `<span class="ws-campaign-item__name">${c.name}</span>` +
+        `<span class="ws-campaign-item__meta">${c.client} \u00b7 ${c.type} \u00b7 ${c.duration}</span>` +
+        `<span class="ws-campaign-item__stats">${total} deliverables \u00b7 ${inReview} in review \u00b7 ${phase}</span>`;
+
+      const badge = isActive
+        ? el("span", "ws-campaign-item__active-badge", "Active")
+        : el("span", "ws-campaign-item__switch-btn", "Set Active");
+
+      item.appendChild(dot);
+      item.appendChild(info);
+      item.appendChild(badge);
+
+      item.addEventListener("click", () => {
+        if (isActive) {
+          // Clicking the active campaign opens it
+          window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
+        } else {
+          // Switch active campaign and re-render
+          window.AMEBA && window.AMEBA.setActiveCampaign && window.AMEBA.setActiveCampaign(c.id);
+          // Re-render workshop with new active campaign (setActiveCampaign handles this but
+          // we also re-render here since workshopContainer is in scope)
+          renderWorkshop(workshopContainer);
+          // Re-render rail
+          const rail = document.getElementById("amebaRail");
+          if (rail) renderRail(rail);
+        }
+      });
+
+      list.appendChild(item);
+    });
+
+    card.appendChild(list);
+    return card;
   }
 
   /* ---------- Active Campaign Panel --------------------------------------- */
@@ -488,6 +554,24 @@
         window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
       });
       campList.appendChild(li);
+
+      // Show other campaigns as switch targets
+      const allCampaigns = store() ? store().getCampaigns() : [];
+      const activeCampaignId = store() ? store().getActiveCampaignId() : null;
+      allCampaigns.forEach(c => {
+        if (c.id === activeCampaignId) return;
+        const switchLi = el("li", "rail-campaign-row rail-campaign-row--other rail-campaign-row--clickable");
+        switchLi.innerHTML =
+          `<span class="rail-campaign-row__name">${c.name}</span>` +
+          `<span class="rail-campaign-row__meta">${c.client} \u00b7 ${c.type}</span>`;
+        switchLi.addEventListener("click", () => {
+          window.AMEBA && window.AMEBA.setActiveCampaign && window.AMEBA.setActiveCampaign(c.id);
+          const wsContainer = document.getElementById("pageWorkshop");
+          if (wsContainer) { renderWorkshop(wsContainer); wsContainer.dataset.rendered = "1"; }
+          renderRail(rail);
+        });
+        campList.appendChild(switchLi);
+      });
     } else {
       const li = el("li", "rail-campaign-row");
       li.innerHTML = `<span class="rail-campaign-row__meta">No campaign data</span>`;
@@ -617,12 +701,14 @@
       view.classList.toggle("is-active", active);
     });
 
-    // Render the page if not yet rendered
+    // Always re-render campaign and supply to reflect latest active campaign
     const container = document.querySelector(`.page-view[data-view="${pageId}"]`);
-    if (container && !container.dataset.rendered) {
-      if (pageRenderers[pageId]) {
-        pageRenderers[pageId](container);
-        container.dataset.rendered = "1";
+    if (container) {
+      if (pageId === "campaign" || pageId === "supply" || !container.dataset.rendered) {
+        if (pageRenderers[pageId]) {
+          pageRenderers[pageId](container);
+          container.dataset.rendered = "1";
+        }
       }
     }
   }
@@ -657,6 +743,41 @@
     if (window.CampaignModule && window.CampaignModule.navigate) {
       window.CampaignModule.navigate("production", deliverableId);
     }
+  };
+
+  /**
+   * Switch the active campaign and re-render affected pages.
+   * campaignId: e.g. "c1", "c2", "c3"
+   */
+  window.AMEBA.setActiveCampaign = function (campaignId) {
+    if (store()) store().setActiveCampaign(campaignId);
+    // Re-render workshop if open
+    const wsContainer = document.getElementById("pageWorkshop");
+    if (wsContainer) {
+      renderWorkshop(wsContainer);
+      wsContainer.dataset.rendered = "1";
+    }
+    // Re-render campaign page if already rendered (force re-render on next open)
+    const campContainer = document.querySelector('.page-view[data-view="campaign"]');
+    if (campContainer) {
+      delete campContainer.dataset.rendered;
+      if (currentPage === "campaign") {
+        renderCampaign(campContainer);
+        campContainer.dataset.rendered = "1";
+      }
+    }
+    // Re-render supply page if already rendered
+    const supplyContainer = document.querySelector('.page-view[data-view="supply"]');
+    if (supplyContainer) {
+      delete supplyContainer.dataset.rendered;
+      if (currentPage === "supply") {
+        renderSupply(supplyContainer);
+        supplyContainer.dataset.rendered = "1";
+      }
+    }
+    // Re-render rail
+    const rail = document.getElementById("amebaRail");
+    if (rail) renderRail(rail);
   };
 
   /* ---------- Init -------------------------------------------------------- */
