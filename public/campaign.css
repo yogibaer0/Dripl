@@ -1206,3 +1206,216 @@
   color: #6060a0;
   font-size: 13px;
 }
+
+/* ---------- Production — Header Row ------------------------------------- */
+.camp-page-header--row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ---------- New Deliverable Button -------------------------------------- */
+.camp-new-deliverable-btn {
+  flex-shrink: 0;
+  background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.3);
+  color: #a78bfa;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.camp-new-deliverable-btn:hover {
+  background: rgba(167,139,250,0.18);
+  border-color: rgba(167,139,250,0.5);
+}
+
+/* ---------- New Deliverable Modal --------------------------------------- */
+.camp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,8,24,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.camp-modal {
+  background: #16162a;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 28px 28px 24px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.camp-modal__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e9d5ff;
+  margin: 0;
+}
+
+.camp-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.camp-modal__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #6060a0;
+}
+
+.camp-modal__input {
+  background: #0e0e1e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: #e9d5ff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.camp-modal__input:focus {
+  border-color: rgba(167,139,250,0.5);
+}
+
+.camp-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.camp-modal__cancel {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #6060a0;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.camp-modal__cancel:hover {
+  border-color: rgba(255,255,255,0.2);
+  color: #a0a0c0;
+}
+
+.camp-modal__submit {
+  background: rgba(167,139,250,0.15);
+  border: 1px solid rgba(167,139,250,0.35);
+  color: #a78bfa;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.camp-modal__submit:hover {
+  background: rgba(167,139,250,0.25);
+  border-color: rgba(167,139,250,0.55);
+}
+
+/* ---------- Deliverable Focus — Editable Textareas --------------------- */
+.camp-focus-edit-textarea {
+  width: 100%;
+  background: #0e0e1e;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  color: #c4b5fd;
+  font-family: inherit;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  margin-top: 6px;
+}
+
+.camp-focus-edit-textarea:focus {
+  border-color: rgba(167,139,250,0.45);
+}
+
+.camp-focus-edit-textarea--caption {
+  color: #a78bfa;
+  font-style: italic;
+  margin-top: 12px;
+}
+
+.camp-focus-edit-textarea--feedback {
+  color: #94a3b8;
+}
+
+.camp-focus-card__label--secondary {
+  margin-top: 14px;
+}
+
+/* ---------- Delivery — Status Select ----------------------------------- */
+.camp-delivery-status-select {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+
+.camp-delivery-status-select:focus,
+.camp-delivery-status-select:hover {
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* ---------- Strategy — Editable Textareas ------------------------------ */
+.camp-strategy-edit-textarea {
+  width: 100%;
+  background: #0e0e1e;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  color: #c4b5fd;
+  font-family: inherit;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  margin-top: 2px;
+}
+
+.camp-strategy-edit-textarea:focus {
+  border-color: rgba(245,158,11,0.45);
+}

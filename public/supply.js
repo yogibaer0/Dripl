@@ -54,18 +54,80 @@
   /* ---------- Placeholder upload: adds a demo asset to the store --------- */
   function handleUploadClick(rerender, container) {
     if (!store()) return;
-    var demo = {
-      id:   "demo-" + Date.now(),
-      name: "upload-demo-" + Date.now() + ".mp4",
-      type: "Raw",
-      size: "\u2014",
-      date: "Just now"
-    };
-    store().updateActiveCampaign(function(campaign) {
-      campaign.assets.files.unshift(demo);
-      return campaign;
-    });
-    rerender(container);
+
+    // Remove any existing upload form
+    var existing = document.getElementById("supplyUploadForm");
+    if (existing) { existing.remove(); return; }
+
+    var form = el("div", "supply-upload-form");
+    form.id = "supplyUploadForm";
+    form.innerHTML =
+      '<div class="supply-upload-form__row">' +
+        '<label class="supply-upload-form__label">File Name</label>' +
+        '<input class="supply-upload-form__input" id="supUploadName" type="text" placeholder="e.g. hero-shot-final.mp4">' +
+      '</div>' +
+      '<div class="supply-upload-form__row">' +
+        '<label class="supply-upload-form__label">Type</label>' +
+        '<select class="supply-upload-form__input" id="supUploadType">' +
+          '<option value="Raw">Raw</option>' +
+          '<option value="Edit">Edit</option>' +
+          '<option value="Brand">Brand</option>' +
+          '<option value="Document">Document</option>' +
+          '<option value="Thumbnail">Thumbnail</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="supply-upload-form__actions">' +
+        '<button class="supply-upload-form__cancel" id="supUploadCancel">Cancel</button>' +
+        '<button class="supply-upload-form__submit" id="supUploadSubmit">Add Asset</button>' +
+      '</div>';
+
+    // Insert form below the upload zone
+    var uploadZone = container.querySelector(".supply-upload");
+    if (uploadZone) {
+      uploadZone.parentNode.insertBefore(form, uploadZone.nextSibling);
+    } else {
+      container.querySelector(".supply-shell").appendChild(form);
+    }
+
+    setTimeout(function() {
+      var nameInput = document.getElementById("supUploadName");
+      if (nameInput) nameInput.focus();
+
+      var cancelBtn = document.getElementById("supUploadCancel");
+      if (cancelBtn) cancelBtn.addEventListener("click", function() { form.remove(); });
+
+      var submitBtn = document.getElementById("supUploadSubmit");
+      if (submitBtn) {
+        submitBtn.addEventListener("click", function() {
+          var name = (document.getElementById("supUploadName") || {}).value || "";
+          var type = (document.getElementById("supUploadType") || {}).value || "Raw";
+
+          if (!name.trim()) {
+            var n = document.getElementById("supUploadName");
+            if (n) { n.style.borderColor = "#f87171"; n.focus(); }
+            return;
+          }
+
+          var activeCampaign = store() ? store().getActiveCampaign() : null;
+          var campaignPrefix = activeCampaign ? activeCampaign.id : "c";
+          var newAsset = {
+            id:   campaignPrefix + "_a" + Date.now(),
+            name: name.trim(),
+            type: type,
+            size: "\u2014",
+            date: "Just now"
+          };
+
+          store().updateActiveCampaign(function(campaign) {
+            campaign.assets.files.unshift(newAsset);
+            return campaign;
+          });
+
+          form.remove();
+          rerender(container);
+        });
+      }
+    }, 0);
   }
 
   /* ---------- Render ------------------------------------------------------ */

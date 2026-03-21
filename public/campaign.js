@@ -286,11 +286,19 @@
     var inReview = d.filter(function(x) { return x.status === "In Review"; }).length;
     var approved = d.filter(function(x) { return x.status === "Approved"; }).length;
 
-    var header = el("div", "camp-page-header");
-    header.innerHTML =
+    var headerRow = el("div", "camp-page-header camp-page-header--row");
+    var headerText = el("div");
+    headerText.innerHTML =
       '<h2 class="camp-page-title">Production</h2>' +
       '<p class="camp-page-subtitle">' + d.length + ' deliverables \u00b7 ' + inReview + ' in review \u00b7 ' + approved + ' approved</p>';
-    container.appendChild(header);
+    headerRow.appendChild(headerText);
+
+    var newBtn = el("button", "camp-new-deliverable-btn", "+ New Deliverable");
+    newBtn.addEventListener("click", function() {
+      _showNewDeliverableForm(container, CAMPAIGN);
+    });
+    headerRow.appendChild(newBtn);
+    container.appendChild(headerRow);
 
     var grid = el("div", "camp-deliverable-grid");
     d.forEach(function(item) {
@@ -312,6 +320,101 @@
       grid.appendChild(card);
     });
     container.appendChild(grid);
+  }
+
+  /* ---------- New Deliverable Form --------------------------------------- */
+  function _showNewDeliverableForm(container, CAMPAIGN) {
+    // Remove existing modal if any
+    var existing = document.getElementById("campNewDeliverableModal");
+    if (existing) existing.remove();
+
+    var overlay = el("div", "camp-modal-overlay");
+    overlay.id = "campNewDeliverableModal";
+
+    var modal = el("div", "camp-modal");
+    modal.innerHTML =
+      '<h3 class="camp-modal__title">New Deliverable</h3>' +
+      '<div class="camp-modal__field">' +
+        '<label class="camp-modal__label">Title</label>' +
+        '<input class="camp-modal__input" id="cndTitle" type="text" placeholder="e.g. Hero Reel — Launch Day">' +
+      '</div>' +
+      '<div class="camp-modal__field">' +
+        '<label class="camp-modal__label">Platform</label>' +
+        '<select class="camp-modal__input" id="cndPlatform">' +
+          '<option value="Instagram">Instagram</option>' +
+          '<option value="TikTok">TikTok</option>' +
+          '<option value="YouTube">YouTube</option>' +
+          '<option value="YouTube Shorts">YouTube Shorts</option>' +
+          '<option value="LinkedIn">LinkedIn</option>' +
+          '<option value="Twitter">Twitter</option>' +
+          '<option value="Other">Other</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="camp-modal__field">' +
+        '<label class="camp-modal__label">Owner</label>' +
+        '<input class="camp-modal__input" id="cndOwner" type="text" placeholder="e.g. Sophie M.">' +
+      '</div>' +
+      '<div class="camp-modal__actions">' +
+        '<button class="camp-modal__cancel" id="cndCancel">Cancel</button>' +
+        '<button class="camp-modal__submit" id="cndSubmit">Create Deliverable</button>' +
+      '</div>';
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    setTimeout(function() {
+      var titleInput = document.getElementById("cndTitle");
+      if (titleInput) titleInput.focus();
+
+      var cancelBtn = document.getElementById("cndCancel");
+      if (cancelBtn) cancelBtn.addEventListener("click", function() { overlay.remove(); });
+
+      overlay.addEventListener("click", function(e) {
+        if (e.target === overlay) overlay.remove();
+      });
+
+      var submitBtn = document.getElementById("cndSubmit");
+      if (submitBtn) {
+        submitBtn.addEventListener("click", function() {
+          var title    = (document.getElementById("cndTitle") || {}).value || "";
+          var platform = (document.getElementById("cndPlatform") || {}).value || "Instagram";
+          var owner    = (document.getElementById("cndOwner") || {}).value || "";
+
+          if (!title.trim()) {
+            var t = document.getElementById("cndTitle");
+            if (t) { t.style.borderColor = "#f87171"; t.focus(); }
+            return;
+          }
+
+          if (!store()) return;
+          var activeCampaign = store().getActiveCampaign();
+          var campaignPrefix = activeCampaign ? activeCampaign.id : "c";
+          var newDeliverable = {
+            id:       campaignPrefix + "_d" + Date.now(),
+            title:    title.trim(),
+            platform: platform,
+            owner:    owner.trim() || "\u2014",
+            status:   "Draft",
+            version:  "v1",
+            bio:      "",
+            caption:  "",
+            tasks:    [],
+            timeline: [],
+            assetIds: [],
+            feedback: "",
+            analytics: { views: "\u2014", engagement: "\u2014", status: "Draft" }
+          };
+
+          store().updateActiveCampaign(function(campaign) {
+            campaign.production.deliverables.push(newDeliverable);
+            return campaign;
+          });
+
+          overlay.remove();
+          if (_container) _draw(_container);
+        });
+      }
+    }, 0);
   }
 
   /* ---------- Deliverable Focus ------------------------------------------ */
@@ -347,17 +450,37 @@
       '<div class="camp-focus-owner">Owner: <strong>' + deliverable.owner + '</strong></div>';
     main.appendChild(focusHeader);
 
-    // Brief / Caption
-    if (deliverable.bio) {
+    // Brief / Caption (editable)
+    (function() {
       var bioCard = el("div", "camp-focus-card");
-      bioCard.innerHTML =
-        '<div class="camp-focus-card__label">Brief</div>' +
-        '<p class="camp-focus-card__text">' + deliverable.bio + '</p>' +
-        (deliverable.caption
-          ? '<div class="camp-focus-card__caption">\u201c' + deliverable.caption + '\u201d</div>'
-          : "");
+      var bioLabel = el("div", "camp-focus-card__label", "Brief");
+      var bioArea = el("textarea", "camp-focus-edit-textarea");
+      bioArea.value = deliverable.bio || "";
+      bioArea.placeholder = "Add a brief description\u2026";
+      bioArea.rows = 4;
+      bioArea.addEventListener("blur", function() {
+        if (!store()) return;
+        var newVal = bioArea.value;
+        store().updateDeliverable(focusId, function(d) { d.bio = newVal; return d; });
+      });
+
+      var captionLabel = el("div", "camp-focus-card__label camp-focus-card__label--secondary", "Caption");
+      var captionArea = el("textarea", "camp-focus-edit-textarea camp-focus-edit-textarea--caption");
+      captionArea.value = deliverable.caption || "";
+      captionArea.placeholder = "Add a caption\u2026";
+      captionArea.rows = 2;
+      captionArea.addEventListener("blur", function() {
+        if (!store()) return;
+        var newVal = captionArea.value;
+        store().updateDeliverable(focusId, function(d) { d.caption = newVal; return d; });
+      });
+
+      bioCard.appendChild(bioLabel);
+      bioCard.appendChild(bioArea);
+      bioCard.appendChild(captionLabel);
+      bioCard.appendChild(captionArea);
       main.appendChild(bioCard);
-    }
+    }());
 
     // Tasks -- interactive: clicking a row toggles done and persists to store
     if (deliverable.tasks && deliverable.tasks.length) {
@@ -491,14 +614,23 @@
       main.appendChild(assetsCard);
     }());
 
-    // Feedback
-    if (deliverable.feedback) {
+    // Feedback (editable)
+    (function() {
       var fbCard = el("div", "camp-focus-card");
-      fbCard.innerHTML =
-        '<div class="camp-focus-card__label">Latest Feedback</div>' +
-        '<p class="camp-focus-card__feedback">' + deliverable.feedback + '</p>';
+      var fbLabel = el("div", "camp-focus-card__label", "Latest Feedback");
+      var fbArea = el("textarea", "camp-focus-edit-textarea camp-focus-edit-textarea--feedback");
+      fbArea.value = deliverable.feedback || "";
+      fbArea.placeholder = "Add feedback notes\u2026";
+      fbArea.rows = 3;
+      fbArea.addEventListener("blur", function() {
+        if (!store()) return;
+        var newVal = fbArea.value;
+        store().updateDeliverable(focusId, function(d) { d.feedback = newVal; return d; });
+      });
+      fbCard.appendChild(fbLabel);
+      fbCard.appendChild(fbArea);
       main.appendChild(fbCard);
-    }
+    }());
 
     layout.appendChild(main);
 
@@ -563,15 +695,40 @@
       '<p class="camp-page-subtitle">Campaign reference framework for ' + CAMPAIGN.name + '</p>';
     main.appendChild(header);
 
-    var sections = [
-      { label: "Campaign Goal",       value: CAMPAIGN.goal          },
-      { label: "Target Audience",     value: CAMPAIGN.target + " \u2014 " + CAMPAIGN.audience },
-      { label: "Geographic Focus",    value: CAMPAIGN.location      },
-      { label: "Campaign Objectives", value: CAMPAIGN.campaignGoals },
-      { label: "Core Messaging",      value: CAMPAIGN.messaging     }
+    // Editable fields: goal, target, messaging
+    var editableFields = [
+      { label: "Campaign Goal",   key: "goal",      rows: 3 },
+      { label: "Target Audience", key: "target",    rows: 2 },
+      { label: "Core Messaging",  key: "messaging", rows: 3 }
     ];
 
-    sections.forEach(function(s) {
+    editableFields.forEach(function(f) {
+      var card = el("div", "camp-strategy-card");
+      var lbl  = el("div", "camp-strategy-card__label", f.label);
+      var area = el("textarea", "camp-strategy-edit-textarea");
+      area.value = CAMPAIGN[f.key] || "";
+      area.rows  = f.rows;
+      area.addEventListener("blur", function() {
+        if (!store()) return;
+        var newVal = area.value;
+        var fieldKey = f.key;
+        store().updateActiveCampaign(function(c) {
+          c[fieldKey] = newVal;
+          return c;
+        });
+      });
+      card.appendChild(lbl);
+      card.appendChild(area);
+      main.appendChild(card);
+    });
+
+    // Read-only fields
+    var readOnlyFields = [
+      { label: "Geographic Focus",    value: CAMPAIGN.location      },
+      { label: "Campaign Objectives", value: CAMPAIGN.campaignGoals }
+    ];
+
+    readOnlyFields.forEach(function(s) {
       var card = el("div", "camp-strategy-card");
       card.innerHTML =
         '<div class="camp-strategy-card__label">' + s.label + '</div>' +
@@ -704,17 +861,55 @@
     var list = el("div", "camp-delivery-list");
     del.items.forEach(function(item) {
       var card = el("div", "camp-delivery-item");
-      card.innerHTML =
-        '<div class="camp-delivery-item__top">' +
-          '<span class="camp-delivery-item__status" style="color:' + statusColor(item.status) + ';background:' + statusBg(item.status) + '">' + item.status + '</span>' +
-          '<span class="camp-delivery-item__platform">' + item.platform + '</span>' +
-        '</div>' +
-        '<div class="camp-delivery-item__title">' + item.title + '</div>' +
-        '<div class="camp-delivery-item__meta">' +
-          '<span class="camp-delivery-item__owner">' + item.owner + '</span>' +
-          '<span class="camp-delivery-item__notes">' + item.notes + '</span>' +
-        '</div>' +
-        (item.status === "Ready" ? '<button class="camp-delivery-item__export">Export \u2192</button>' : "");
+
+      var topRow = el("div", "camp-delivery-item__top");
+
+      // Status dropdown
+      var statusSel = el("select", "camp-delivery-status-select");
+      statusSel.style.color = statusColor(item.status);
+      ["Draft", "In Review", "Ready"].forEach(function(s) {
+        var opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        if (s === item.status) opt.selected = true;
+        statusSel.appendChild(opt);
+      });
+      statusSel.addEventListener("change", function() {
+        var newStatus = statusSel.value;
+        var itemId = item.id;
+        if (!store()) return;
+        store().updateActiveCampaign(function(c) {
+          c.delivery.items = c.delivery.items.map(function(i) {
+            return i.id === itemId ? Object.assign({}, i, { status: newStatus }) : i;
+          });
+          var total  = c.delivery.items.length;
+          var rdyCount = c.delivery.items.filter(function(i) { return i.status === "Ready"; }).length;
+          c.delivery.readiness = total ? Math.round((rdyCount / total) * 100) : 0;
+          return c;
+        });
+        if (_container) _draw(_container);
+      });
+
+      var platformBadge = el("span", "camp-delivery-item__platform", item.platform);
+
+      topRow.appendChild(statusSel);
+      topRow.appendChild(platformBadge);
+
+      var titleEl = el("div", "camp-delivery-item__title", item.title);
+      var metaEl  = el("div", "camp-delivery-item__meta");
+      metaEl.innerHTML =
+        '<span class="camp-delivery-item__owner">' + item.owner + '</span>' +
+        '<span class="camp-delivery-item__notes">' + item.notes + '</span>';
+
+      card.appendChild(topRow);
+      card.appendChild(titleEl);
+      card.appendChild(metaEl);
+
+      if (item.status === "Ready") {
+        var exportBtn = el("button", "camp-delivery-item__export", "Export \u2192");
+        card.appendChild(exportBtn);
+      }
+
       list.appendChild(card);
     });
     container.appendChild(list);
