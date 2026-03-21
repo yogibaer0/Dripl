@@ -650,13 +650,120 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
-  color: #c4b5fd;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s;
+}
+
+.camp-focus-asset-item:hover {
+  background: rgba(167,139,250,0.05);
 }
 
 .camp-focus-asset-icon {
   font-size: 13px;
   flex-shrink: 0;
+}
+
+.camp-focus-asset-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.camp-focus-asset-name {
+  font-size: 12.5px;
+  color: #c4b5fd;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.camp-focus-asset-meta {
+  font-size: 11px;
+  color: #6060a0;
+}
+
+.camp-focus-asset-unlink {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #6060a0;
+  font-size: 14px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  padding: 0;
+}
+
+.camp-focus-asset-unlink:hover {
+  color: #f87171;
+  border-color: rgba(248,113,113,0.35);
+  background: rgba(248,113,113,0.08);
+}
+
+.camp-focus-asset-empty {
+  font-size: 12.5px;
+  color: #4040a0;
+  margin: 0 0 8px;
+  font-style: italic;
+}
+
+/* Link-from-supply row inside the assets card */
+.camp-focus-asset-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.camp-focus-asset-select {
+  flex: 1;
+  background: #0e0e1e;
+  border: 1px solid rgba(167,139,250,0.2);
+  border-radius: 8px;
+  color: #c4b5fd;
+  font-size: 12px;
+  padding: 6px 10px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.camp-focus-asset-select:focus {
+  border-color: rgba(167,139,250,0.45);
+}
+
+.camp-focus-asset-link-btn {
+  flex-shrink: 0;
+  background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.25);
+  color: #a78bfa;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.camp-focus-asset-link-btn:hover {
+  background: rgba(167,139,250,0.18);
+  border-color: rgba(167,139,250,0.4);
 }
 
 /* Focus Sidebar */
