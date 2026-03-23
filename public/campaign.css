@@ -1377,6 +1377,205 @@
   margin-top: 14px;
 }
 
+/* ---------- Campaign Header — Row Layout + Switcher --------------------- */
+.camp-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.camp-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.camp-switcher {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.camp-switcher__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a4a7a;
+}
+
+.camp-switcher__select {
+  background: rgba(167,139,250,0.06);
+  border: 1px solid rgba(167,139,250,0.2);
+  border-radius: 20px;
+  padding: 5px 28px 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: #a78bfa;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a78bfa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  max-width: 180px;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.camp-switcher__select:hover,
+.camp-switcher__select:focus {
+  border-color: rgba(167,139,250,0.45);
+  background-color: rgba(167,139,250,0.1);
+}
+
+/* ---------- Delivery — 3-Row Layout ------------------------------------- */
+.camp-delivery-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ROW 1 — Hero / Readiness */
+.camp-delivery-hero {
+  background: #161626;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 36px 32px 32px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.camp-delivery-hero__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a4a7a;
+  margin-bottom: 16px;
+}
+
+.camp-delivery-hero__pct {
+  font-size: 64px;
+  font-weight: 800;
+  color: #4ade80;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-bottom: 18px;
+}
+
+.camp-delivery-hero__bar-wrap {
+  margin-bottom: 20px;
+}
+
+.camp-delivery-hero__bar {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.camp-delivery-hero__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #34d399);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.camp-delivery-hero__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.camp-delivery-hero__stat {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.camp-delivery-hero__notes {
+  font-size: 12px;
+  color: #4a4a7a;
+  text-align: right;
+  flex: 1;
+}
+
+/* ROW 2 — Primary Actions */
+.camp-delivery-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.camp-delivery-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+  min-height: 78px;
+}
+
+.camp-delivery-action--create {
+  background: rgba(167,139,250,0.07);
+  border: 1px solid rgba(167,139,250,0.22);
+  color: #a78bfa;
+}
+
+.camp-delivery-action--create:hover {
+  background: rgba(167,139,250,0.13);
+  border-color: rgba(167,139,250,0.4);
+}
+
+.camp-delivery-action--send {
+  background: rgba(74,222,128,0.07);
+  border: 1px solid rgba(74,222,128,0.2);
+  color: #4ade80;
+}
+
+.camp-delivery-action--send:hover {
+  background: rgba(74,222,128,0.13);
+  border-color: rgba(74,222,128,0.38);
+}
+
+.camp-delivery-action__title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.camp-delivery-action__hint {
+  font-size: 11.5px;
+  opacity: 0.55;
+}
+
+/* ROW 3 — Deliverables Contents */
+.camp-delivery-contents {
+  margin-top: 40px;
+}
+
+.camp-delivery-contents__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a4a7a;
+  margin-bottom: 14px;
+}
+
 /* ---------- Delivery — Status Select ----------------------------------- */
 .camp-delivery-status-select {
   background: transparent;
