@@ -973,7 +973,7 @@
           c.delivery.items = c.delivery.items.map(function(i) {
             return i.id === itemId ? Object.assign({}, i, { status: newStatus }) : i;
           });
-          var total    = c.delivery.items.length;
+          var total  = c.delivery.items.length;
           var rdyCount = c.delivery.items.filter(function(i) { return i.status === "Ready"; }).length;
           c.delivery.readiness = total ? Math.round((rdyCount / total) * 100) : 0;
           return c;
