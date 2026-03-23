@@ -133,8 +133,11 @@
     }
     h.appendChild(breadcrumb);
 
-    var main = el("div", "camp-header__main");
-    main.innerHTML =
+    // Main row: campaign info on left, switcher on right
+    var mainRow = el("div", "camp-header__row");
+
+    var info = el("div", "camp-header__info");
+    info.innerHTML =
       '<h1 class="camp-header__name">' + CAMPAIGN.name + '</h1>' +
       '<div class="camp-header__meta">' +
         '<span class="camp-header__client">' + CAMPAIGN.client + '</span>' +
@@ -143,7 +146,32 @@
         '<span class="camp-header__dot">\u00b7</span>' +
         '<span class="camp-header__duration">' + CAMPAIGN.duration + '</span>' +
       '</div>';
-    h.appendChild(main);
+    mainRow.appendChild(info);
+
+    // Campaign switcher — only shown when multiple campaigns exist
+    var campaigns = store() ? store().getCampaigns() : [];
+    if (campaigns && campaigns.length > 1) {
+      var switcher = el("div", "camp-switcher");
+      var switchLbl = el("div", "camp-switcher__label", "Campaign");
+      var switchSel = el("select", "camp-switcher__select");
+      campaigns.forEach(function(c) {
+        var opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.name;
+        if (c.id === CAMPAIGN.id) opt.selected = true;
+        switchSel.appendChild(opt);
+      });
+      switchSel.addEventListener("change", function() {
+        if (!store()) return;
+        store().setActiveCampaign(switchSel.value);
+        if (_container) _draw(_container);
+      });
+      switcher.appendChild(switchLbl);
+      switcher.appendChild(switchSel);
+      mainRow.appendChild(switcher);
+    }
+
+    h.appendChild(mainRow);
 
     // Wire breadcrumb links after mount
     setTimeout(function() {
@@ -881,24 +909,46 @@
     var del   = CAMPAIGN.delivery;
     var ready = del.items.filter(function(x) { return x.status === "Ready"; }).length;
 
-    var header = el("div", "camp-page-header");
-    header.innerHTML =
-      '<h2 class="camp-page-title">Delivery</h2>' +
-      '<p class="camp-page-subtitle">' + ready + ' ready for export \u00b7 ' + del.readiness + '% campaign package readiness</p>';
-    container.appendChild(header);
+    var layout = el("div", "camp-delivery-layout");
 
-    // Export readiness bar
-    var readinessCard = el("div", "camp-delivery-readiness");
-    readinessCard.innerHTML =
-      '<div class="camp-delivery-readiness__label">Campaign Package Readiness</div>' +
-      '<div class="camp-delivery-readiness__bar">' +
-        '<div class="camp-delivery-readiness__fill" style="width:' + del.readiness + '%"></div>' +
+    /* ---- ROW 1 — Hero / Readiness ---- */
+    var hero = el("div", "camp-delivery-hero");
+    hero.innerHTML =
+      '<div class="camp-delivery-hero__eyebrow">Campaign Package Readiness</div>' +
+      '<div class="camp-delivery-hero__pct">' + del.readiness + '%</div>' +
+      '<div class="camp-delivery-hero__bar-wrap">' +
+        '<div class="camp-delivery-hero__bar">' +
+          '<div class="camp-delivery-hero__fill" style="width:' + del.readiness + '%"></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="camp-delivery-readiness__pct">' + del.readiness + '%</div>' +
-      '<p class="camp-delivery-readiness__notes">' + del.exportNotes + '</p>';
-    container.appendChild(readinessCard);
+      '<div class="camp-delivery-hero__foot">' +
+        '<span class="camp-delivery-hero__stat">' + ready + '\u202f/\u202f' + del.items.length + ' deliverables ready</span>' +
+        '<span class="camp-delivery-hero__notes">' + del.exportNotes + '</span>' +
+      '</div>';
+    layout.appendChild(hero);
 
-    // Delivery items
+    /* ---- ROW 2 — Primary Actions ---- */
+    var actions = el("div", "camp-delivery-actions");
+
+    var createBtn = el("button", "camp-delivery-action camp-delivery-action--create");
+    createBtn.innerHTML =
+      '<span class="camp-delivery-action__title">Create Project File</span>' +
+      '<span class="camp-delivery-action__hint">Package all ready deliverables</span>';
+    actions.appendChild(createBtn);
+
+    var sendBtn = el("button", "camp-delivery-action camp-delivery-action--send");
+    sendBtn.innerHTML =
+      '<span class="camp-delivery-action__title">Send File</span>' +
+      '<span class="camp-delivery-action__hint">Share with client or team</span>';
+    actions.appendChild(sendBtn);
+
+    layout.appendChild(actions);
+
+    /* ---- ROW 3 — Deliverables List ---- */
+    var contents = el("div", "camp-delivery-contents");
+    var contentsLabel = el("div", "camp-delivery-contents__label", "Deliverables");
+    contents.appendChild(contentsLabel);
+
     var list = el("div", "camp-delivery-list");
     del.items.forEach(function(item) {
       var card = el("div", "camp-delivery-item");
@@ -953,7 +1003,10 @@
 
       list.appendChild(card);
     });
-    container.appendChild(list);
+    contents.appendChild(list);
+    layout.appendChild(contents);
+
+    container.appendChild(layout);
   }
 
   /* ---------- Entry Point ------------------------------------------------- */
