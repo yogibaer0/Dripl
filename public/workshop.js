@@ -197,6 +197,229 @@
     return map;
   }
 
+  /* ---------- Derived Header (context-aware) -------------------------------- */
+  function renderDerivedHeader(metrics) {
+    const campaign = metrics.campaign;
+    const phase    = metrics.phase;
+
+    const PHASE_ACCENT = {
+      "Production":        "#60a5fa",
+      "In Review":         "#f59e0b",
+      "Review / Delivery": "#a78bfa",
+      "Complete":          "#4ade80"
+    };
+    const PHASE_CONTEXT = {
+      "Production":        "Active production in progress",
+      "In Review":         "Content entering final approval stage",
+      "Review / Delivery": "Review and delivery pipeline active",
+      "Complete":          "All deliverables approved and ready"
+    };
+
+    const accent  = PHASE_ACCENT[phase]  || "#a78bfa";
+    const context = PHASE_CONTEXT[phase] || "Active";
+
+    const header = el("div", "ws-derived-header");
+
+    const top = el("div", "ws-derived-header__top");
+    top.appendChild(el("h1", "ws-derived-header__name", campaign.name));
+
+    const phaseBadge = el("span", "ws-derived-header__phase");
+    phaseBadge.textContent = phase.toUpperCase();
+    phaseBadge.style.color       = accent;
+    phaseBadge.style.borderColor = accent + "44";
+    phaseBadge.style.background  = accent + "18";
+    top.appendChild(phaseBadge);
+    header.appendChild(top);
+
+    const ctxLine = el("p", "ws-derived-header__context",
+      context +
+      (campaign.client ? " \u00b7 " + campaign.client : "") +
+      " \u00b7 " + metrics.approved + " of " + metrics.total + " approved"
+    );
+    header.appendChild(ctxLine);
+
+    return header;
+  }
+
+  /* ---------- Production Mini-List (Workshop center) ----------------------- */
+  function renderProductionMiniList(metrics) {
+    if (!metrics) return null;
+    const deliverables = metrics.campaign.production.deliverables || [];
+    if (!deliverables.length) return null;
+
+    const STATUS_SORT = { "In Review": 0, "In Production": 1, "Draft": 2, "Approved": 3 };
+    const sorted = deliverables.slice().sort(function(a, b) {
+      return (STATUS_SORT[a.status] || 99) - (STATUS_SORT[b.status] || 99);
+    });
+
+    const wrap = el("div", "ws-section-block");
+
+    const labelRow = el("div", "ws-section-block__header");
+    labelRow.appendChild(el("span", "ws-section-block__label", "Production"));
+    labelRow.appendChild(el("span", "ws-section-block__count",
+      metrics.inReview + " in review \u00b7 " + metrics.approved + " approved"));
+    wrap.appendChild(labelRow);
+
+    const STATUS_DOT = { "Draft": "draft", "In Production": "inprod", "In Review": "review", "Approved": "approved" };
+    const STATUS_COLOR = {
+      "Draft":         "#5a5a9a",
+      "In Production": "#60a5fa",
+      "In Review":     "#f59e0b",
+      "Approved":      "#4ade80"
+    };
+
+    const list = el("ul", "ws-prod-list");
+    sorted.forEach(function(d) {
+      const statusKey = STATUS_DOT[d.status] || "draft";
+      const isPending = d.status !== "Approved";
+      const doneTasks = (d.tasks || []).filter(function(t) { return t.done; }).length;
+      const totalTasks = (d.tasks || []).length;
+
+      const item = el("li", "ws-prod-item" + (isPending ? " ws-prod-item--pending" : ""));
+
+      const dot = el("span", "ws-prod-item__status ws-prod-item__status--" + statusKey);
+      const name = el("span", "ws-prod-item__name", d.title);
+      const platform = el("span", "ws-prod-item__platform", d.platform);
+
+      const statusLbl = el("span", "ws-prod-item__status-label", d.status);
+      statusLbl.style.color = STATUS_COLOR[d.status] || "#8888aa";
+
+      item.appendChild(dot);
+      item.appendChild(name);
+      item.appendChild(platform);
+
+      if (totalTasks > 0) {
+        const taskProg = el("span", "ws-prod-item__tasks", doneTasks + "/" + totalTasks);
+        item.appendChild(taskProg);
+      }
+      item.appendChild(statusLbl);
+
+      item.addEventListener("click", function() {
+        window.AMEBA && window.AMEBA.openDeliverableFocus &&
+          window.AMEBA.openDeliverableFocus(d.id);
+      });
+
+      list.appendChild(item);
+    });
+
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  /* ---------- Assets + Delivery Panel -------------------------------------- */
+  function renderAssetsDelivery(metrics) {
+    if (!metrics) return null;
+    const campaign     = metrics.campaign;
+    const deliverables = campaign.production.deliverables || [];
+
+    const totalAssets   = metrics.totalAssets;
+    const linkedAssets  = metrics.linkedAssets;
+    const noAssetsDels  = deliverables.filter(function(d) {
+      return !d.assetIds || d.assetIds.length === 0;
+    }).length;
+    const assetReadiness = totalAssets
+      ? Math.min(100, Math.round((linkedAssets / totalAssets) * 100)) : 0;
+
+    const wrap = el("div", "ws-ad-wrap");
+
+    /* ---- Assets half ---- */
+    const assetsPanel = el("div", "ws-ad-assets");
+
+    const assetsHdr = el("div", "ws-ad-panel-header");
+    assetsHdr.appendChild(el("span", "ws-ad-panel-label", "Assets"));
+    assetsHdr.appendChild(el("span", "ws-ad-panel-question", "Are we ready to produce?"));
+    assetsPanel.appendChild(assetsHdr);
+
+    const statRow = el("div", "ws-ad-stat-row");
+
+    const totalStat = el("div", "ws-ad-stat");
+    totalStat.innerHTML =
+      '<span class="ws-ad-stat__val">'      + totalAssets  + '</span>' +
+      '<span class="ws-ad-stat__lbl">files</span>';
+
+    const linkedStat = el("div", "ws-ad-stat");
+    linkedStat.innerHTML =
+      '<span class="ws-ad-stat__val ws-ad-stat__val--ok">' + linkedAssets + '</span>' +
+      '<span class="ws-ad-stat__lbl">linked</span>';
+
+    statRow.appendChild(totalStat);
+    statRow.appendChild(el("span", "ws-ad-stat-sep", "\u00b7"));
+    statRow.appendChild(linkedStat);
+
+    if (noAssetsDels > 0) {
+      statRow.appendChild(el("span", "ws-ad-missing-note",
+        noAssetsDels + " deliverable" + (noAssetsDels > 1 ? "s" : "") + " missing assets"));
+    }
+
+    assetsPanel.appendChild(statRow);
+
+    const barWrap = el("div", "ws-readiness-bar");
+    const barFill = el("div", "ws-readiness-bar__fill");
+    barFill.style.width = assetReadiness + "%";
+    barWrap.appendChild(barFill);
+    assetsPanel.appendChild(barWrap);
+    assetsPanel.appendChild(el("div", "ws-ad-readiness-label",
+      assetReadiness + "% of assets linked to deliverables"));
+
+    assetsPanel.addEventListener("click", function() {
+      window.AMEBA && window.AMEBA.openCampaignSection &&
+        window.AMEBA.openCampaignSection("assets");
+    });
+    wrap.appendChild(assetsPanel);
+
+    /* ---- Divider ---- */
+    wrap.appendChild(el("div", "ws-ad-divider"));
+
+    /* ---- Delivery half ---- */
+    const deliveryPanel = el("div", "ws-ad-delivery");
+
+    const deliveryHdr = el("div", "ws-ad-panel-header");
+    deliveryHdr.appendChild(el("span", "ws-ad-panel-label", "Delivery"));
+    deliveryHdr.appendChild(el("span", "ws-ad-panel-question", "Where are we in shipping?"));
+    deliveryPanel.appendChild(deliveryHdr);
+
+    const STATUSES = ["Draft", "In Production", "In Review", "Approved"];
+    const STATUS_MAP = { "Draft": "draft", "In Production": "inprod", "In Review": "review", "Approved": "approved" };
+
+    // Group deliverables by platform
+    const byPlatform = {};
+    deliverables.forEach(function(d) {
+      if (!byPlatform[d.platform]) {
+        byPlatform[d.platform] = { Draft: 0, "In Production": 0, "In Review": 0, "Approved": 0 };
+      }
+      byPlatform[d.platform][d.status] = (byPlatform[d.platform][d.status] || 0) + 1;
+    });
+
+    const platformRows = el("div", "ws-ad-platforms");
+    Object.keys(byPlatform).forEach(function(platform) {
+      const counts = byPlatform[platform];
+      const total  = STATUSES.reduce(function(s, k) { return s + counts[k]; }, 0);
+
+      const row = el("div", "ws-ad-platform-row");
+      row.appendChild(el("span", "ws-ad-platform-name", platform));
+      row.appendChild(el("span", "ws-ad-platform-total", total + " total"));
+
+      const pills = el("div", "ws-ad-platform-pills");
+      STATUSES.forEach(function(s) {
+        if (!counts[s]) return;
+        pills.appendChild(el("span", "ws-ad-pill ws-ad-pill--" + STATUS_MAP[s],
+          counts[s] + " " + s));
+      });
+      row.appendChild(pills);
+
+      platformRows.appendChild(row);
+    });
+    deliveryPanel.appendChild(platformRows);
+
+    deliveryPanel.addEventListener("click", function() {
+      window.AMEBA && window.AMEBA.openCampaignSection &&
+        window.AMEBA.openCampaignSection("delivery");
+    });
+    wrap.appendChild(deliveryPanel);
+
+    return wrap;
+  }
+
   /* ---------- Workshop Page ----------------------------------------------- */
   function renderWorkshop(container) {
     container.innerHTML = "";
@@ -206,6 +429,9 @@
       container.innerHTML = '<p style="color:#6060a0;padding:24px">No campaign data available.</p>';
       return;
     }
+
+    // Derived header — above the layout grid
+    container.appendChild(renderDerivedHeader(metrics));
 
     const layout = el("div", "ws-layout");
     container.appendChild(layout);
@@ -220,8 +446,13 @@
     campaignsAnchor.appendChild(renderCampaignsAnchorCard(container));
     layout.appendChild(campaignsAnchor);
 
-    // 3 — Center open space (intentional breathing room)
-    layout.appendChild(el("div", "ws-open-space"));
+    // 3 — Center content area: production list + assets/delivery
+    const centerArea = el("div", "ws-center-area");
+    const prodList = renderProductionMiniList(metrics);
+    if (prodList) centerArea.appendChild(prodList);
+    const adPanel = renderAssetsDelivery(metrics);
+    if (adPanel) centerArea.appendChild(adPanel);
+    layout.appendChild(centerArea);
 
     // 4 — Bottom section: calendar, tasks, ephemeral
     const bottomSection = el("div", "ws-bottom-section");
