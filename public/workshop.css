@@ -1505,12 +1505,13 @@
 }
 
 .ws-ephemeral-container.is-dismissing {
-  animation: ephemeralOut 0.2s ease forwards;
+  animation: ephemeralOut 0.22s ease forwards;
+  pointer-events: none;
 }
 
 @keyframes ephemeralOut {
-  from { opacity: 1; transform: translateY(0);    max-height: 120px; padding-top: 11px; padding-bottom: 11px; }
-  to   { opacity: 0; transform: translateY(-4px); max-height: 0;     padding-top: 0;    padding-bottom: 0; overflow: hidden; }
+  from { opacity: 1; transform: translateY(0);    }
+  to   { opacity: 0; transform: translateY(-6px); }
 }
 
 .ws-ephemeral-container__body {

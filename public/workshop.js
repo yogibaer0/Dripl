@@ -244,6 +244,7 @@
       circle.style.background = t.color;
       circle.textContent = t.initials;
       circle.title = t.name + " \u2014 " + t.status;
+      circle.setAttribute("aria-label", t.name + ", " + t.online + " \u2014 " + t.status);
       const dot = el("span", "ws-team-circle__status ws-team-circle__status--" + t.online);
       circle.appendChild(dot);
       wrap.appendChild(circle);
