@@ -141,6 +141,62 @@
     };
   }
 
+  /* ---------- Workshop State ---------------------------------------------- */
+  let _calendarExpanded   = false;
+  const _acknowledgedEphemeral = {};  // id -> true
+
+  /* ---------- Calendar / Date Helpers ------------------------------------- */
+  const DAYS_SHORT  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MONTHS_FULL = ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"];
+
+  function _getCurrentWeekDays() {
+    const today   = new Date();
+    const dow     = today.getDay();                    // 0 = Sun
+    const monday  = new Date(today);
+    monday.setDate(today.getDate() - ((dow + 6) % 7)); // back to Monday
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      week.push(d);
+    }
+    return week;
+  }
+
+  function _getMonthDays(year, month) {
+    const firstDay    = new Date(year, month, 1);
+    const lastDay     = new Date(year, month + 1, 0);
+    const startOffset = (firstDay.getDay() + 6) % 7;   // Monday-start
+    const days        = [];
+    for (let i = startOffset - 1; i >= 0; i--) {
+      days.push({ date: new Date(year, month, -i), currentMonth: false });
+    }
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      days.push({ date: new Date(year, month, d), currentMonth: true });
+    }
+    const trailing = (7 - (days.length % 7)) % 7;
+    for (let i = 1; i <= trailing; i++) {
+      days.push({ date: new Date(year, month + 1, i), currentMonth: false });
+    }
+    return days;
+  }
+
+  function _deadlineDayMap(deadlines) {
+    const map = {};
+    deadlines.forEach(function (d) {
+      const parts    = (d.date || "").split(" ");
+      const monthIdx = MONTH_ORDER[parts[0]];
+      const dayNum   = parseInt(parts[1], 10);
+      if (!monthIdx || isNaN(dayNum)) return;
+      const year = new Date().getFullYear();
+      const key  = year + "-" + monthIdx + "-" + dayNum;
+      if (!map[key]) map[key] = [];
+      map[key].push(d);
+    });
+    return map;
+  }
+
   /* ---------- Workshop Page ----------------------------------------------- */
   function renderWorkshop(container) {
     container.innerHTML = "";
@@ -151,354 +207,279 @@
       return;
     }
 
-    const { campaign } = metrics;
+    const layout = el("div", "ws-layout");
+    container.appendChild(layout);
 
-    // Header
-    const header = el("div", "ws-header");
-    header.innerHTML = `
-      <h1 class="ws-header__title">Workshop</h1>
-      <p class="ws-header__subtitle">Campaign control room &mdash; ${campaign.name}</p>
-    `;
-    container.appendChild(header);
+    // 1 — Team circles (top-right of main content area)
+    const teamAnchor = el("div", "ws-team-anchor");
+    teamAnchor.appendChild(renderTeamCircles());
+    layout.appendChild(teamAnchor);
 
-    // Grid
-    const grid = el("div", "ws-grid");
-    container.appendChild(grid);
+    // 2 — Campaigns anchor card (right column, full height)
+    const campaignsAnchor = el("div", "ws-campaigns-anchor");
+    campaignsAnchor.appendChild(renderCampaignsAnchorCard(container));
+    layout.appendChild(campaignsAnchor);
 
-    // 1 — Campaigns List (full width)
-    const campaignsWrap = el("div", "ws-grid--full");
-    campaignsWrap.appendChild(renderCampaignsListCard(container));
-    grid.appendChild(campaignsWrap);
+    // 3 — Center open space (intentional breathing room)
+    layout.appendChild(el("div", "ws-open-space"));
 
-    // 2 — Active Campaign Panel (full width)
-    const campaignWrap = el("div", "ws-grid--full");
-    campaignWrap.appendChild(renderActiveCampaignPanel(metrics));
-    grid.appendChild(campaignWrap);
+    // 4 — Bottom section: calendar, tasks, ephemeral
+    const bottomSection = el("div", "ws-bottom-section");
+    layout.appendChild(bottomSection);
 
-    // 3 — Production Status (col 1) + Deadlines (col 2)
-    grid.appendChild(renderProductionStatusCard(metrics));
-    grid.appendChild(renderDeadlinesCard(metrics));
+    bottomSection.appendChild(renderCalendarAnchor(metrics));
 
-    // 4 — Assets & Delivery (col 1) + Interactions (col 2)
-    grid.appendChild(renderAssetsDeliveryCard(metrics));
-    grid.appendChild(renderInteractionsCard());
+    const tasksEl = renderTasksArea(metrics);
+    if (tasksEl) bottomSection.appendChild(tasksEl);
 
-    // 5 — Team (full width)
-    const teamWrap = el("div", "ws-grid--full");
-    teamWrap.appendChild(renderTeamCard());
-    grid.appendChild(teamWrap);
+    const ephemeralEl = renderEphemeralContainers();
+    if (ephemeralEl) bottomSection.appendChild(ephemeralEl);
   }
 
-  /* ---------- Campaigns List Card ----------------------------------------- */
-  function renderCampaignsListCard(workshopContainer) {
-    const campaigns       = store() ? store().getCampaigns()         : [];
+  /* ---------- Team Circles (top-right anchor) ----------------------------- */
+  function renderTeamCircles() {
+    const wrap = el("div", "ws-team-circles");
+    MOCK.team.forEach(function (t) {
+      const circle = el("div", "ws-team-circle");
+      circle.style.background = t.color;
+      circle.textContent = t.initials;
+      circle.title = t.name + " \u2014 " + t.status;
+      const dot = el("span", "ws-team-circle__status ws-team-circle__status--" + t.online);
+      circle.appendChild(dot);
+      wrap.appendChild(circle);
+    });
+    return wrap;
+  }
+
+  /* ---------- Campaigns Anchor Card (right column) ------------------------ */
+  function renderCampaignsAnchorCard(workshopContainer) {
+    const campaigns        = store() ? store().getCampaigns()        : [];
     const activeCampaignId = store() ? store().getActiveCampaignId() : null;
 
-    const card = el("div", "ws-card ws-campaigns-list-card");
+    const card = el("div", "ws-campaigns-card");
+    card.appendChild(el("div", "ws-campaigns-card__title", "Campaigns"));
 
-    const titleRow = el("h2", "ws-card__title");
-    titleRow.innerHTML = `Active Campaigns <span class="ws-card__count">${campaigns.length}</span>`;
-    card.appendChild(titleRow);
-
-    const list = el("ul", "ws-campaigns-list");
-    campaigns.forEach(c => {
+    campaigns.forEach(function (c) {
       const isActive = c.id === activeCampaignId;
       const m        = getCampaignMetrics(c.id);
-      const phase    = m ? m.phase : "—";
-      const total    = m ? m.total : 0;
-      const inReview = m ? m.inReview : 0;
+      const phase    = m ? m.phase : "\u2014";
 
-      const item = el("li", `ws-campaign-item${isActive ? " ws-campaign-item--active" : ""}`);
+      const item     = el("div", "ws-camp-item" + (isActive ? " ws-camp-item--active" : ""));
+      const nameEl   = el("div", "ws-camp-item__name", c.name);
+      const clientEl = el("div", "ws-camp-item__client", c.client);
 
-      const dot = el("span", `ws-campaign-item__dot${isActive ? " ws-campaign-item__dot--active" : ""}`);
-      const info = el("div", "ws-campaign-item__info");
-      info.innerHTML =
-        `<span class="ws-campaign-item__name">${c.name}</span>` +
-        `<span class="ws-campaign-item__meta">${c.client} \u00b7 ${c.type} \u00b7 ${c.duration}</span>` +
-        `<span class="ws-campaign-item__stats">${total} deliverables \u00b7 ${inReview} in review \u00b7 ${phase}</span>`;
+      const phaseRow = el("div", "ws-camp-item__phase");
+      phaseRow.appendChild(el("span", "ws-camp-item__phase-dot"));
+      phaseRow.appendChild(document.createTextNode(phase));
 
-      const badge = isActive
-        ? el("span", "ws-campaign-item__active-badge", "Active")
-        : el("span", "ws-campaign-item__switch-btn", "Set Active");
+      item.appendChild(nameEl);
+      item.appendChild(clientEl);
+      item.appendChild(phaseRow);
 
-      item.appendChild(dot);
-      item.appendChild(info);
-      item.appendChild(badge);
-
-      item.addEventListener("click", () => {
+      item.addEventListener("click", function () {
         if (isActive) {
-          // Clicking the active campaign opens it
           window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
         } else {
-          // Switch active campaign and re-render
           window.AMEBA && window.AMEBA.setActiveCampaign && window.AMEBA.setActiveCampaign(c.id);
-          // Re-render workshop with new active campaign (setActiveCampaign handles this but
-          // we also re-render here since workshopContainer is in scope)
-          renderWorkshop(workshopContainer);
-          // Re-render rail
-          const rail = document.getElementById("amebaRail");
-          if (rail) renderRail(rail);
         }
       });
 
-      list.appendChild(item);
-    });
-
-    card.appendChild(list);
-    return card;
-  }
-
-  /* ---------- Active Campaign Panel --------------------------------------- */
-  function renderActiveCampaignPanel(metrics) {
-    const { campaign, total, inReview, approved, inProd, draft, phase, exportReadiness } = metrics;
-
-    const card = el("div", "ws-card ws-card--clickable ws-campaign-panel");
-    card.setAttribute("title", "Open Campaign");
-
-    // Left: identity
-    const left = el("div", "ws-campaign-panel__left");
-
-    const topRow = el("div", "ws-campaign-panel__top");
-    const dot    = el("span", "ws-campaign-panel__dot");
-    const badge  = el("span", "ws-campaign-panel__phase", phase);
-    topRow.appendChild(dot);
-    topRow.appendChild(badge);
-    left.appendChild(topRow);
-
-    const nameEl = el("h2", "ws-campaign-panel__name", campaign.name);
-    left.appendChild(nameEl);
-
-    const meta = el("div", "ws-campaign-panel__meta");
-    meta.innerHTML =
-      `<span>${campaign.client}</span>` +
-      `<span class="ws-meta-sep">\u00b7</span>` +
-      `<span>${campaign.type}</span>` +
-      `<span class="ws-meta-sep">\u00b7</span>` +
-      `<span>${campaign.duration}</span>`;
-    left.appendChild(meta);
-    card.appendChild(left);
-
-    // Right: key stats
-    const stats = el("div", "ws-campaign-panel__stats");
-    [
-      { label: "Deliverables", value: total,                color: "#a78bfa" },
-      { label: "In Review",    value: inReview,              color: "#f59e0b" },
-      { label: "Approved",     value: approved,              color: "#4ade80" },
-      { label: "In Prod",      value: inProd,                color: "#60a5fa" },
-      { label: "Readiness",    value: exportReadiness + "%", color: "#34d399" }
-    ].forEach(stat => {
-      const s = el("div", "ws-campaign-panel__stat");
-      s.innerHTML =
-        `<span class="ws-campaign-panel__stat-val" style="color:${stat.color}">${stat.value}</span>` +
-        `<span class="ws-campaign-panel__stat-lbl">${stat.label}</span>`;
-      stats.appendChild(s);
-    });
-    card.appendChild(stats);
-
-    card.addEventListener("click", () => {
-      window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
+      card.appendChild(item);
     });
 
     return card;
   }
 
-  /* ---------- Production Status Card -------------------------------------- */
-  function _statusSlug(status) {
-    return { "Draft": "draft", "In Production": "inprod", "In Review": "review", "Approved": "approved" }[status] || "draft";
+  /* ---------- Calendar Anchor (bottom-left) ------------------------------- */
+  function renderCalendarAnchor(metrics) {
+    const deadlines   = (metrics && metrics.deadlines) || [];
+    const deadlineMap = _deadlineDayMap(deadlines);
+    const today       = new Date();
+    const weekDays    = _getCurrentWeekDays();
+
+    const wrapper = el("div", "ws-cal");
+
+    /* -- Compact week strip -- */
+    const compact = el("div", "ws-cal__compact");
+    compact.setAttribute("role", "button");
+    compact.setAttribute("aria-expanded", String(_calendarExpanded));
+    compact.tabIndex = 0;
+
+    compact.appendChild(el("span", "ws-cal__month-label", MONTHS_FULL[today.getMonth()]));
+
+    const weekStrip = el("div", "ws-cal__week-strip");
+    weekDays.forEach(function (d) {
+      const isToday = d.toDateString() === today.toDateString();
+      const dayEl   = el("div", "ws-cal__day" + (isToday ? " ws-cal__day--today" : ""));
+      dayEl.appendChild(el("span", "ws-cal__day__label", DAYS_SHORT[d.getDay()]));
+      dayEl.appendChild(el("span", "ws-cal__day__num",   String(d.getDate())));
+      const mIdx = d.getMonth() + 1;
+      const key  = d.getFullYear() + "-" + mIdx + "-" + d.getDate();
+      if (deadlineMap[key]) dayEl.appendChild(el("span", "ws-cal__day__dot"));
+      weekStrip.appendChild(dayEl);
+    });
+    compact.appendChild(weekStrip);
+
+    const expandIcon = el("span", "ws-cal__expand-icon", _calendarExpanded ? "\u2191" : "\u2193");
+    compact.appendChild(expandIcon);
+    wrapper.appendChild(compact);
+
+    /* -- Expanded month grid -- */
+    const expanded = el("div", "ws-cal__expanded");
+    expanded.hidden = !_calendarExpanded;
+
+    const expHeader = el("div", "ws-cal__expanded-header");
+    expHeader.appendChild(el("span", "ws-cal__month-label",
+      MONTHS_FULL[today.getMonth()] + " " + today.getFullYear()));
+    expanded.appendChild(expHeader);
+
+    const grid = el("div", "ws-cal__grid");
+    ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].forEach(function (d) {
+      grid.appendChild(el("div", "ws-cal__grid-header", d));
+    });
+
+    _getMonthDays(today.getFullYear(), today.getMonth()).forEach(function (entry) {
+      const date         = entry.date;
+      const currentMonth = entry.currentMonth;
+      const isToday      = date.toDateString() === today.toDateString();
+      const mIdx         = date.getMonth() + 1;
+      const key          = date.getFullYear() + "-" + mIdx + "-" + date.getDate();
+      const hasDeadline  = !!deadlineMap[key];
+      const urgency      = hasDeadline ? _urgencyClass((deadlineMap[key][0] || {}).date) : null;
+
+      let cls = "ws-cal__grid-day";
+      if (isToday)       cls += " ws-cal__grid-day--today";
+      if (!currentMonth) cls += " ws-cal__grid-day--other";
+      if (hasDeadline)   cls += " ws-cal__grid-day--has-deadline";
+      if (urgency === "urgent") cls += " is-urgent";
+
+      grid.appendChild(el("div", cls, String(date.getDate())));
+    });
+    expanded.appendChild(grid);
+
+    if (deadlines.length) {
+      const dlSection = el("div", "ws-cal__deadline-list");
+      deadlines.slice(0, 6).forEach(function (d) {
+        const urgency = _urgencyClass(d.date);
+        const item    = el("div", "ws-cal__deadline-item");
+        item.appendChild(el("span", "ws-cal__deadline-name", d.name));
+        const dateSpan = el("span",
+          "ws-cal__deadline-date" + (urgency !== "normal" ? " is-urgent" : ""), d.date);
+        item.appendChild(dateSpan);
+        item.style.cursor = "pointer";
+        item.addEventListener("click", function () {
+          window.AMEBA && window.AMEBA.openDeliverableFocus &&
+            window.AMEBA.openDeliverableFocus(d.deliverableId);
+        });
+        dlSection.appendChild(item);
+      });
+      expanded.appendChild(dlSection);
+    }
+
+    wrapper.appendChild(expanded);
+
+    function toggleCal(e) {
+      e.stopPropagation();
+      _calendarExpanded = !_calendarExpanded;
+      expanded.hidden   = !_calendarExpanded;
+      expandIcon.textContent = _calendarExpanded ? "\u2191" : "\u2193";
+      compact.setAttribute("aria-expanded", String(_calendarExpanded));
+    }
+    compact.addEventListener("click", toggleCal);
+    compact.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCal(e); }
+    });
+
+    return wrapper;
   }
 
-  function renderProductionStatusCard(metrics) {
-    const { campaign, total, inReview, approved, inProd, draft } = metrics;
-    const deliverables = campaign.production.deliverables || [];
+  /* ---------- Tasks Area (beneath calendar) ------------------------------- */
+  function renderTasksArea(metrics) {
+    if (!metrics) return null;
+    const deliverables = metrics.campaign.production.deliverables || [];
 
-    const card = el("div", "ws-card ws-card--clickable");
-    card.setAttribute("title", "Open Production");
-
-    const titleRow = el("h2", "ws-card__title");
-    titleRow.innerHTML = `Production <span class="ws-card__count">${total}</span>`;
-    card.appendChild(titleRow);
-
-    // Status pills
-    const pills = el("div", "ws-status-pills");
-    [
-      { label: "In Review",    count: inReview, cls: "ws-status-pill--review"   },
-      { label: "Approved",     count: approved, cls: "ws-status-pill--approved" },
-      { label: "In Prod",      count: inProd,   cls: "ws-status-pill--inprod"   },
-      { label: "Draft",        count: draft,    cls: "ws-status-pill--draft"    }
-    ].forEach(p => {
-      if (!p.count) return;
-      const pill = el("span", `ws-status-pill ${p.cls}`);
-      pill.innerHTML = `${p.label} <b>${p.count}</b>`;
-      pills.appendChild(pill);
+    const tasks = [];
+    deliverables.forEach(function (d) {
+      if (d.status === "Approved") return;
+      (d.tasks || []).forEach(function (t) {
+        if (!t.done) {
+          tasks.push({ id: t.id + "-" + d.id, text: t.text, source: d.title });
+        }
+      });
     });
-    card.appendChild(pills);
 
-    // Mini deliverable list (up to 4)
-    const list = el("ul", "ws-prod-list");
-    deliverables.slice(0, 4).forEach(d => {
-      const item = el("li", "ws-prod-item");
-      item.innerHTML =
-        `<span class="ws-prod-item__status ws-prod-item__status--${_statusSlug(d.status)}"></span>` +
-        `<span class="ws-prod-item__name">${d.title}</span>` +
-        `<span class="ws-prod-item__platform">${d.platform}</span>`;
-      item.addEventListener("click", e => {
+    if (!tasks.length) return null;
+
+    const wrapper = el("div", "ws-tasks");
+    wrapper.appendChild(el("div", "ws-tasks__label", "To Do"));
+
+    tasks.slice(0, 6).forEach(function (t) {
+      const item   = el("div", "ws-task-item");
+      const check  = el("span", "ws-task-item__check");
+      const text   = el("span", "ws-task-item__text", t.text);
+      const source = el("span", "ws-task-item__source", t.source);
+
+      item.appendChild(check);
+      item.appendChild(text);
+      item.appendChild(source);
+      wrapper.appendChild(item);
+
+      check.addEventListener("click", function () {
+        const done = item.classList.toggle("ws-task-item--done");
+        check.classList.toggle("ws-task-item__check--done", done);
+        check.textContent = done ? "\u2713" : "";
+      });
+    });
+
+    return wrapper;
+  }
+
+  /* ---------- Ephemeral Containers ---------------------------------------- */
+  function renderEphemeralContainers() {
+    const visible = MOCK.interactions.filter(function (i) {
+      return !_acknowledgedEphemeral[i.id];
+    });
+    if (!visible.length) return null;
+
+    const wrapper = el("div", "ws-ephemeral");
+    wrapper.appendChild(el("div", "ws-tasks__label", "New"));
+
+    visible.forEach(function (i) {
+      const ctr = el("div", "ws-ephemeral-container");
+      ctr.dataset.ephemeralId = i.id;
+
+      ctr.appendChild(avatar(i.initials, i.color, 28));
+
+      const body = el("div", "ws-ephemeral-container__body");
+      const who  = el("div", "ws-ephemeral-container__who");
+      who.appendChild(document.createTextNode(i.who + " "));
+      who.appendChild(el("span", "ws-ephemeral-container__type", i.type));
+      const text = el("div", "ws-ephemeral-container__text", i.text);
+      body.appendChild(who);
+      body.appendChild(text);
+      ctr.appendChild(body);
+
+      const dismiss = el("button", "ws-ephemeral-container__dismiss", "\u00d7");
+      dismiss.setAttribute("aria-label", "Dismiss note from " + i.who);
+      dismiss.addEventListener("click", function (e) {
         e.stopPropagation();
-        window.AMEBA && window.AMEBA.openDeliverableFocus && window.AMEBA.openDeliverableFocus(d.id);
+        _acknowledgedEphemeral[i.id] = true;
+        ctr.classList.add("is-dismissing");
+        setTimeout(function () {
+          ctr.remove();
+          if (!wrapper.querySelector(".ws-ephemeral-container")) wrapper.remove();
+        }, 220);
       });
-      list.appendChild(item);
-    });
-    card.appendChild(list);
+      ctr.appendChild(dismiss);
 
-    card.addEventListener("click", () => {
-      window.AMEBA && window.AMEBA.openCampaignSection && window.AMEBA.openCampaignSection("production");
+      wrapper.appendChild(ctr);
     });
 
-    return card;
+    return wrapper;
   }
 
-  /* ---------- Deadlines Card ---------------------------------------------- */
-  function renderDeadlinesCard(metrics) {
-    const { deadlines } = metrics;
 
-    const card = el("div", "ws-card");
-
-    const titleRow = el("h2", "ws-card__title");
-    titleRow.innerHTML = `Deadlines <span class="ws-card__count">${deadlines.length}</span>`;
-    card.appendChild(titleRow);
-
-    const list = el("ul", "ws-deadline-list");
-    deadlines.slice(0, 5).forEach(d => {
-      const urgency = _urgencyClass(d.date);
-      const item    = el("li", `ws-deadline-item ws-deadline-item--${urgency} ws-deadline-item--clickable`);
-      item.innerHTML =
-        `<div class="ws-deadline-item__main">` +
-          `<div class="ws-deadline-item__name">${d.name}</div>` +
-          `<div class="ws-deadline-item__event">${d.event}</div>` +
-        `</div>` +
-        `<div class="ws-deadline-item__date">${d.date}</div>`;
-      item.addEventListener("click", () => {
-        window.AMEBA && window.AMEBA.openDeliverableFocus && window.AMEBA.openDeliverableFocus(d.deliverableId);
-      });
-      list.appendChild(item);
-    });
-    card.appendChild(list);
-
-    return card;
-  }
-
-  /* ---------- Assets & Delivery Card -------------------------------------- */
-  function renderAssetsDeliveryCard(metrics) {
-    const { linkedAssets, totalAssets, exportReadiness, readyCount } = metrics;
-
-    const card = el("div", "ws-card ws-card--assets-delivery");
-
-    // Assets panel
-    const assetsPanel = el("div", "ws-ad-panel ws-card--clickable");
-    assetsPanel.setAttribute("title", "Open Assets");
-    const assetsTitle = el("h2", "ws-card__title", "Assets");
-    assetsPanel.appendChild(assetsTitle);
-
-    const assetStat = el("div", "ws-supply-stat");
-    assetStat.innerHTML =
-      `<span class="ws-supply-stat__val">${linkedAssets}</span>` +
-      `<span class="ws-supply-stat__lbl">linked</span>`;
-    assetsPanel.appendChild(assetStat);
-
-    const assetSub = el("div", "ws-supply-substat",
-      `${totalAssets} total \u00b7 ${totalAssets - linkedAssets} unlinked`);
-    assetsPanel.appendChild(assetSub);
-
-    assetsPanel.addEventListener("click", () => {
-      window.AMEBA && window.AMEBA.openCampaignSection && window.AMEBA.openCampaignSection("assets");
-    });
-
-    // Delivery panel
-    const deliveryPanel = el("div", "ws-ad-panel ws-card--clickable");
-    deliveryPanel.setAttribute("title", "Open Delivery");
-    const deliveryTitle = el("h2", "ws-card__title", "Delivery");
-    deliveryPanel.appendChild(deliveryTitle);
-
-    const deliveryStat = el("div", "ws-supply-stat");
-    deliveryStat.innerHTML =
-      `<span class="ws-supply-stat__val">${exportReadiness}%</span>` +
-      `<span class="ws-supply-stat__lbl">readiness</span>`;
-    deliveryPanel.appendChild(deliveryStat);
-
-    const bar = el("div", "ws-readiness-bar");
-    const fill = el("div", "ws-readiness-bar__fill");
-    fill.style.width = exportReadiness + "%";
-    bar.appendChild(fill);
-    deliveryPanel.appendChild(bar);
-
-    const deliverySub = el("div", "ws-supply-substat", `${readyCount} ready for export`);
-    deliveryPanel.appendChild(deliverySub);
-
-    deliveryPanel.addEventListener("click", () => {
-      window.AMEBA && window.AMEBA.openCampaignSection && window.AMEBA.openCampaignSection("delivery");
-    });
-
-    card.appendChild(assetsPanel);
-    card.appendChild(deliveryPanel);
-
-    return card;
-  }
-
-  /* ---------- Interactions Card ------------------------------------------- */
-  function renderInteractionsCard() {
-    const card = el("div", "ws-card");
-
-    const titleRow = el("h2", "ws-card__title");
-    titleRow.innerHTML = `New Interactions <span class="ws-card__count">${MOCK.interactions.length}</span>`;
-    card.appendChild(titleRow);
-
-    const list = el("ul", "ws-interaction-list");
-    MOCK.interactions.forEach(i => {
-      const item = el("li", "ws-interaction-item");
-      item.appendChild(avatar(i.initials, i.color, 30));
-
-      const body = el("div", "ws-interaction-item__body");
-      body.innerHTML =
-        `<div class="ws-interaction-item__who">` +
-          `${i.who}` +
-          `<span class="ws-interaction-item__type">${i.type}</span>` +
-        `</div>` +
-        `<div class="ws-interaction-item__text">${i.text}</div>`;
-      item.appendChild(body);
-      list.appendChild(item);
-    });
-    card.appendChild(list);
-    return card;
-  }
-
-  /* ---------- Team Card --------------------------------------------------- */
-  function renderTeamCard() {
-    const card = el("div", "ws-card");
-
-    const titleRow = el("h2", "ws-card__title");
-    titleRow.innerHTML = `Team <span class="ws-card__count">${MOCK.team.filter(t => t.online === "active").length} online</span>`;
-    card.appendChild(titleRow);
-
-    const list = el("ul", "ws-team-list");
-    MOCK.team.forEach(t => {
-      const item = el("li", "ws-team-item");
-      item.appendChild(avatar(t.initials, t.color, 32));
-
-      const info = el("div", "ws-team-item__info");
-      info.innerHTML =
-        `<div class="ws-team-item__name">${t.name}</div>` +
-        `<div class="ws-team-item__status">${t.status}</div>`;
-
-      const dot = el("span", `ws-team-item__online ws-team-item__online--${t.online}`);
-
-      item.appendChild(info);
-      item.appendChild(dot);
-      list.appendChild(item);
-    });
-    card.appendChild(list);
-    return card;
-  }
-
-  /* ---------- Campaign Page ---------------------------------------------- */
+    /* ---------- Campaign Page ---------------------------------------------- */
   function renderCampaign(container) {
     if (window.CampaignModule) {
       window.CampaignModule.render(container);
