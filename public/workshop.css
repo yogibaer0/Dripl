@@ -343,254 +343,17 @@
   cursor: pointer;
 }
 
-/* ---------- Derived Header ---------------------------------------------- */
-.ws-derived-header {
-  margin-bottom: 24px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-
-.ws-derived-header__top {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 5px;
-  flex-wrap: wrap;
-}
-
-.ws-derived-header__name {
-  font-size: 26px;
-  font-weight: 700;
-  color: #e9d5ff;
-  margin: 0;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.ws-derived-header__phase {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid;
-  flex-shrink: 0;
-  align-self: center;
-}
-
-.ws-derived-header__context {
-  font-size: 12.5px;
-  color: #4a4a7a;
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* ---------- Center Content Area ----------------------------------------- */
-.ws-center-area {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* ---------- Section Block ----------------------------------------------- */
-.ws-section-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ws-section-block__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
-}
-
-.ws-section-block__label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #3a3a60;
-}
-
-.ws-section-block__count {
-  font-size: 10.5px;
-  color: #4a4a7a;
-}
-
-/* ---------- Production List enhancements -------------------------------- */
-.ws-prod-item {
-  transition: background 0.12s, transform 0.1s;
-}
-
-.ws-prod-item--pending:hover {
-  transform: translateX(2px);
-}
-
-.ws-prod-item__status-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-}
-
-.ws-prod-item__tasks {
-  font-size: 10px;
-  color: #3a3a60;
-  flex-shrink: 0;
-}
-
-/* ---------- Assets + Delivery Panel ------------------------------------- */
-.ws-ad-wrap {
-  background: #13131f;
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.ws-ad-assets,
-.ws-ad-delivery {
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.ws-ad-assets:hover,
-.ws-ad-delivery:hover {
-  background: rgba(167,139,250,0.04);
-}
-
-.ws-ad-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.05);
-}
-
-.ws-ad-panel-header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.ws-ad-panel-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #4a4a7a;
-  flex-shrink: 0;
-}
-
-.ws-ad-panel-question {
-  font-size: 11px;
-  color: #3a3a60;
-  font-style: italic;
-}
-
-.ws-ad-stat-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-.ws-ad-stat {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.ws-ad-stat__val {
-  font-size: 22px;
-  font-weight: 700;
-  color: #a78bfa;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.ws-ad-stat__val--ok {
-  color: #4ade80;
-}
-
-.ws-ad-stat__lbl {
-  font-size: 11px;
-  color: #4a4a7a;
-}
-
-.ws-ad-stat-sep {
-  color: #2a2a50;
-  font-size: 14px;
-}
-
-.ws-ad-missing-note {
-  font-size: 10.5px;
-  color: #f87171;
-  background: rgba(248,113,113,0.08);
-  padding: 1px 7px;
-  border-radius: 10px;
-  align-self: center;
-}
-
-.ws-ad-readiness-label {
-  font-size: 10.5px;
-  color: #3a3a60;
-  margin-top: 5px;
-}
-
-/* Delivery platform breakdown */
-.ws-ad-platforms {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ws-ad-platform-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.ws-ad-platform-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: #c4b5fd;
-  min-width: 70px;
-  flex-shrink: 0;
-}
-
-.ws-ad-platform-total {
-  font-size: 10.5px;
-  color: #3a3a60;
-  flex-shrink: 0;
-}
-
-.ws-ad-platform-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  flex: 1;
-}
-
-.ws-ad-pill {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.ws-ad-pill--draft    { background: rgba(96,96,160,0.1);   color: #6060a0; }
-.ws-ad-pill--inprod   { background: rgba(96,165,250,0.12); color: #60a5fa; }
-.ws-ad-pill--review   { background: rgba(245,158,11,0.12); color: #f59e0b; }
-.ws-ad-pill--approved { background: rgba(74,222,128,0.12); color: #4ade80; }
-
 /* ---------- Workshop Page ------------------------------------------------ */
+
+/* Minimal Workshop page title */
+.ws-page-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #7070a0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 20px;
+}
 .ws-header {
   margin-bottom: 24px;
 }
@@ -784,58 +547,6 @@
 .ws-status-pill--approved { background: rgba(74,222,128,0.12);  color: #4ade80; }
 .ws-status-pill--inprod   { background: rgba(96,165,250,0.12);  color: #60a5fa; }
 .ws-status-pill--draft    { background: rgba(96,96,160,0.12);   color: #8888aa; }
-
-/* ---------- Production mini-list --------------------------------------- */
-.ws-prod-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ws-prod-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 7px;
-  background: rgba(255,255,255,0.02);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.ws-prod-item:hover {
-  background: rgba(167,139,250,0.08);
-}
-
-.ws-prod-item__status {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.ws-prod-item__status--draft    { background: #5a5a9a; }
-.ws-prod-item__status--inprod   { background: #60a5fa; }
-.ws-prod-item__status--review   { background: #f59e0b; }
-.ws-prod-item__status--approved { background: #4ade80; }
-
-.ws-prod-item__name {
-  font-size: 12px;
-  color: #c4b5fd;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ws-prod-item__platform {
-  font-size: 10.5px;
-  color: #4a4a80;
-  flex-shrink: 0;
-}
 
 /* ---------- Deadline rows ----------------------------------------------- */
 .ws-deadline-list {
@@ -1391,7 +1102,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
+  /* size to content — not stretched to full column height */
+  align-self: flex-start;
 }
 
 .ws-campaigns-card__title {
@@ -1485,6 +1197,7 @@
   cursor: pointer;
   user-select: none;
   transition: background 0.15s;
+  max-width: 300px;
 }
 
 .ws-cal__compact:hover {
