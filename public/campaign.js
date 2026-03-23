@@ -300,9 +300,19 @@
     headerRow.appendChild(newBtn);
     container.appendChild(headerRow);
 
+    // Sort: In Review → In Production → Draft → Approved
+    var STATUS_SORT = { "In Review": 0, "In Production": 1, "Draft": 2, "Approved": 3 };
+    var sorted = d.slice().sort(function(a, b) {
+      return (STATUS_SORT[a.status] || 99) - (STATUS_SORT[b.status] || 99);
+    });
+
     var grid = el("div", "camp-deliverable-grid");
-    d.forEach(function(item) {
-      var card = el("div", "camp-deliverable-card");
+    sorted.forEach(function(item) {
+      var doneTasks  = (item.tasks || []).filter(function(t) { return t.done; }).length;
+      var totalTasks = (item.tasks || []).length;
+      var isPending  = item.status !== "Approved";
+
+      var card = el("div", "camp-deliverable-card" + (isPending ? " camp-deliverable-card--pending" : ""));
       card.innerHTML =
         '<div class="camp-deliverable-card__top">' +
           '<div class="camp-deliverable-card__status" style="color:' + statusColor(item.status) + ';background:' + statusBg(item.status) + '">' + item.status + '</div>' +
@@ -312,6 +322,9 @@
         '<div class="camp-deliverable-card__meta">' +
           '<span class="camp-deliverable-card__platform">' + item.platform + '</span>' +
           '<span class="camp-deliverable-card__owner">' + item.owner + '</span>' +
+          (totalTasks > 0
+            ? '<span class="camp-deliverable-card__tasks">' + doneTasks + '/' + totalTasks + ' tasks</span>'
+            : '') +
         '</div>' +
         '<div class="camp-deliverable-card__action">Open Focus View \u2192</div>';
       card.addEventListener("click", (function(id) {
@@ -721,6 +734,34 @@
       card.appendChild(area);
       main.appendChild(card);
     });
+
+    // Blackboard — thinking surface
+    (function() {
+      var bb = el("div", "camp-blackboard");
+
+      var bbHeader = el("div", "camp-blackboard__header");
+      bbHeader.appendChild(el("span", "camp-blackboard__label", "Thinking Surface"));
+      bbHeader.appendChild(el("span", "camp-blackboard__hint",
+        "Hook \u00b7 Tone \u00b7 Direction \u00b7 Notes"));
+      bb.appendChild(bbHeader);
+
+      var bbArea = el("textarea", "camp-blackboard__area");
+      bbArea.value = CAMPAIGN.blackboard || "";
+      bbArea.rows  = 5;
+      bbArea.placeholder =
+        "Hook: \u2026\nTone: \u2026\nDirection: \u2026";
+      bbArea.addEventListener("blur", function() {
+        if (!store()) return;
+        var newVal = bbArea.value;
+        store().updateActiveCampaign(function(c) {
+          c.blackboard = newVal;
+          return c;
+        });
+      });
+      bb.appendChild(bbArea);
+
+      main.appendChild(bb);
+    }());
 
     // Read-only fields
     var readOnlyFields = [

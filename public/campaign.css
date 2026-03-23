@@ -1419,3 +1419,75 @@
 .camp-strategy-edit-textarea:focus {
   border-color: rgba(245,158,11,0.45);
 }
+
+/* ---------- Strategy Blackboard (thinking surface) --------------------- */
+.camp-blackboard {
+  background: #0b0b18;
+  border: 1px solid rgba(255,255,255,0.04);
+  border-left: 2px solid rgba(167,139,250,0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.camp-blackboard__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.camp-blackboard__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4a4a7a;
+}
+
+.camp-blackboard__hint {
+  font-size: 10.5px;
+  color: #2e2e4a;
+  font-style: italic;
+}
+
+.camp-blackboard__area {
+  background: transparent;
+  border: none;
+  color: #8888b0;
+  font-size: 13px;
+  line-height: 1.8;
+  resize: none;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  min-height: 90px;
+  padding: 0;
+  caret-color: #a78bfa;
+  box-sizing: border-box;
+}
+
+.camp-blackboard__area::placeholder {
+  color: #252538;
+  font-style: italic;
+}
+
+.camp-blackboard__area:focus {
+  color: #b0b0d0;
+}
+
+/* ---------- Production — pending emphasis ------------------------------- */
+.camp-deliverable-card--pending {
+  border-left: 3px solid rgba(167,139,250,0.15);
+}
+
+.camp-deliverable-card--pending:hover {
+  border-left-color: rgba(167,139,250,0.4);
+}
+
+.camp-deliverable-card__tasks {
+  font-size: 10.5px;
+  color: #4a4a7a;
+  margin-left: auto;
+}
