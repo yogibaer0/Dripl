@@ -2116,3 +2116,65 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+/* ==========================================================================
+   Surface-Active Shell State (Pass 8.1)
+   ========================================================================== */
+
+/*
+ * .ws-layout--surface-active is applied to the layout grid whenever a rail
+ * prompt result is surfaced (_surfaceState.isSurfaceActive === true).
+ *
+ * Base reality (bottom section) recedes: calendar, tasks and ephemeral
+ * containers are pushed back with opacity 0 and pointer-events disabled,
+ * leaving the surfaced result as the dominant center state.
+ *
+ * Team circles (grid-row 1, grid-column 1) and the campaigns anchor card
+ * (grid-column 2, all rows) are intentionally unaffected — they are in
+ * separate grid areas and provide orientation anchors.
+ *
+ * When the surface is cleared renderWorkshop() rebuilds the DOM without
+ * this class, so base reality is restored in a single clean pass.
+ */
+
+/* 1 — Base reality suppression */
+.ws-layout--surface-active .ws-bottom-section {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
+/* 2 — Surface area: expand to fill the now-vacated bottom row */
+.ws-layout--surface-active .ws-surface-area {
+  grid-row: 2 / span 2;
+  align-self: start;
+}
+
+/* 3 — Primary frame: stronger presence / more authority */
+.ws-layout--surface-active .ws-primary-frame {
+  background: linear-gradient(145deg, #1b1b2e 0%, #161628 100%);
+  border-color: rgba(167,139,250,0.3);
+  box-shadow:
+    0 8px 52px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(167,139,250,0.1) inset;
+  padding: 26px 28px 24px;
+}
+
+/* 4 — Child frames: cluster closer, visually subordinate */
+.ws-layout--surface-active .ws-child-frames {
+  gap: 8px;
+}
+
+.ws-layout--surface-active .ws-child-frame {
+  max-width: 230px;
+  background: rgba(255,255,255,0.015);
+  border-color: rgba(255,255,255,0.055);
+}
+
+.ws-layout--surface-active .ws-child-frame__title {
+  color: #383870;
+}
+
+.ws-layout--surface-active .ws-child-frames::before {
+  background: rgba(167,139,250,0.18);
+}
