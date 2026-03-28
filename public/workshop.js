@@ -141,6 +141,436 @@
     };
   }
 
+  /* ---------- Workshop Surface State --------------------------------------- */
+  const _surfaceState = {
+    currentPrompt:        "",
+    currentSurfaceResult: null,
+    isSurfaceActive:      false
+  };
+
+  /* ---------- Prompt Matching --------------------------------------------- */
+  function _findCampaignInInput(input, campaigns) {
+    for (var i = 0; i < campaigns.length; i++) {
+      var c = campaigns[i];
+      var nameParts = c.name.toLowerCase().split(/\s+/);
+      var meaningful = nameParts.filter(function (p) { return p.length > 3; });
+      if (meaningful.some(function (p) { return input.indexOf(p) !== -1; })) return c;
+    }
+    return null;
+  }
+
+  function _matchPrompt(rawInput) {
+    var input = rawInput.toLowerCase().trim();
+    if (!input) return null;
+
+    var campaigns = store() ? store().getCampaigns() : [];
+    var matched;
+
+    // Analytics — most specific, check first
+    if (input.indexOf("analytics") !== -1) {
+      matched = _findCampaignInInput(input, campaigns) || (store() ? store().getActiveCampaign() : null);
+      return { type: "analytics", campaign: matched };
+    }
+
+    // Company / client info
+    if (input.indexOf("company") !== -1 || input.indexOf("client info") !== -1 || input.indexOf("brand info") !== -1) {
+      matched = _findCampaignInInput(input, campaigns) || (store() ? store().getActiveCampaign() : null);
+      return { type: "company", campaign: matched };
+    }
+
+    // Campaign surface (generic "campaign" keyword or a campaign name match)
+    var nameMatch = _findCampaignInInput(input, campaigns);
+    if (input.indexOf("campaign") !== -1 || nameMatch) {
+      matched = nameMatch || (store() ? store().getActiveCampaign() : null);
+      return { type: "campaign", campaign: matched };
+    }
+
+    return null;
+  }
+
+  /* ---------- Data Availability Checks ------------------------------------- */
+  function _hasRealAnalytics(campaign) {
+    if (!campaign) return false;
+    var deliverables = (campaign.production && campaign.production.deliverables) || [];
+    return deliverables.some(function (d) {
+      return d.analytics && d.analytics.views && d.analytics.views !== "\u2014";
+    });
+  }
+
+  function _hasDeliverables(campaign) {
+    return !!(campaign && campaign.production && campaign.production.deliverables &&
+              campaign.production.deliverables.length > 0);
+  }
+
+  function _hasDelivery(campaign) {
+    return !!(campaign && campaign.delivery && campaign.delivery.items &&
+              campaign.delivery.items.length > 0 && campaign.delivery.readiness > 0);
+  }
+
+  function _hasPlatforms(campaign) {
+    return !!(campaign && campaign.platforms && campaign.platforms.length > 0);
+  }
+
+  function _hasRelevantComments() {
+    return MOCK.interactions.filter(function (i) {
+      return i.type === "comment" || i.type === "feedback";
+    }).length > 0;
+  }
+
+  /* ---------- Surface Stat Chip Helper ------------------------------------- */
+  function _makeStatChip(val, lbl) {
+    var chip = el("div", "ws-pf-stat-chip");
+    chip.appendChild(el("span", "ws-pf-stat-chip__val", val));
+    chip.appendChild(el("span", "ws-pf-stat-chip__lbl", lbl));
+    return chip;
+  }
+
+  /* ---------- Surface Clear Handler --------------------------------------- */
+  function _clearSurface() {
+    _surfaceState.isSurfaceActive     = false;
+    _surfaceState.currentSurfaceResult = null;
+    _surfaceState.currentPrompt        = "";
+    var wsContainer = document.getElementById("pageWorkshop");
+    if (wsContainer) {
+      renderWorkshop(wsContainer);
+      wsContainer.dataset.rendered = "1";
+    }
+  }
+
+  /* ---------- Primary Frame Builders --------------------------------------- */
+  function _buildCampaignPrimaryFrame(frame, campaign) {
+    var metrics = getCampaignMetrics(campaign ? campaign.id : null);
+    if (!campaign || !metrics) {
+      frame.appendChild(el("p", "ws-pf-empty", "No campaign data available."));
+      return;
+    }
+
+    frame.appendChild(el("div", "ws-pf-label", "Campaign"));
+    frame.appendChild(el("div", "ws-pf-title", campaign.name));
+
+    var meta = el("div", "ws-pf-meta");
+    meta.textContent = campaign.client + " \u00b7 " + campaign.type;
+    frame.appendChild(meta);
+
+    var phaseRow = el("div", "ws-pf-phase-row");
+    phaseRow.appendChild(el("span", "ws-pf-phase-badge", metrics.phase));
+    if (campaign.duration) {
+      phaseRow.appendChild(el("span", "ws-pf-duration", campaign.duration));
+    }
+    frame.appendChild(phaseRow);
+
+    if (campaign.goal) {
+      var goalRow = el("div", "ws-pf-field");
+      goalRow.appendChild(el("span", "ws-pf-field__label", "Goal"));
+      goalRow.appendChild(el("span", "ws-pf-field__val", campaign.goal));
+      frame.appendChild(goalRow);
+    }
+
+    if (_hasPlatforms(campaign)) {
+      var platRow = el("div", "ws-pf-platforms");
+      campaign.platforms.forEach(function (p) {
+        platRow.appendChild(el("span", "ws-pf-platform-pill", p));
+      });
+      frame.appendChild(platRow);
+    }
+
+    var statsRow = el("div", "ws-pf-stats-row");
+    statsRow.appendChild(_makeStatChip(String(metrics.total),    "deliverables"));
+    statsRow.appendChild(_makeStatChip(String(metrics.inReview), "in review"));
+    statsRow.appendChild(_makeStatChip(String(metrics.approved), "approved"));
+    frame.appendChild(statsRow);
+
+    var action = el("button", "ws-pf-action", "Open Campaign \u2192");
+    action.addEventListener("click", function () {
+      window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
+    });
+    frame.appendChild(action);
+  }
+
+  function _buildCompanyPrimaryFrame(frame, campaign) {
+    if (!campaign) {
+      frame.appendChild(el("p", "ws-pf-empty", "No client data available."));
+      return;
+    }
+
+    frame.appendChild(el("div", "ws-pf-label", "Client / Company"));
+    frame.appendChild(el("div", "ws-pf-title", campaign.client));
+
+    var meta = el("div", "ws-pf-meta");
+    meta.textContent = "For: " + campaign.name;
+    frame.appendChild(meta);
+
+    if (campaign.campaignGoals) {
+      var gRow = el("div", "ws-pf-field");
+      gRow.appendChild(el("span", "ws-pf-field__label", "Goals"));
+      gRow.appendChild(el("span", "ws-pf-field__val", campaign.campaignGoals));
+      frame.appendChild(gRow);
+    }
+
+    if (campaign.audience) {
+      var aRow = el("div", "ws-pf-field");
+      aRow.appendChild(el("span", "ws-pf-field__label", "Audience"));
+      aRow.appendChild(el("span", "ws-pf-field__val", campaign.audience));
+      frame.appendChild(aRow);
+    }
+
+    if (campaign.location) {
+      var lRow = el("div", "ws-pf-field");
+      lRow.appendChild(el("span", "ws-pf-field__label", "Location"));
+      lRow.appendChild(el("span", "ws-pf-field__val", campaign.location));
+      frame.appendChild(lRow);
+    }
+
+    if (campaign.messaging) {
+      var mRow = el("div", "ws-pf-field");
+      mRow.appendChild(el("span", "ws-pf-field__label", "Messaging"));
+      mRow.appendChild(el("span", "ws-pf-field__val ws-pf-field__val--italic", campaign.messaging));
+      frame.appendChild(mRow);
+    }
+  }
+
+  function _buildAnalyticsPrimaryFrame(frame, campaign) {
+    var metrics = getCampaignMetrics(campaign ? campaign.id : null);
+    if (!campaign || !metrics) {
+      frame.appendChild(el("p", "ws-pf-empty", "No campaign data available."));
+      return;
+    }
+
+    frame.appendChild(el("div", "ws-pf-label", "Analytics"));
+    frame.appendChild(el("div", "ws-pf-title", campaign.name));
+
+    // Performance data availability notice
+    var hasReal = _hasRealAnalytics(campaign);
+    var notice = el("div", hasReal ? "ws-pf-analytics-notice ws-pf-analytics-notice--ok" : "ws-pf-analytics-notice");
+    notice.textContent = hasReal
+      ? "Performance data available."
+      : "\u26a0 Not enough performance data yet. Showing delivery readiness instead.";
+    frame.appendChild(notice);
+
+    // Delivery readiness (always shown if meaningful)
+    if (_hasDelivery(campaign)) {
+      var readRow = el("div", "ws-pf-readiness");
+      readRow.appendChild(el("span", "ws-pf-field__label", "Delivery readiness"));
+      var readVal = el("span", "ws-pf-readiness__val", metrics.exportReadiness + "%");
+      readRow.appendChild(readVal);
+      frame.appendChild(readRow);
+
+      var bar = el("div", "ws-pf-readiness-bar");
+      var fill = el("div", "ws-pf-readiness-bar__fill");
+      fill.style.width = metrics.exportReadiness + "%";
+      bar.appendChild(fill);
+      frame.appendChild(bar);
+
+      if (metrics.exportNotes) {
+        var notes = el("div", "ws-pf-delivery-notes", metrics.exportNotes);
+        frame.appendChild(notes);
+      }
+    }
+
+    var statsRow = el("div", "ws-pf-stats-row");
+    statsRow.appendChild(_makeStatChip(String(metrics.readyCount), "ready"));
+    statsRow.appendChild(_makeStatChip(String(metrics.inReview),   "in review"));
+    statsRow.appendChild(_makeStatChip(String(metrics.approved),   "approved"));
+    frame.appendChild(statsRow);
+  }
+
+  /* ---------- Child Frame Builders ---------------------------------------- */
+  function _makeChildFrame(title) {
+    var frame = el("div", "ws-child-frame");
+    frame.appendChild(el("div", "ws-child-frame__title", title));
+    return frame;
+  }
+
+  function _buildDeliverablesChild(campaign, metrics) {
+    var frame = _makeChildFrame("Deliverables");
+    var body  = el("div", "ws-child-frame__body");
+    var deliverables = campaign.production.deliverables;
+
+    var pillsRow = el("div", "ws-cf-pills");
+    if (metrics.draft)    pillsRow.appendChild(el("span", "ws-cf-pill ws-cf-pill--draft",   metrics.draft    + " Draft"));
+    if (metrics.inProd)   pillsRow.appendChild(el("span", "ws-cf-pill ws-cf-pill--inprod",  metrics.inProd   + " In Prod"));
+    if (metrics.inReview) pillsRow.appendChild(el("span", "ws-cf-pill ws-cf-pill--review",  metrics.inReview + " Review"));
+    if (metrics.approved) pillsRow.appendChild(el("span", "ws-cf-pill ws-cf-pill--approved", metrics.approved + " Approved"));
+    body.appendChild(pillsRow);
+
+    // List top 3 deliverables by activity
+    var active = deliverables.filter(function (d) { return d.status !== "Approved"; }).slice(0, 3);
+    active.forEach(function (d) {
+      var row = el("div", "ws-cf-row");
+      row.appendChild(el("span", "ws-cf-row__name", d.title));
+      row.appendChild(el("span", "ws-cf-row__status ws-cf-row__status--" + d.status.replace(/\s+/g, "").toLowerCase(), d.status));
+      body.appendChild(row);
+    });
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  function _buildDeliveryChild(campaign, metrics) {
+    var frame = _makeChildFrame("Delivery");
+    var body  = el("div", "ws-child-frame__body");
+
+    var readRow = el("div", "ws-cf-readiness");
+    readRow.appendChild(el("span", "ws-cf-readiness__val", metrics.exportReadiness + "%"));
+    readRow.appendChild(el("span", "ws-cf-readiness__lbl", "ready"));
+    body.appendChild(readRow);
+
+    var bar  = el("div", "ws-cf-bar");
+    var fill = el("div", "ws-cf-bar__fill");
+    fill.style.width = metrics.exportReadiness + "%";
+    bar.appendChild(fill);
+    body.appendChild(bar);
+
+    campaign.delivery.items.slice(0, 3).forEach(function (item) {
+      var row = el("div", "ws-cf-row");
+      row.appendChild(el("span", "ws-cf-row__name", item.title));
+      var statusClass = item.status === "Ready" ? "ws-cf-row__status--approved" : "ws-cf-row__status--review";
+      row.appendChild(el("span", "ws-cf-row__status " + statusClass, item.status));
+      body.appendChild(row);
+    });
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  function _buildPlatformsChild(campaign) {
+    var frame = _makeChildFrame("Platforms");
+    var body  = el("div", "ws-child-frame__body");
+    var pills = el("div", "ws-cf-pills");
+    campaign.platforms.forEach(function (p) {
+      pills.appendChild(el("span", "ws-cf-pill ws-cf-pill--platform", p));
+    });
+    body.appendChild(pills);
+
+    if (campaign.target) {
+      var tRow = el("div", "ws-cf-subtext", campaign.target);
+      body.appendChild(tRow);
+    }
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  function _buildCampaignContextChild(campaign, metrics) {
+    var frame = _makeChildFrame("Campaign");
+    var body  = el("div", "ws-child-frame__body");
+
+    body.appendChild(el("div", "ws-cf-name", campaign.name));
+    if (metrics) {
+      body.appendChild(el("div", "ws-cf-subtext", metrics.phase + " \u00b7 " + metrics.total + " deliverables"));
+    }
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  function _buildCommentsChild(comments) {
+    var frame = _makeChildFrame("Recent Feedback");
+    var body  = el("div", "ws-child-frame__body");
+    comments.slice(0, 2).forEach(function (i) {
+      var row = el("div", "ws-cf-comment");
+      row.appendChild(el("span", "ws-cf-comment__who", i.who));
+      row.appendChild(el("span", "ws-cf-comment__text", i.text));
+      body.appendChild(row);
+    });
+    frame.appendChild(body);
+    return frame;
+  }
+
+  function _buildDeliveryItemsChild(campaign, metrics) {
+    var frame = _makeChildFrame("Delivery Items");
+    var body  = el("div", "ws-child-frame__body");
+    campaign.delivery.items.slice(0, 3).forEach(function (item) {
+      var row = el("div", "ws-cf-row");
+      row.appendChild(el("span", "ws-cf-row__name", item.title));
+      var statusClass = item.status === "Ready" ? "ws-cf-row__status--approved" : "ws-cf-row__status--review";
+      row.appendChild(el("span", "ws-cf-row__status " + statusClass, item.status));
+      body.appendChild(row);
+    });
+    frame.appendChild(body);
+    return frame;
+  }
+
+  function _buildStatusSummaryChild(campaign, metrics) {
+    var frame = _makeChildFrame("Status");
+    var body  = el("div", "ws-child-frame__body");
+    var pills = el("div", "ws-cf-pills");
+    if (metrics.draft)    pills.appendChild(el("span", "ws-cf-pill ws-cf-pill--draft",    metrics.draft    + " Draft"));
+    if (metrics.inProd)   pills.appendChild(el("span", "ws-cf-pill ws-cf-pill--inprod",   metrics.inProd   + " In Prod"));
+    if (metrics.inReview) pills.appendChild(el("span", "ws-cf-pill ws-cf-pill--review",   metrics.inReview + " Review"));
+    if (metrics.approved) pills.appendChild(el("span", "ws-cf-pill ws-cf-pill--approved", metrics.approved + " Approved"));
+    body.appendChild(pills);
+    frame.appendChild(body);
+    return frame;
+  }
+
+  /* ---------- Surface Area Orchestrator ------------------------------------ */
+  function _renderSurfaceArea(result) {
+    var type     = result.type;
+    var campaign = result.campaign;
+    var metrics  = campaign ? getCampaignMetrics(campaign.id) : null;
+
+    var wrap = el("div", "ws-surface-area");
+
+    /* -- Primary frame -- */
+    var primary = el("div", "ws-primary-frame");
+
+    var closeBtn = el("button", "ws-surface-close", "\u00d7");
+    closeBtn.setAttribute("aria-label", "Clear surfaced result");
+    closeBtn.addEventListener("click", _clearSurface);
+    primary.appendChild(closeBtn);
+
+    if (type === "campaign")  _buildCampaignPrimaryFrame(primary, campaign);
+    if (type === "company")   _buildCompanyPrimaryFrame(primary, campaign);
+    if (type === "analytics") _buildAnalyticsPrimaryFrame(primary, campaign);
+
+    wrap.appendChild(primary);
+
+    /* -- Child frames -- */
+    var childWrap = el("div", "ws-child-frames");
+    var childCount = 0;
+
+    if (type === "campaign") {
+      if (_hasDeliverables(campaign) && childCount < 3) {
+        childWrap.appendChild(_buildDeliverablesChild(campaign, metrics));
+        childCount++;
+      }
+      if (_hasDelivery(campaign) && childCount < 3) {
+        childWrap.appendChild(_buildDeliveryChild(campaign, metrics));
+        childCount++;
+      }
+    } else if (type === "company") {
+      if (_hasPlatforms(campaign) && childCount < 3) {
+        childWrap.appendChild(_buildPlatformsChild(campaign));
+        childCount++;
+      }
+      if (campaign && childCount < 3) {
+        childWrap.appendChild(_buildCampaignContextChild(campaign, metrics));
+        childCount++;
+      }
+      if (_hasRelevantComments() && childCount < 3) {
+        var relevant = MOCK.interactions.filter(function (i) {
+          return i.type === "comment" || i.type === "feedback";
+        });
+        childWrap.appendChild(_buildCommentsChild(relevant));
+        childCount++;
+      }
+    } else if (type === "analytics") {
+      if (_hasDelivery(campaign) && childCount < 3) {
+        childWrap.appendChild(_buildDeliveryItemsChild(campaign, metrics));
+        childCount++;
+      }
+      if (_hasDeliverables(campaign) && childCount < 3) {
+        childWrap.appendChild(_buildStatusSummaryChild(campaign, metrics));
+        childCount++;
+      }
+    }
+
+    if (childCount > 0) wrap.appendChild(childWrap);
+
+    return wrap;
+  }
+
   /* ---------- Workshop State ---------------------------------------------- */
   let _calendarExpanded   = false;
   const _acknowledgedEphemeral = {};  // id -> true
@@ -219,8 +649,12 @@
     campaignsAnchor.appendChild(renderCampaignsAnchorCard(container));
     layout.appendChild(campaignsAnchor);
 
-    // 3 — Open breathing space in main area
-    layout.appendChild(el("div", "ws-open-space"));
+    // 3 — Center area: surface result or open breathing space
+    if (_surfaceState.isSurfaceActive && _surfaceState.currentSurfaceResult) {
+      layout.appendChild(_renderSurfaceArea(_surfaceState.currentSurfaceResult));
+    } else {
+      layout.appendChild(el("div", "ws-open-space"));
+    }
 
     // 4 — Bottom section: calendar, tasks, ephemeral
     const bottomSection = el("div", "ws-bottom-section");
@@ -505,7 +939,81 @@
 
     const metrics = getCampaignMetrics();
 
-    // 1. Team online
+    /* ── Zone 1: Prompt input ─────────────────────────────────────────────── */
+    const promptZone = el("div", "rail-prompt-zone");
+
+    const promptLabel = el("div", "rail-prompt-zone__label", "Ask Ameba");
+    promptZone.appendChild(promptLabel);
+
+    const promptRow = el("div", "rail-prompt-zone__row");
+    const promptInput = el("input", "rail-prompt__input");
+    promptInput.type = "text";
+    promptInput.placeholder = "e.g. pull up summer campaign";
+    promptInput.setAttribute("aria-label", "Prompt Ameba");
+
+    const promptBtn = el("button", "rail-prompt__btn", "\u2192");
+    promptBtn.setAttribute("aria-label", "Submit prompt");
+
+    function doPrompt() {
+      const val = promptInput.value.trim();
+      if (!val) return;
+      const result = _matchPrompt(val);
+      if (result && result.campaign) {
+        _surfaceState.currentPrompt        = val;
+        _surfaceState.currentSurfaceResult = result;
+        _surfaceState.isSurfaceActive      = true;
+        promptInput.value = "";
+        promptInput.classList.remove("is-no-match");
+        // Re-render workshop center
+        const wsContainer = document.getElementById("pageWorkshop");
+        if (wsContainer) {
+          renderWorkshop(wsContainer);
+          wsContainer.dataset.rendered = "1";
+        }
+        // Update rail prompt hint
+        const hint = promptZone.querySelector(".rail-prompt__hint");
+        if (hint) {
+          hint.textContent = "\u2713 " + val;
+          hint.className = "rail-prompt__hint rail-prompt__hint--active";
+        }
+      } else {
+        promptInput.classList.add("is-no-match");
+        const prevPlaceholder = promptInput.placeholder;
+        promptInput.placeholder = "No result \u2014 try again";
+        promptInput.value = "";
+        setTimeout(function () {
+          promptInput.classList.remove("is-no-match");
+          promptInput.placeholder = "e.g. pull up summer campaign";
+        }, 2200);
+      }
+    }
+
+    promptBtn.addEventListener("click", doPrompt);
+    promptInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") doPrompt();
+    });
+
+    promptRow.appendChild(promptInput);
+    promptRow.appendChild(promptBtn);
+    promptZone.appendChild(promptRow);
+
+    // Show active surface hint + clear link
+    const promptHint = el("div", "rail-prompt__hint", "");
+    if (_surfaceState.isSurfaceActive && _surfaceState.currentPrompt) {
+      promptHint.textContent = "\u2713 " + _surfaceState.currentPrompt;
+      promptHint.className = "rail-prompt__hint rail-prompt__hint--active";
+      const clearLink = el("span", "rail-prompt__hint-clear", "clear");
+      clearLink.addEventListener("click", _clearSurface);
+      promptHint.appendChild(clearLink);
+    }
+    promptZone.appendChild(promptHint);
+
+    rail.appendChild(promptZone);
+
+    /* ── Zone 2: Context modules (scrollable middle content) ──────────────── */
+    const middleZone = el("div", "rail-middle-zone");
+
+    // 2a. Team online
     const teamMod = el("section", "rail-module");
     teamMod.innerHTML = `<h2 class="rail-module__title">Team Online</h2>`;
     const teamList = el("ul", "rail-module__list");
@@ -520,9 +1028,9 @@
       teamList.appendChild(li);
     });
     teamMod.appendChild(teamList);
-    rail.appendChild(teamMod);
+    middleZone.appendChild(teamMod);
 
-    // 2. Active campaign (real data)
+    // 2b. Active campaign (real data)
     const campMod = el("section", "rail-module");
     campMod.innerHTML = `<h2 class="rail-module__title">Active Campaign</h2>`;
     const campList = el("ul", "rail-module__list");
@@ -561,9 +1069,9 @@
       campList.appendChild(li);
     }
     campMod.appendChild(campList);
-    rail.appendChild(campMod);
+    middleZone.appendChild(campMod);
 
-    // 3. Upcoming deadlines (real data)
+    // 2c. Upcoming deadlines (real data)
     const dlMod = el("section", "rail-module");
     dlMod.innerHTML = `<h2 class="rail-module__title">Upcoming Deadlines</h2>`;
     const dlList = el("ul", "rail-module__list");
@@ -583,65 +1091,9 @@
       dlList.innerHTML = `<li class="rail-deadline-row"><span class="rail-deadline-row__name rail-deadline-row__name--empty">No deadlines found</span></li>`;
     }
     dlMod.appendChild(dlList);
-    rail.appendChild(dlMod);
+    middleZone.appendChild(dlMod);
 
-    // 4. Client feedback (mock placeholder)
-    const fbMod = el("section", "rail-module");
-    fbMod.innerHTML = `<h2 class="rail-module__title">Client Feedback</h2>`;
-    const fbList = el("ul", "rail-module__list");
-    MOCK.interactions.filter(i => i.type !== "approval").slice(0, 2).forEach(i => {
-      const li = el("li", "rail-message-row");
-      li.innerHTML =
-        `<span class="rail-message-row__who">${i.who}</span>` +
-        `<span class="rail-message-row__text">${i.text}</span>`;
-      fbList.appendChild(li);
-    });
-    fbMod.appendChild(fbList);
-    rail.appendChild(fbMod);
-
-    // 5. New comments (mock placeholder)
-    const intMod = el("section", "rail-module");
-    intMod.innerHTML = `<h2 class="rail-module__title">New Comments</h2>`;
-    const intList = el("ul", "rail-module__list");
-    MOCK.interactions.slice(0, 3).forEach(i => {
-      const li = el("li", "rail-message-row");
-      li.innerHTML =
-        `<span class="rail-message-row__who">${i.who} <span style="font-weight:400;color:#505080">\u00b7 ${i.type}</span></span>` +
-        `<span class="rail-message-row__text">${i.text}</span>`;
-      intList.appendChild(li);
-    });
-    intMod.appendChild(intList);
-    rail.appendChild(intMod);
-
-    // 6. Inter-team messages (mock)
-    const msgMod = el("section", "rail-module");
-    msgMod.innerHTML = `<h2 class="rail-module__title">Team Messages</h2>`;
-    const msgList = el("ul", "rail-module__list");
-    MOCK.messages.forEach(m => {
-      const li = el("li", "rail-message-row");
-      li.innerHTML =
-        `<span class="rail-message-row__who">${m.who}</span>` +
-        `<span class="rail-message-row__text">${m.text}</span>`;
-      msgList.appendChild(li);
-    });
-    msgMod.appendChild(msgList);
-    rail.appendChild(msgMod);
-
-    // 7. Blob suggestions (mock)
-    const blobMod = el("section", "rail-module");
-    blobMod.innerHTML = `<h2 class="rail-module__title">Blob Suggestions</h2>`;
-    const blobList = el("ul", "rail-module__list");
-    MOCK.blobs.forEach(b => {
-      const li = el("li", "rail-blob-row");
-      li.innerHTML =
-        `<span class="rail-blob-row__label">\u{1F4A1} ${b.label}</span>` +
-        `<span class="rail-blob-row__desc">${b.desc}</span>`;
-      blobList.appendChild(li);
-    });
-    blobMod.appendChild(blobList);
-    rail.appendChild(blobMod);
-
-    // 8. Quick supply — real asset count
+    // 2d. Quick supply — real asset count
     const supplyMod = el("section", "rail-module");
     supplyMod.innerHTML = `<h2 class="rail-module__title">Quick Supply</h2>`;
     const supplyPlaceholder = el("div", "rail-supply-placeholder");
@@ -654,7 +1106,33 @@
       window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("supply");
     });
     supplyMod.appendChild(supplyPlaceholder);
-    rail.appendChild(supplyMod);
+    middleZone.appendChild(supplyMod);
+
+    rail.appendChild(middleZone);
+
+    /* ── Zone 3: Bottom — comments + ambient signal ───────────────────────── */
+    const bottomZone = el("div", "rail-bottom-zone");
+
+    // Comments / interactions stack
+    const commentsMod = el("section", "rail-module rail-module--bottom");
+    commentsMod.innerHTML = `<h2 class="rail-module__title">Recent Activity</h2>`;
+    const commentsList = el("ul", "rail-module__list");
+    MOCK.interactions.slice(0, 3).forEach(i => {
+      const li = el("li", "rail-message-row");
+      li.innerHTML =
+        `<span class="rail-message-row__who">${i.who} <span style="font-weight:400;color:#505080">\u00b7 ${i.type}</span></span>` +
+        `<span class="rail-message-row__text">${i.text}</span>`;
+      commentsList.appendChild(li);
+    });
+    commentsMod.appendChild(commentsList);
+    bottomZone.appendChild(commentsMod);
+
+    // Ambient signal
+    const ambientEl = el("div", "rail-ambient");
+    ambientEl.textContent = "\u2600\ufe0f  Lunch time!!!";
+    bottomZone.appendChild(ambientEl);
+
+    rail.appendChild(bottomZone);
   }
 
   /* ---------- Navigation -------------------------------------------------- */
