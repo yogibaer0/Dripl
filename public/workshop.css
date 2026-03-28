@@ -1942,16 +1942,6 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-}
-
-.ws-child-frame {
-  flex: 1;
-  min-width: 160px;
-  max-width: 280px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px;
-  padding: 14px 16px;
   position: relative;
 }
 
@@ -1968,7 +1958,14 @@
   pointer-events: none;
 }
 
-.ws-child-frames {
+.ws-child-frame {
+  flex: 1;
+  min-width: 160px;
+  max-width: 280px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 14px 16px;
   position: relative;
 }
 

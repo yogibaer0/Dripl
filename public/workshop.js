@@ -948,7 +948,8 @@
     const promptRow = el("div", "rail-prompt-zone__row");
     const promptInput = el("input", "rail-prompt__input");
     promptInput.type = "text";
-    promptInput.placeholder = "e.g. pull up summer campaign";
+    const PROMPT_PLACEHOLDER = "e.g. pull up summer campaign";
+    promptInput.placeholder = PROMPT_PLACEHOLDER;
     promptInput.setAttribute("aria-label", "Prompt Ameba");
 
     const promptBtn = el("button", "rail-prompt__btn", "\u2192");
@@ -978,12 +979,11 @@
         }
       } else {
         promptInput.classList.add("is-no-match");
-        const prevPlaceholder = promptInput.placeholder;
         promptInput.placeholder = "No result \u2014 try again";
         promptInput.value = "";
         setTimeout(function () {
           promptInput.classList.remove("is-no-match");
-          promptInput.placeholder = "e.g. pull up summer campaign";
+          promptInput.placeholder = PROMPT_PLACEHOLDER;
         }, 2200);
       }
     }
