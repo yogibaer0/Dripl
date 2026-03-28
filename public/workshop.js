@@ -636,7 +636,9 @@
     // Minimal Workshop page title
     container.appendChild(el("h1", "ws-page-title", "Workshop"));
 
-    const layout = el("div", "ws-layout");
+    const layout = el("div", _surfaceState.isSurfaceActive
+      ? "ws-layout ws-layout--surface-active"
+      : "ws-layout");
     container.appendChild(layout);
 
     // 1 — Team circles (top-right of main content area)
