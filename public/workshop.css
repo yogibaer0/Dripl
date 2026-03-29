@@ -2178,3 +2178,636 @@
 .ws-layout--surface-active .ws-child-frames::before {
   background: rgba(167,139,250,0.18);
 }
+
+/* ==========================================================================
+   PASS 8.2 — Surfaced Campaign Workshop Composition
+   ========================================================================== */
+
+/* ---------- Campaign-surface layout overrides ---------------------------- */
+
+/* Hide the campaigns anchor card; let the surface own the center */
+.ws-layout--campaign-surface .ws-campaigns-anchor {
+  display: none;
+}
+
+/* Surface area expands to fill the full-width center (both columns, rows 2-3) */
+.ws-layout--campaign-surface .ws-surface-area {
+  grid-column: 1 / -1;
+  grid-row: 2 / span 2;
+  align-self: start;
+}
+
+/* Team anchor stays top-right, now spanning full column width */
+.ws-layout--campaign-surface .ws-team-anchor {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Campaign Surface Shell -------------------------------------- */
+.ws-campaign-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: surfaceIn 0.22s ease;
+}
+
+/* ---------- ROW 1 — Overview Frame (dominant) --------------------------- */
+.ws-overview-frame {
+  position: relative;
+  background: linear-gradient(145deg, #1a1a2e 0%, #141422 100%);
+  border: 1px solid rgba(167,139,250,0.28);
+  border-radius: 20px;
+  padding: 34px 38px;
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  box-shadow:
+    0 10px 56px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(167,139,250,0.08) inset;
+}
+
+.ws-overview-frame__left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ws-overview-frame__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-overview-frame__client {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7070a0;
+  letter-spacing: 0.03em;
+}
+
+.ws-overview-frame__sep {
+  color: #3a3a60;
+  font-size: 11px;
+}
+
+.ws-overview-frame__category {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a4a7a;
+}
+
+.ws-overview-frame__name {
+  font-size: 34px;
+  font-weight: 800;
+  color: #e9d5ff;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  padding-right: 36px; /* clearance for close button */
+}
+
+.ws-overview-frame__duration {
+  font-size: 13px;
+  color: #5858a0;
+  letter-spacing: 0.02em;
+}
+
+.ws-overview-frame__state-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ws-overview-frame__phase-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(74,222,128,0.1);
+  color: #4ade80;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.ws-overview-frame__completion-label {
+  font-size: 11px;
+  color: #5050a0;
+  font-style: italic;
+}
+
+.ws-overview-frame__completion-label--done {
+  color: #4ade80;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.ws-overview-frame__action {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* Right side: ring + circles */
+.ws-overview-frame__right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+/* ---------- Completion Ring --------------------------------------------- */
+.ws-completion-ring {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.ws-completion-ring__pct {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ws-completion-ring__val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #e9d5ff;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.ws-completion-ring__sub {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4040a0;
+}
+
+/* Profile circles in overview right */
+.ws-overview-frame__circles {
+  display: flex;
+  align-items: center;
+}
+
+.ws-overview-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid #14142a;
+  flex-shrink: 0;
+  margin-left: -8px;
+  cursor: default;
+}
+
+.ws-overview-frame__circles .ws-overview-circle:first-child {
+  margin-left: 0;
+}
+
+/* ---------- ROW 2 — Child frames row ------------------------------------ */
+.ws-campaign-row2 {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+/* ---------- ROW 3 — Comments + thumbnail strip row ---------------------- */
+.ws-campaign-row3 {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+/* ---------- Child Frame Base (calmer, quieter than overview) ------------ */
+.ws-child-frame2 {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.ws-child-frame2__title {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #404070;
+  margin: 0;
+}
+
+/* ---------- Projects Frame ---------------------------------------------- */
+.ws-projects-frame {
+  flex: 1.6;
+  min-width: 220px;
+}
+
+.ws-projects-frame__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+/* Preview window */
+.ws-projects-preview {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.ws-projects-preview__default {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+}
+
+.ws-projects-preview__icon {
+  font-size: 20px;
+  color: #2e2e50;
+}
+
+.ws-projects-preview__hint {
+  font-size: 10px;
+  color: #3a3a60;
+  letter-spacing: 0.04em;
+}
+
+.ws-projects-preview__hover {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  width: 100%;
+  animation: ephemeralIn 0.15s ease;
+}
+
+.ws-projects-preview__hover-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #c4b5fd;
+  line-height: 1.3;
+}
+
+.ws-projects-preview__hover-meta {
+  font-size: 10.5px;
+  color: #5050a0;
+  letter-spacing: 0.02em;
+}
+
+.ws-projects-preview__hover-bio {
+  font-size: 11px;
+  color: #6060a0;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Project list */
+.ws-projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-projects-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: default;
+  transition: background 0.12s;
+}
+
+.ws-projects-item:hover {
+  background: rgba(167,139,250,0.07);
+}
+
+.ws-projects-item__title {
+  font-size: 12px;
+  color: #9090c0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.12s;
+}
+
+.ws-projects-item:hover .ws-projects-item__title {
+  color: #c4b5fd;
+}
+
+.ws-projects-item__status {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.ws-projects-item__status--draft        { background: rgba(96,96,160,0.1);   color: #7070a8; }
+.ws-projects-item__status--inproduction { background: rgba(96,165,250,0.1);  color: #60a5fa; }
+.ws-projects-item__status--inreview     { background: rgba(245,158,11,0.1);  color: #f59e0b; }
+.ws-projects-item__status--approved     { background: rgba(74,222,128,0.1);  color: #4ade80; }
+
+/* ---------- Analytics Frame --------------------------------------------- */
+.ws-analytics-frame {
+  min-width: 160px;
+}
+
+.ws-analytics-frame__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-analytics-readiness {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ws-analytics-readiness__val {
+  font-size: 26px;
+  font-weight: 700;
+  color: #a78bfa;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.ws-analytics-readiness__lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: #3a3a60;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ws-analytics-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ws-analytics-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.ws-analytics-notes {
+  font-size: 11px;
+  color: #4a4a6a;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.ws-analytics-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* ---------- Notes & Insights Frame -------------------------------------- */
+.ws-notes-frame {
+  min-width: 160px;
+}
+
+.ws-notes-frame__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-notes-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: rgba(167,139,250,0.04);
+  border-left: 2px solid rgba(167,139,250,0.2);
+  border-radius: 0 6px 6px 0;
+}
+
+.ws-notes-item__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a0a0c8;
+}
+
+.ws-notes-item__desc {
+  font-size: 11px;
+  color: #5858a0;
+  line-height: 1.45;
+}
+
+/* ---------- Briefs Frame ------------------------------------------------ */
+.ws-briefs-frame {
+  min-width: 160px;
+}
+
+.ws-briefs-frame__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-briefs-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.ws-briefs-item:last-child {
+  border-bottom: none;
+}
+
+.ws-briefs-item__name {
+  font-size: 11.5px;
+  color: #9090c0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-briefs-item__meta {
+  font-size: 10px;
+  color: #4040a0;
+  letter-spacing: 0.03em;
+}
+
+/* ---------- Comments Frame ---------------------------------------------- */
+.ws-comments-frame {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.07) transparent;
+}
+
+.ws-comments-frame::-webkit-scrollbar {
+  width: 4px;
+}
+.ws-comments-frame::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+}
+
+.ws-comments-frame__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ws-comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.ws-comment-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ws-comment-item__header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ws-comment-item__who {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a0a0c8;
+  flex: 1;
+}
+
+.ws-comment-item__type {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3a3a60;
+}
+
+.ws-comment-item__text {
+  font-size: 12px;
+  color: #7070a0;
+  line-height: 1.55;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* ---------- Thumbnail Strip --------------------------------------------- */
+.ws-thumbnail-strip {
+  display: flex;
+  gap: 10px;
+  flex: 1.5;
+  min-width: 200px;
+  align-items: stretch;
+}
+
+.ws-thumbnail {
+  flex: 1;
+  min-width: 80px;
+  max-width: 160px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ws-thumbnail:hover {
+  border-color: rgba(167,139,250,0.2);
+  background: rgba(167,139,250,0.04);
+}
+
+.ws-thumbnail__icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ws-thumbnail__icon--video { color: #a78bfa; }
+.ws-thumbnail__icon--image { color: #60a5fa; }
+
+.ws-thumbnail__label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #7070a0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.35;
+  text-transform: capitalize;
+}
+
+.ws-thumbnail__meta {
+  font-size: 9.5px;
+  color: #3a3a60;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

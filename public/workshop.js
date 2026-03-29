@@ -504,6 +504,344 @@
     return frame;
   }
 
+  /* =========================================================================
+     PASS 8.2 — Campaign Surface Composition
+     ========================================================================= */
+
+  /* ---------- Completion Ring (SVG) --------------------------------------- */
+  function _makeCompletionRing(percent) {
+    var size = 90;
+    var r    = 34;
+    var cx   = size / 2;
+    var cy   = size / 2;
+    var circ = 2 * Math.PI * r;
+    var dash = (percent / 100) * circ;
+    var strokeColor = percent >= 100 ? "#4ade80" : (percent < 30 ? "#f59e0b" : "#a78bfa");
+
+    var wrap = el("div", "ws-completion-ring");
+
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width",   size);
+    svg.setAttribute("height",  size);
+    svg.setAttribute("viewBox", "0 0 " + size + " " + size);
+    svg.style.cssText = "transform:rotate(-90deg);display:block;flex-shrink:0;";
+
+    var bg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    bg.setAttribute("cx", cx); bg.setAttribute("cy", cy); bg.setAttribute("r", r);
+    bg.setAttribute("fill", "none");
+    bg.setAttribute("stroke", "rgba(167,139,250,0.1)");
+    bg.setAttribute("stroke-width", "6");
+    svg.appendChild(bg);
+
+    var prog = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    prog.setAttribute("cx", cx); prog.setAttribute("cy", cy); prog.setAttribute("r", r);
+    prog.setAttribute("fill", "none");
+    prog.setAttribute("stroke", strokeColor);
+    prog.setAttribute("stroke-width", "6");
+    prog.setAttribute("stroke-dasharray", dash + " " + (circ - dash));
+    prog.setAttribute("stroke-linecap", "round");
+    svg.appendChild(prog);
+
+    wrap.appendChild(svg);
+
+    var pct = el("div", "ws-completion-ring__pct");
+    pct.appendChild(el("span", "ws-completion-ring__val", percent + "%"));
+    pct.appendChild(el("span", "ws-completion-ring__sub", "done"));
+    wrap.appendChild(pct);
+
+    return wrap;
+  }
+
+  /* ---------- ROW 1: Overview Frame --------------------------------------- */
+  function renderCampaignOverviewSurface(campaign, metrics) {
+    var frame = el("div", "ws-overview-frame");
+
+    var closeBtn = el("button", "ws-surface-close", "\u00d7");
+    closeBtn.setAttribute("aria-label", "Clear surfaced result");
+    closeBtn.addEventListener("click", _clearSurface);
+    frame.appendChild(closeBtn);
+
+    /* Left side */
+    var left = el("div", "ws-overview-frame__left");
+
+    var meta = el("div", "ws-overview-frame__meta");
+    meta.appendChild(el("span", "ws-overview-frame__client", campaign.client));
+    meta.appendChild(el("span", "ws-overview-frame__sep", "\u00b7"));
+    meta.appendChild(el("span", "ws-overview-frame__category", campaign.type || "Campaign"));
+    left.appendChild(meta);
+
+    left.appendChild(el("div", "ws-overview-frame__name", campaign.name));
+
+    if (campaign.duration) {
+      left.appendChild(el("div", "ws-overview-frame__duration", campaign.duration));
+    }
+
+    var stateRow = el("div", "ws-overview-frame__state-row");
+    stateRow.appendChild(el("span", "ws-overview-frame__phase-badge", metrics.phase));
+    var isComplete = metrics.phase === "Complete";
+    var completionTxt = isComplete ? "Campaign complete" : "In progress";
+    stateRow.appendChild(el("span",
+      "ws-overview-frame__completion-label" + (isComplete ? " ws-overview-frame__completion-label--done" : ""),
+      completionTxt));
+    left.appendChild(stateRow);
+
+    var action = el("button", "ws-pf-action ws-overview-frame__action", "Open Campaign \u2192");
+    action.addEventListener("click", function () {
+      window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
+    });
+    left.appendChild(action);
+
+    frame.appendChild(left);
+
+    /* Right side: ring + circles */
+    var right = el("div", "ws-overview-frame__right");
+
+    var percent = metrics.total > 0
+      ? Math.round((metrics.approved / metrics.total) * 100)
+      : (metrics.exportReadiness || 0);
+    right.appendChild(_makeCompletionRing(percent));
+
+    var circles = el("div", "ws-overview-frame__circles");
+    MOCK.team.forEach(function (t) {
+      var c = el("div", "ws-overview-circle");
+      c.style.background = t.color;
+      c.textContent = t.initials;
+      c.title = t.name + " \u2014 " + t.status;
+      circles.appendChild(c);
+    });
+    right.appendChild(circles);
+
+    frame.appendChild(right);
+    return frame;
+  }
+
+  /* ---------- ROW 2: Projects Frame --------------------------------------- */
+  function renderProjectsFrame(campaign) {
+    var deliverables = (campaign.production && campaign.production.deliverables) || [];
+    if (!deliverables.length) return null;
+
+    var frame = el("div", "ws-child-frame2 ws-projects-frame");
+    frame.appendChild(el("div", "ws-child-frame2__title", "Projects"));
+
+    var body = el("div", "ws-projects-frame__body");
+
+    /* Preview window */
+    var preview = el("div", "ws-projects-preview");
+    var previewInner = el("div", "ws-projects-preview__default");
+    previewInner.appendChild(el("span", "ws-projects-preview__icon", "\u25b6"));
+    previewInner.appendChild(el("span", "ws-projects-preview__hint", "Hover to preview"));
+    preview.appendChild(previewInner);
+    body.appendChild(preview);
+
+    /* Project list */
+    var list = el("div", "ws-projects-list");
+    deliverables.slice(0, 4).forEach(function (d) {
+      var item = el("div", "ws-projects-item");
+      item.appendChild(el("span", "ws-projects-item__title", d.title));
+      var statusKey = d.status.replace(/\s+/g, "").toLowerCase();
+      item.appendChild(el("span", "ws-projects-item__status ws-projects-item__status--" + statusKey, d.status));
+
+      item.addEventListener("mouseenter", function () {
+        previewInner.innerHTML = "";
+        previewInner.className = "ws-projects-preview__hover";
+        previewInner.appendChild(el("div", "ws-projects-preview__hover-title", d.title));
+        var metaParts = [];
+        if (d.platform) metaParts.push(d.platform);
+        if (d.version)  metaParts.push(d.version);
+        metaParts.push(d.status);
+        previewInner.appendChild(el("div", "ws-projects-preview__hover-meta", metaParts.join(" \u00b7 ")));
+        if (d.bio) {
+          previewInner.appendChild(el("div", "ws-projects-preview__hover-bio", d.bio));
+        }
+      });
+      item.addEventListener("mouseleave", function () {
+        previewInner.innerHTML = "";
+        previewInner.className = "ws-projects-preview__default";
+        previewInner.appendChild(el("span", "ws-projects-preview__icon", "\u25b6"));
+        previewInner.appendChild(el("span", "ws-projects-preview__hint", "Hover to preview"));
+      });
+
+      list.appendChild(item);
+    });
+    body.appendChild(list);
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  /* ---------- ROW 2: Polls / Analytics Frame ------------------------------ */
+  function renderAnalyticsFrame(campaign, metrics) {
+    if (!_hasDelivery(campaign) && !_hasRealAnalytics(campaign)) return null;
+
+    var frame = el("div", "ws-child-frame2 ws-analytics-frame");
+    frame.appendChild(el("div", "ws-child-frame2__title", "Polls / Analytics"));
+
+    var body = el("div", "ws-analytics-frame__body");
+
+    if (_hasDelivery(campaign)) {
+      var readRow = el("div", "ws-analytics-readiness");
+      readRow.appendChild(el("span", "ws-analytics-readiness__val", metrics.exportReadiness + "%"));
+      readRow.appendChild(el("span", "ws-analytics-readiness__lbl", "delivery ready"));
+      body.appendChild(readRow);
+
+      var bar  = el("div", "ws-analytics-bar");
+      var fill = el("div", "ws-analytics-bar__fill");
+      fill.style.width = metrics.exportReadiness + "%";
+      bar.appendChild(fill);
+      body.appendChild(bar);
+
+      if (metrics.exportNotes) {
+        body.appendChild(el("div", "ws-analytics-notes", metrics.exportNotes));
+      }
+    }
+
+    var statsRow = el("div", "ws-analytics-stats");
+    statsRow.appendChild(_makeStatChip(String(metrics.total),    "total"));
+    statsRow.appendChild(_makeStatChip(String(metrics.inReview), "in review"));
+    statsRow.appendChild(_makeStatChip(String(metrics.approved), "approved"));
+    body.appendChild(statsRow);
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  /* ---------- ROW 2: Notes & Insights Frame ------------------------------- */
+  function renderNotesInsightsFrame() {
+    if (!MOCK.blobs || !MOCK.blobs.length) return null;
+
+    var frame = el("div", "ws-child-frame2 ws-notes-frame");
+    frame.appendChild(el("div", "ws-child-frame2__title", "Notes & Insights"));
+
+    var body = el("div", "ws-notes-frame__body");
+    MOCK.blobs.forEach(function (b) {
+      var item = el("div", "ws-notes-item");
+      item.appendChild(el("div", "ws-notes-item__label", b.label));
+      if (b.desc) item.appendChild(el("div", "ws-notes-item__desc", b.desc));
+      body.appendChild(item);
+    });
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  /* ---------- ROW 2: Briefs Frame ----------------------------------------- */
+  function renderBriefsFrame(campaign) {
+    var assets = (campaign.assets && campaign.assets.files) || [];
+    var docs   = assets.filter(function (a) {
+      return a.type === "Document" || a.type === "Brand";
+    });
+    if (!docs.length) return null;
+
+    var frame = el("div", "ws-child-frame2 ws-briefs-frame");
+    frame.appendChild(el("div", "ws-child-frame2__title", "Briefs"));
+
+    var body = el("div", "ws-briefs-frame__body");
+    docs.forEach(function (a) {
+      var item = el("div", "ws-briefs-item");
+      item.appendChild(el("span", "ws-briefs-item__name", a.name));
+      item.appendChild(el("span", "ws-briefs-item__meta", a.type + " \u00b7 " + a.size));
+      body.appendChild(item);
+    });
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  /* ---------- ROW 3: Comments Frame --------------------------------------- */
+  function renderCommentsFrame() {
+    var comments = MOCK.interactions.filter(function (i) {
+      return i.type === "comment" || i.type === "feedback";
+    });
+    if (!comments.length) return null;
+
+    var frame = el("div", "ws-comments-frame");
+    frame.appendChild(el("div", "ws-child-frame2__title", "Comments"));
+
+    var body = el("div", "ws-comments-frame__body");
+    comments.forEach(function (i) {
+      var item = el("div", "ws-comment-item");
+      var header = el("div", "ws-comment-item__header");
+      header.appendChild(avatar(i.initials, i.color, 24));
+      header.appendChild(el("span", "ws-comment-item__who", i.who));
+      header.appendChild(el("span", "ws-comment-item__type", i.type));
+      item.appendChild(header);
+      item.appendChild(el("div", "ws-comment-item__text", i.text));
+      body.appendChild(item);
+    });
+
+    frame.appendChild(body);
+    return frame;
+  }
+
+  /* ---------- ROW 3: Thumbnail Strip -------------------------------------- */
+  function renderThumbnailStrip(campaign) {
+    var assets     = (campaign.assets && campaign.assets.files) || [];
+    var previewable = assets.filter(function (a) {
+      return a.type === "Edit" || a.type === "Raw" || a.type === "Thumbnail";
+    });
+    if (!previewable.length) return null;
+
+    var strip = el("div", "ws-thumbnail-strip");
+    previewable.slice(0, 4).forEach(function (a) {
+      var thumb = el("div", "ws-thumbnail");
+      var ext   = (a.name.split(".").pop() || "").toLowerCase();
+      var isVideo = ext === "mp4" || ext === "mov";
+      var icon = el("div", "ws-thumbnail__icon " + (isVideo ? "ws-thumbnail__icon--video" : "ws-thumbnail__icon--image"));
+      icon.textContent = isVideo ? "\u25b6" : "\u25a0";
+      thumb.appendChild(icon);
+      var cleanName = a.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
+      thumb.appendChild(el("div", "ws-thumbnail__label", cleanName));
+      thumb.appendChild(el("div", "ws-thumbnail__meta", a.type + " \u00b7 " + a.size));
+      strip.appendChild(thumb);
+    });
+
+    return strip;
+  }
+
+  /* ---------- Campaign Surface Composition Orchestrator ------------------- */
+  function _renderCampaignSurface(campaign, metrics) {
+    if (!campaign || !metrics) {
+      var err = el("div", "ws-overview-frame");
+      err.appendChild(el("p", "ws-pf-empty", "No campaign data available."));
+      return err;
+    }
+
+    var surface = el("div", "ws-campaign-surface");
+
+    /* ROW 1 — Overview */
+    surface.appendChild(renderCampaignOverviewSurface(campaign, metrics));
+
+    /* ROW 2 — Child frames */
+    var row2 = el("div", "ws-campaign-row2");
+
+    var pf = renderProjectsFrame(campaign);
+    if (pf) row2.appendChild(pf);
+
+    var af = renderAnalyticsFrame(campaign, metrics);
+    if (af) row2.appendChild(af);
+
+    var nf = renderNotesInsightsFrame();
+    if (nf) row2.appendChild(nf);
+
+    var bf = renderBriefsFrame(campaign);
+    if (bf) row2.appendChild(bf);
+
+    if (row2.children.length > 0) surface.appendChild(row2);
+
+    /* ROW 3 — Comments + thumbnail strip */
+    var row3 = el("div", "ws-campaign-row3");
+
+    var cf = renderCommentsFrame();
+    if (cf) row3.appendChild(cf);
+
+    var ts = renderThumbnailStrip(campaign);
+    if (ts) row3.appendChild(ts);
+
+    if (row3.children.length > 0) surface.appendChild(row3);
+
+    return surface;
+  }
+
   /* ---------- Surface Area Orchestrator ------------------------------------ */
   function _renderSurfaceArea(result) {
     var type     = result.type;
@@ -512,7 +850,13 @@
 
     var wrap = el("div", "ws-surface-area");
 
-    /* -- Primary frame -- */
+    /* Campaign type: new 8.2 spatial composition */
+    if (type === "campaign") {
+      wrap.appendChild(_renderCampaignSurface(campaign, metrics));
+      return wrap;
+    }
+
+    /* Non-campaign types: legacy primary + child frame layout */
     var primary = el("div", "ws-primary-frame");
 
     var closeBtn = el("button", "ws-surface-close", "\u00d7");
@@ -520,26 +864,16 @@
     closeBtn.addEventListener("click", _clearSurface);
     primary.appendChild(closeBtn);
 
-    if (type === "campaign")  _buildCampaignPrimaryFrame(primary, campaign);
-    if (type === "company")   _buildCompanyPrimaryFrame(primary, campaign);
-    if (type === "analytics") _buildAnalyticsPrimaryFrame(primary, campaign);
+    var primaryBuilt = false;
+    if (type === "company")   { _buildCompanyPrimaryFrame(primary, campaign);   primaryBuilt = true; }
+    if (type === "analytics") { _buildAnalyticsPrimaryFrame(primary, campaign); primaryBuilt = true; }
 
-    wrap.appendChild(primary);
+    if (primaryBuilt) wrap.appendChild(primary);
 
-    /* -- Child frames -- */
-    var childWrap = el("div", "ws-child-frames");
+    var childWrap  = el("div", "ws-child-frames");
     var childCount = 0;
 
-    if (type === "campaign") {
-      if (_hasDeliverables(campaign) && childCount < 3) {
-        childWrap.appendChild(_buildDeliverablesChild(campaign, metrics));
-        childCount++;
-      }
-      if (_hasDelivery(campaign) && childCount < 3) {
-        childWrap.appendChild(_buildDeliveryChild(campaign, metrics));
-        childCount++;
-      }
-    } else if (type === "company") {
+    if (type === "company") {
       if (_hasPlatforms(campaign) && childCount < 3) {
         childWrap.appendChild(_buildPlatformsChild(campaign));
         childCount++;
@@ -636,9 +970,14 @@
     // Minimal Workshop page title
     container.appendChild(el("h1", "ws-page-title", "Workshop"));
 
-    const layout = el("div", _surfaceState.isSurfaceActive
-      ? "ws-layout ws-layout--surface-active"
-      : "ws-layout");
+    var _layoutCls = "ws-layout";
+    if (_surfaceState.isSurfaceActive) {
+      _layoutCls += " ws-layout--surface-active";
+      if (_surfaceState.currentSurfaceResult && _surfaceState.currentSurfaceResult.type === "campaign") {
+        _layoutCls += " ws-layout--campaign-surface";
+      }
+    }
+    const layout = el("div", _layoutCls);
     container.appendChild(layout);
 
     // 1 — Team circles (top-right of main content area)
