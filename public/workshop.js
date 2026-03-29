@@ -188,6 +188,69 @@
     return null;
   }
 
+  /* ---------- Prompt Classification (Pass 8.3) ---------------------------- */
+
+  /**
+   * classifyPrompt(prompt)
+   * Returns { intent, scope } using simple keyword heuristics.
+   *
+   * intent: "retrieve" | "summary" | "compare" | "action"
+   * scope:  "asset" | "deliverable" | "campaign" | "client" | "unknown"
+   */
+  function classifyPrompt(prompt) {
+    var input = (prompt || "").toLowerCase().trim();
+    var intent = "retrieve";
+    var scope  = "unknown";
+
+    // — Intent detection
+    if (/\b(show|what|summary|overview|recap|tell me|did we)\b/.test(input)) {
+      intent = "summary";
+    } else if (/\b(find|pull|get|fetch|search)\b/.test(input)) {
+      intent = "retrieve";
+    } else if (/\b(compare|vs|versus)\b/.test(input)) {
+      intent = "compare";
+    } else if (/\b(create|add|update|edit|change)\b/.test(input)) {
+      intent = "action";
+    }
+
+    // — Scope detection (order matters: most specific first)
+    if (/\b(asset|thumbnail|image|file|photo|raw)\b/.test(input)) {
+      scope = "asset";
+    } else if (/\b(deliverable|cut|reel|spot|intro|outro|edit)\b/.test(input)) {
+      scope = "deliverable";
+    } else if (/\b(client|company|brand)\b/.test(input)) {
+      scope = "client";
+    } else if (/\b(campaign|analytics|stats|performance)\b/.test(input)) {
+      scope = "campaign";
+    } else {
+      // No explicit keyword — check for campaign name match
+      var campaigns = store() ? store().getCampaigns() : [];
+      var nameMatch = _findCampaignInInput(input, campaigns);
+      if (nameMatch) {
+        scope = "campaign";
+      }
+    }
+
+    // Campaign name match with no explicit intent → default to summary
+    if (scope === "campaign" && intent === "retrieve") {
+      intent = "summary";
+    }
+
+    return { intent: intent, scope: scope };
+  }
+
+  /**
+   * selectTemplate(intent, scope)
+   * Maps classification to a template name.
+   */
+  function selectTemplate(intent, scope) {
+    if (scope === "campaign" && intent === "summary") return "campaign_summary";
+    if (scope === "deliverable")                       return "deliverable_summary";
+    if (scope === "asset")                             return "asset_recall";
+    if (scope === "client")                            return "client_summary";
+    return "fallback";
+  }
+
   /* ---------- Data Availability Checks ------------------------------------- */
   function _hasRealAnalytics(campaign) {
     if (!campaign) return false;
@@ -806,13 +869,13 @@
       return err;
     }
 
-    var surface = el("div", "ws-campaign-surface");
+    var surface = el("div", "ws-campaign-surface ws-surface");
 
     /* ROW 1 — Overview */
     surface.appendChild(renderCampaignOverviewSurface(campaign, metrics));
 
-    /* ROW 2 — Child frames */
-    var row2 = el("div", "ws-campaign-row2");
+    /* ROW 2 — Child frames (2×2 grid) */
+    var row2 = el("div", "ws-campaign-row2 ws-surface-grid");
 
     var pf = renderProjectsFrame(campaign);
     if (pf) row2.appendChild(pf);
@@ -829,7 +892,7 @@
     if (row2.children.length > 0) surface.appendChild(row2);
 
     /* ROW 3 — Comments + thumbnail strip */
-    var row3 = el("div", "ws-campaign-row3");
+    var row3 = el("div", "ws-campaign-row3 ws-surface-row-bottom");
 
     var cf = renderCommentsFrame();
     if (cf) row3.appendChild(cf);
@@ -842,66 +905,220 @@
     return surface;
   }
 
-  /* ---------- Surface Area Orchestrator ------------------------------------ */
+  /* =========================================================================
+     PASS 8.3 — Template Engine: named renderers + surface pipeline
+     ========================================================================= */
+
+  /** Template: campaign_summary — full spatial campaign view */
+  function renderCampaignSummarySurface(campaign, metrics) {
+    return _renderCampaignSurface(campaign, metrics);
+  }
+
+  /** Template: client_summary — client / company overview */
+  function renderClientSurface(campaign) {
+    var surface = el("div", "ws-campaign-surface ws-surface");
+
+    var overview = el("div", "ws-overview-frame ws-surface-overview");
+
+    var closeBtn = el("button", "ws-surface-close", "\u00d7");
+    closeBtn.setAttribute("aria-label", "Clear surfaced result");
+    closeBtn.addEventListener("click", _clearSurface);
+    overview.appendChild(closeBtn);
+
+    var left = el("div", "ws-overview-frame__left");
+
+    if (campaign) {
+      var meta = el("div", "ws-overview-frame__meta");
+      meta.appendChild(el("span", "ws-overview-frame__client", "Client"));
+      meta.appendChild(el("span", "ws-overview-frame__sep", "\u00b7"));
+      meta.appendChild(el("span", "ws-overview-frame__category", campaign.type || "Brand"));
+      left.appendChild(meta);
+
+      left.appendChild(el("div", "ws-overview-frame__name", campaign.client));
+
+      if (campaign.campaignGoals) {
+        var goalRow = el("div", "ws-pf-field");
+        goalRow.appendChild(el("span", "ws-pf-field__label", "Goals"));
+        goalRow.appendChild(el("span", "ws-pf-field__val", campaign.campaignGoals));
+        left.appendChild(goalRow);
+      }
+      if (campaign.audience) {
+        var audRow = el("div", "ws-pf-field");
+        audRow.appendChild(el("span", "ws-pf-field__label", "Audience"));
+        audRow.appendChild(el("span", "ws-pf-field__val", campaign.audience));
+        left.appendChild(audRow);
+      }
+      if (campaign.location) {
+        var locRow = el("div", "ws-pf-field");
+        locRow.appendChild(el("span", "ws-pf-field__label", "Location"));
+        locRow.appendChild(el("span", "ws-pf-field__val", campaign.location));
+        left.appendChild(locRow);
+      }
+
+      var action = el("button", "ws-pf-action ws-overview-frame__action", "Open Campaign \u2192");
+      action.addEventListener("click", function () {
+        window.AMEBA && window.AMEBA.navigateToPage && window.AMEBA.navigateToPage("campaign");
+      });
+      left.appendChild(action);
+    } else {
+      left.appendChild(el("p", "ws-pf-empty", "No client data available."));
+    }
+
+    overview.appendChild(left);
+
+    if (campaign && _hasPlatforms(campaign)) {
+      var right = el("div", "ws-overview-frame__right");
+      var pills = el("div", "ws-cf-pills");
+      campaign.platforms.forEach(function (p) {
+        pills.appendChild(el("span", "ws-cf-pill ws-cf-pill--platform", p));
+      });
+      right.appendChild(pills);
+      overview.appendChild(right);
+    }
+
+    surface.appendChild(overview);
+    return surface;
+  }
+
+  /** Template: deliverable_summary — deliverable list with preview */
+  function renderDeliverableSurface(campaign, metrics) {
+    var surface = el("div", "ws-campaign-surface ws-surface");
+
+    var overview = el("div", "ws-overview-frame ws-surface-overview");
+
+    var closeBtn = el("button", "ws-surface-close", "\u00d7");
+    closeBtn.setAttribute("aria-label", "Clear surfaced result");
+    closeBtn.addEventListener("click", _clearSurface);
+    overview.appendChild(closeBtn);
+
+    var left = el("div", "ws-overview-frame__left");
+
+    if (campaign) {
+      var meta = el("div", "ws-overview-frame__meta");
+      meta.appendChild(el("span", "ws-overview-frame__client", campaign.client));
+      meta.appendChild(el("span", "ws-overview-frame__sep", "\u00b7"));
+      meta.appendChild(el("span", "ws-overview-frame__category", "Deliverables"));
+      left.appendChild(meta);
+      left.appendChild(el("div", "ws-overview-frame__name", campaign.name));
+      if (metrics) {
+        left.appendChild(el("div", "ws-overview-frame__duration",
+          metrics.total + " deliverables \u00b7 " + metrics.phase));
+      }
+    } else {
+      left.appendChild(el("p", "ws-pf-empty", "No deliverable data available."));
+    }
+
+    overview.appendChild(left);
+    surface.appendChild(overview);
+
+    if (campaign) {
+      var pf = renderProjectsFrame(campaign);
+      if (pf) {
+        var row = el("div", "ws-campaign-row2 ws-surface-grid");
+        row.appendChild(pf);
+        surface.appendChild(row);
+      }
+    }
+
+    return surface;
+  }
+
+  /** Template: asset_recall — asset / file overview */
+  function renderAssetSurface(campaign) {
+    var surface = el("div", "ws-campaign-surface ws-surface");
+
+    var overview = el("div", "ws-overview-frame ws-surface-overview");
+
+    var closeBtn = el("button", "ws-surface-close", "\u00d7");
+    closeBtn.setAttribute("aria-label", "Clear surfaced result");
+    closeBtn.addEventListener("click", _clearSurface);
+    overview.appendChild(closeBtn);
+
+    var left = el("div", "ws-overview-frame__left");
+
+    if (campaign) {
+      var meta = el("div", "ws-overview-frame__meta");
+      meta.appendChild(el("span", "ws-overview-frame__client", campaign.client));
+      meta.appendChild(el("span", "ws-overview-frame__sep", "\u00b7"));
+      meta.appendChild(el("span", "ws-overview-frame__category", "Assets"));
+      left.appendChild(meta);
+      left.appendChild(el("div", "ws-overview-frame__name", campaign.name));
+      var assets = (campaign.assets && campaign.assets.files) || [];
+      left.appendChild(el("div", "ws-overview-frame__duration",
+        assets.length + " asset" + (assets.length !== 1 ? "s" : "") + " in library"));
+    } else {
+      left.appendChild(el("p", "ws-pf-empty", "No asset data available."));
+    }
+
+    overview.appendChild(left);
+    surface.appendChild(overview);
+
+    if (campaign) {
+      var ts = renderThumbnailStrip(campaign);
+      if (ts) {
+        var row = el("div", "ws-campaign-row3 ws-surface-row-bottom");
+        row.appendChild(ts);
+        surface.appendChild(row);
+      }
+    }
+
+    return surface;
+  }
+
+  /** Template: fallback — no usable result */
+  function renderFallbackSurface() {
+    var surface = el("div", "ws-campaign-surface ws-surface");
+
+    var overview = el("div", "ws-overview-frame ws-surface-overview");
+
+    var closeBtn = el("button", "ws-surface-close", "\u00d7");
+    closeBtn.setAttribute("aria-label", "Clear surfaced result");
+    closeBtn.addEventListener("click", _clearSurface);
+    overview.appendChild(closeBtn);
+
+    var left = el("div", "ws-overview-frame__left");
+    left.appendChild(el("div", "ws-overview-frame__name", "No result found"));
+    left.appendChild(el("div", "ws-overview-frame__duration",
+      "Try refining your search or use a different keyword."));
+    overview.appendChild(left);
+    surface.appendChild(overview);
+    return surface;
+  }
+
+  /* ---------- Surface Area Orchestrator (Pass 8.3 — template-routed) ------- */
   function _renderSurfaceArea(result) {
+    var template = result.template;
     var type     = result.type;
     var campaign = result.campaign;
     var metrics  = campaign ? getCampaignMetrics(campaign.id) : null;
 
     var wrap = el("div", "ws-surface-area");
 
-    /* Campaign type: new 8.2 spatial composition */
-    if (type === "campaign") {
-      wrap.appendChild(_renderCampaignSurface(campaign, metrics));
+    // Route by template name first (Pass 8.3 pipeline)
+    if (template === "campaign_summary" || type === "campaign") {
+      wrap.appendChild(renderCampaignSummarySurface(campaign, metrics));
+      return wrap;
+    }
+    if (template === "client_summary" || type === "company") {
+      wrap.appendChild(renderClientSurface(campaign));
+      return wrap;
+    }
+    if (template === "deliverable_summary") {
+      wrap.appendChild(renderDeliverableSurface(campaign, metrics));
+      return wrap;
+    }
+    if (template === "asset_recall") {
+      wrap.appendChild(renderAssetSurface(campaign));
+      return wrap;
+    }
+    // Analytics queries → campaign summary (analytics frame included within)
+    if (type === "analytics") {
+      wrap.appendChild(renderCampaignSummarySurface(campaign, metrics));
       return wrap;
     }
 
-    /* Non-campaign types: legacy primary + child frame layout */
-    var primary = el("div", "ws-primary-frame");
-
-    var closeBtn = el("button", "ws-surface-close", "\u00d7");
-    closeBtn.setAttribute("aria-label", "Clear surfaced result");
-    closeBtn.addEventListener("click", _clearSurface);
-    primary.appendChild(closeBtn);
-
-    var primaryBuilt = false;
-    if (type === "company")   { _buildCompanyPrimaryFrame(primary, campaign);   primaryBuilt = true; }
-    if (type === "analytics") { _buildAnalyticsPrimaryFrame(primary, campaign); primaryBuilt = true; }
-
-    if (primaryBuilt) wrap.appendChild(primary);
-
-    var childWrap  = el("div", "ws-child-frames");
-    var childCount = 0;
-
-    if (type === "company") {
-      if (_hasPlatforms(campaign) && childCount < 3) {
-        childWrap.appendChild(_buildPlatformsChild(campaign));
-        childCount++;
-      }
-      if (campaign && childCount < 3) {
-        childWrap.appendChild(_buildCampaignContextChild(campaign, metrics));
-        childCount++;
-      }
-      if (_hasRelevantComments() && childCount < 3) {
-        var relevant = MOCK.interactions.filter(function (i) {
-          return i.type === "comment" || i.type === "feedback";
-        });
-        childWrap.appendChild(_buildCommentsChild(relevant));
-        childCount++;
-      }
-    } else if (type === "analytics") {
-      if (_hasDelivery(campaign) && childCount < 3) {
-        childWrap.appendChild(_buildDeliveryItemsChild(campaign, metrics));
-        childCount++;
-      }
-      if (_hasDeliverables(campaign) && childCount < 3) {
-        childWrap.appendChild(_buildStatusSummaryChild(campaign, metrics));
-        childCount++;
-      }
-    }
-
-    if (childCount > 0) wrap.appendChild(childWrap);
-
+    // Fallback
+    wrap.appendChild(renderFallbackSurface());
     return wrap;
   }
 
@@ -973,7 +1190,15 @@
     var _layoutCls = "ws-layout";
     if (_surfaceState.isSurfaceActive) {
       _layoutCls += " ws-layout--surface-active";
-      if (_surfaceState.currentSurfaceResult && _surfaceState.currentSurfaceResult.type === "campaign") {
+      var _sr = _surfaceState.currentSurfaceResult;
+      var _isCampSurface = _sr && (
+        _sr.type     === "campaign"        ||
+        _sr.template === "campaign_summary" ||
+        _sr.template === "client_summary"   ||
+        _sr.template === "deliverable_summary" ||
+        _sr.template === "asset_recall"
+      );
+      if (_isCampSurface) {
         _layoutCls += " ws-layout--campaign-surface";
       }
     }
@@ -1299,11 +1524,26 @@
     function doPrompt() {
       const val = promptInput.value.trim();
       if (!val) return;
-      const result = _matchPrompt(val);
-      if (result && result.campaign) {
+
+      // Pass 8.3: classify intent + scope, select template
+      const classification = classifyPrompt(val);
+      var template = selectTemplate(classification.intent, classification.scope);
+
+      // Data lookup via existing matcher
+      const matchResult = _matchPrompt(val);
+      const campaign    = matchResult ? matchResult.campaign : null;
+
+      if (campaign) {
+        // If scope was unknown but we found a campaign, default to campaign_summary
+        if (template === "fallback") template = "campaign_summary";
+
         _surfaceState.currentPrompt        = val;
-        _surfaceState.currentSurfaceResult = result;
-        _surfaceState.isSurfaceActive      = true;
+        _surfaceState.currentSurfaceResult = {
+          type:     matchResult.type,
+          template: template,
+          campaign: campaign
+        };
+        _surfaceState.isSurfaceActive = true;
         promptInput.value = "";
         promptInput.classList.remove("is-no-match");
         // Re-render workshop center
